@@ -103,3 +103,4 @@ Thumbs.db
 # Backend specific
 backend/logs/
 backend/uploads/
+.cursor

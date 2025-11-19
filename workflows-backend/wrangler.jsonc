@@ -1,0 +1,36 @@
+/**
+ * For more details on how to configure Wrangler, refer to:
+ * https://developers.cloudflare.com/workers/wrangler/configuration/
+ */
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "workflows-backend",
+	"main": "src/index.ts",
+	"compatibility_date": "2025-10-16",
+	"assets": {
+		"directory": "./public"
+	},
+	"kv_namespaces": [
+		{
+			"binding": "WORKFLOWS_KV",
+			"id": "your-kv-namespace-id",
+			"preview_id": "your-preview-kv-namespace-id"
+		}
+	],
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "workflows-db",
+			"database_id": "your-d1-database-id",
+			"migrations_dir": "src/db/migrations"
+		}
+	],
+	"observability": {
+		"enabled": true
+	},
+	"vars": {
+		"CF_ACCOUNT_ID": "c714a393dbfabeb858a7dea729b5e8f8",
+		"AI_GATEWAY_URL": "https://gateway.ai.cloudflare.com/v1/c714a393dbfabeb858a7dea729b5e8f8/cloudflare-blogs-rag/google-ai-studio/v1/models/gemini-2.0-flash:generateContent",
+		"AI_GATEWAY_TOKEN": "AIzaSyCLB3eP_aH7p7eWXtl4HAB-Gc-e92RoLak"
+	}
+}

@@ -1,0 +1,28 @@
+{
+	"name": "workflows-backend",
+	"version": "1.0.0",
+	"description": "Backend API for Cloudflare Workflows Dashboard using Hono",
+	"private": true,
+	"scripts": {
+		"deploy": "wrangler deploy",
+		"dev": "wrangler dev",
+		"start": "wrangler dev",
+		"cf-typegen": "wrangler types",
+		"build": "tsc",
+		"type-check": "tsc --noEmit"
+	},
+	"dependencies": {
+		"cloudflare": "^5.2.0",
+		"hono": "^4.0.0",
+		"json-logic-js": "^2.0.5",
+		"zod": "^3.25.76",
+		"zod-to-json-schema": "^3.24.6"
+	},
+	"devDependencies": {
+		"@cloudflare/workers-types": "^4.20231218.0",
+		"@types/node": "^20.19.21",
+
+		"typescript": "^5.5.2",
+		"wrangler": "^4.42.2"
+	}
+}

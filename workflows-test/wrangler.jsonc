@@ -1,0 +1,104 @@
+// <docs-tag name="workflows-wrangler.json">
+//$schema: "node_modules/wrangler/config-schema.json"
+/**
+ * For more details on how to configure Wrangler, refer to:
+ * https://developers.cloudflare.com/workers/wrangler/configuration/
+ */
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "workflows-test",
+	"main": "src/examples.js",
+	"compatibility_date": "2025-10-22",
+	"observability": {
+		"enabled": true
+	},
+	/**
+	 * Smart Placement
+	 * Docs: https://developers.cloudflare.com/workers/configuration/smart-placement/#smart-placement
+	 */
+	// "placement": { "mode": "smart" }
+	/**
+	 * Bindings
+	 * Bindings allow your Worker to interact with resources on the Cloudflare Developer Platform, including
+	 * databases, object storage, AI inference, real-time communication and more.
+	 * https://developers.cloudflare.com/workers/runtime-apis/bindings/
+	 */
+	"kv_namespaces": [
+		{
+			"binding": "MY_KV",
+			"id": "b0aa8eeaf9224d139050dfeed0c639d5"
+		},
+		{
+			"binding": "MY_KV_NAMESPACE",
+			"id": "238bc8d74af14bf0bd3c0d900ec8735b"
+		}
+	],
+	"d1_databases": [
+		{
+			"binding": "workflows_test_db",
+			"database_name": "workflows-test-db",
+			"database_id": "af62a0bf-0549-4dff-8eb5-59fc30b759bf"
+		},
+		{
+			"binding": "workflows_test_db_secondary",
+			"database_name": "workflows-test-db-secondary",
+			"database_id": "edac1892-557c-417f-93af-dbbe09b22375"
+		}
+	],
+	/**
+	 * Environment Variables
+	 * https://developers.cloudflare.com/workers/wrangler/configuration/#environment-variables
+	 */
+	"vars": {
+		"ENVIRONMENT": "development",
+		"LOG_LEVEL": "debug"
+	},
+	"durable_objects": {
+		"bindings": [
+			{
+				"class_name": "GeneratedworkflowWorkflowMCP",
+				"name": "MCP_OBJECT"
+			}
+		]
+	},
+	"migrations": [
+		{
+			"new_sqlite_classes": [
+				"GeneratedworkflowWorkflowMCP"
+			],
+			"tag": "V1"
+		}
+	],
+
+	/**
+	 * Note: Use secrets to store sensitive data.
+	 * https://developers.cloudflare.com/workers/configuration/secrets/
+	 */
+	/**
+	 * Static Assets
+	 * https://developers.cloudflare.com/workers/static-assets/binding/
+	 */
+	// "assets": { "directory": "./public/", "binding": "ASSETS" }
+	/**
+	 * Service Bindings (communicate between multiple Workers)
+	 * https://developers.cloudflare.com/workers/wrangler/configuration/#service-bindings
+	 */
+	// "services": [{ "binding": "MY_SERVICE", "service": "my-service" }]
+	// <docs-tag name="workflows-binding-wrangler.json">
+	"workflows": [
+		{
+			// name of your workflow
+			"name": "GeneratedworkflowWorkflow",
+			// binding name env.MY_WORKFLOW
+			"binding": "GENERATEDWORKFLOW_WORKFLOW",
+			// this is class that extends the Workflow class in src/index.ts
+			"class_name": "GeneratedworkflowWorkflow"
+		}
+	],
+	"compatibility_flags": [
+		"nodejs_compat"
+	],
+
+	// </docs-tag name="workflows-binding-wrangler.json">
+}
+// </docs-tag name="workflows-wrangler.json">

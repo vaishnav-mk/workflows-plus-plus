@@ -1,0 +1,393 @@
+@import "tailwindcss";
+
+:root {
+  /* Base colors */
+  --background: #ffffff;
+  --foreground: #171717;
+  
+  /* Header colors */
+  --header-bg: #3b82f6;
+  --header-text: #ffffff;
+  --header-tab-bg: #2563eb;
+  
+  /* Node colors - all nodes use consistent styling */
+  --node-bg: #ffffff;
+  --node-border: #e5e7eb;
+  --node-text: #111827;
+  
+  /* Edge colors */
+  --edge-normal: #6b7280;
+  --edge-fallback: #ef4444;
+  --edge-true: #22c55e;
+  --edge-false: #ef4444;
+  
+  /* Panel colors */
+  --panel-bg: #ffffff;
+  --panel-border: #e5e7eb;
+  --panel-text: #374151;
+  --panel-text-muted: #6b7280;
+  
+  /* Button colors */
+  --button-primary: #3b82f6;
+  --button-primary-hover: #2563eb;
+  --button-secondary: #6b7280;
+  --button-secondary-hover: #4b5563;
+  
+  /* Grid background */
+  --grid-bg: #f8f8f8;
+  --grid-dots: #d0d0d0;
+  
+  /* Footer */
+  --footer-bg: #374151;
+  --footer-text: #9ca3af;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+    --sidebar-bg: #1a1a1a;
+    --header-bg: #2a2a2a;
+    --card-bg: #1a1a1a;
+    --border-color: #333333;
+    --text-muted: #999999;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  margin: 0;
+  padding: 0;
+}
+
+/* React Flow CSS Variables */
+.react-flow {
+  --xy-node-background-color-default: #ffffff;
+  --xy-node-border-default: 1px solid #e5e7eb;
+  --xy-node-boxshadow-hover-default: 0 2px 4px rgba(0, 0, 0, 0.08);
+  --xy-node-boxshadow-selected-default: 0 0 0 2px #3b82f6;
+  --xy-handle-background-color-default: #3b82f6;
+  --xy-handle-border-color-default: #ffffff;
+  --xy-edge-stroke-default: #6b7280;
+  --xy-edge-stroke-width-default: 2;
+  --xy-edge-stroke-selected-default: #3b82f6;
+  --xy-background-pattern-dots-color-default: #d0d0d0;
+}
+
+/* React Flow Node Base Styles */
+.react-flow__node {
+  font-family: var(--font-geist-sans);
+}
+
+.react-flow__node-default {
+  background: var(--xy-node-background-color-default);
+  border: var(--xy-node-border-default);
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  transition: all 0.15s ease;
+}
+
+.react-flow__node-default:hover {
+  box-shadow: var(--xy-node-boxshadow-hover-default);
+}
+
+.react-flow__node.selected .react-flow__node-default {
+  box-shadow: var(--xy-node-boxshadow-selected-default);
+  border-color: #3b82f6;
+}
+
+/* Ensure focus ring is visible */
+.react-flow__node.selected {
+  box-shadow: 0 0 0 2px #3b82f6;
+  border-radius: 8px;
+}
+
+/* Handle Styles */
+.react-flow__handle {
+  background: var(--xy-handle-background-color-default);
+  border: 2px solid var(--xy-handle-border-color-default);
+  border-radius: 50%;
+  width: 8px;
+  height: 8px;
+}
+
+.react-flow__handle.connecting {
+  background: #22c55e;
+}
+
+.react-flow__handle.valid {
+  background: #22c55e;
+}
+
+.react-flow__edge-default {
+  stroke: var(--edge-normal);
+  stroke-width: 2;
+}
+
+.react-flow__edge-default.selected {
+  stroke: var(--button-primary);
+  stroke-width: 3;
+}
+
+/* Custom node styles - all nodes use consistent styling */
+.node-start,
+.node-budget,
+.node-split,
+.node-model-green,
+.node-model-blue,
+.node-end {
+  background: var(--node-bg);
+  border: 1px solid var(--node-border);
+  color: var(--node-text);
+}
+
+/* Node labels (colored badges above nodes) - matching image colors */
+.node-label-budget {
+  background: #dc2626;
+  color: white;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.node-label-split {
+  background: #2563eb;
+  color: white;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.node-label-start {
+  background: #059669;
+  color: white;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.node-label-end {
+  background: #6b7280;
+  color: white;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.node-label-model {
+  background: #7c3aed;
+  color: white;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.node-label-kv {
+  background: #059669;
+  color: white;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* Close button styling - Cloudflare style */
+.node-close-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 18px;
+  height: 18px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.12s ease;
+  opacity: 0.7;
+  line-height: 1;
+}
+
+.node-close-btn:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #475569;
+  opacity: 1;
+}
+
+/* Brain button styling - same size as close button */
+.node-brain-btn {
+  position: absolute;
+  top: 30px;
+  right: 8px;
+  width: 18px;
+  height: 18px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.12s ease;
+  opacity: 0.7;
+  line-height: 1;
+  z-index: 10;
+}
+
+.node-brain-btn:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #475569;
+  opacity: 1;
+}
+
+/* Header styles */
+.header-bar {
+  background: var(--header-bg);
+  color: var(--header-text);
+}
+
+.header-tab {
+  background: var(--header-tab-bg);
+  color: var(--header-text);
+}
+
+/* Panel styles */
+.settings-panel {
+  background: var(--panel-bg);
+  border-left: 1px solid var(--panel-border);
+  color: var(--panel-text);
+}
+
+/* Grid background */
+.workflow-canvas {
+  background: var(--grid-bg);
+  height: 100%;
+  min-height: 600px;
+}
+
+/* ReactFlow container height */
+.react-flow {
+  height: 100% !important;
+  min-height: 600px !important;
+}
+
+/* Footer styles */
+.footer-bar {
+  background: var(--footer-bg);
+  color: var(--footer-text);
+}
+
+.react-flow__controls {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.react-flow__controls-button {
+  background: transparent;
+  border: none;
+  color: var(--foreground);
+}
+
+.react-flow__controls-button:hover {
+  background: #f5f5f5;
+}
+
+.react-flow__minimap {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Settings panel scrollbar */
+.settings-panel::-webkit-scrollbar {
+  width: 6px;
+}
+
+.settings-panel::-webkit-scrollbar-track {
+  background: #f8f9fa;
+}
+
+.settings-panel::-webkit-scrollbar-thumb {
+  background: #dee2e6;
+  border-radius: 3px;
+}
+
+.settings-panel::-webkit-scrollbar-thumb:hover {
+  background: #adb5bd;
+}
