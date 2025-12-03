@@ -7,6 +7,7 @@
 	"name": "workflows-backend",
 	"main": "src/index.ts",
 	"compatibility_date": "2025-10-16",
+	"compatibility_flags": ["nodejs_compat"],
 	"assets": {
 		"directory": "./public"
 	},
@@ -27,6 +28,22 @@
 	],
 	"observability": {
 		"enabled": true
+	},
+	"rules": [
+		{
+			"type": "Data",
+			"globs": ["bundles/**"],
+			"fallthrough": true
+		}
+	],
+	"durable_objects": {
+		"bindings": [
+			{
+				"name": "DEPLOYMENT_DO",
+				"class_name": "DeploymentDurableObject",
+				"script_name": "workflows-backend"
+			}
+		]
 	},
 	"vars": {
 		"CF_ACCOUNT_ID": "c714a393dbfabeb858a7dea729b5e8f8",
