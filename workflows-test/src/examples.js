@@ -208,19 +208,19 @@ export default {
       return GeneratedworkflowWorkflowMCP.serve('/mcp').fetch(req, env, ctx);
     }
     
-    const instanceId = url.searchParams.get("instanceId");
+    // const instanceId = url.searchParams.get("instanceId");
 
-    if (instanceId) {
-      const instance = await env.GENERATEDWORKFLOW_WORKFLOW.get(instanceId);
-      return Response.json({
-        status: await instance.status(),
-      });
-    }
+    // if (instanceId) {
+    //   const instance = await env.GENERATEDWORKFLOW_WORKFLOW.get(instanceId);
+    //   return Response.json({
+    //     status: await instance.status(),
+    //   });
+    // }
 
-    const newId = await crypto.randomUUID();
-    let instance = await env.GENERATEDWORKFLOW_WORKFLOW.create({
-      id: newId
-    });
+    // const newId = await crypto.randomUUID();
+    // let instance = await env.GENERATEDWORKFLOW_WORKFLOW.create({
+    //   id: newId
+    // });
     return Response.json({
       id: instance.id,
       details: await instance.status()

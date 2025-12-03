@@ -7,10 +7,13 @@
 {
 	"$schema": "node_modules/wrangler/config-schema.json",
 	"name": "workflows-test",
-	"main": "src/examples.js",
+	"main": "src/f1-mcp.js",
 	"compatibility_date": "2025-10-22",
 	"observability": {
 		"enabled": true
+	},
+	"ai": {
+		"binding": "AI"
 	},
 	/**
 	 * Smart Placement
@@ -56,7 +59,7 @@
 	"durable_objects": {
 		"bindings": [
 			{
-				"class_name": "GeneratedworkflowWorkflowMCP",
+				"class_name": "SatisfiedRiverBraveWorkflowMCP",
 				"name": "MCP_OBJECT"
 			}
 		]
@@ -64,7 +67,7 @@
 	"migrations": [
 		{
 			"new_sqlite_classes": [
-				"GeneratedworkflowWorkflowMCP"
+				"SatisfiedRiverBraveWorkflowMCP"
 			],
 			"tag": "V1"
 		}
@@ -88,11 +91,11 @@
 	"workflows": [
 		{
 			// name of your workflow
-			"name": "GeneratedworkflowWorkflow",
+			"name": "SatisfiedRiverBraveWorkflow",
 			// binding name env.MY_WORKFLOW
-			"binding": "GENERATEDWORKFLOW_WORKFLOW",
+			"binding": "SATISFIEDRIVERBRAVEWORKFLOW_WORKFLOW",
 			// this is class that extends the Workflow class in src/index.ts
-			"class_name": "GeneratedworkflowWorkflow"
+			"class_name": "SatisfiedRiverBraveWorkflow"
 		}
 	],
 	"compatibility_flags": [
