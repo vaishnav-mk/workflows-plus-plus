@@ -34,18 +34,31 @@ export function TemplateInput({
   nodeId
 }: TemplateInputProps) {
   const { nodes } = useWorkflowStore();
-  const { getNodeByType } = useNodeRegistry();
+  const { catalog, getNodeByType } = useNodeRegistry();
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [suggestions, setSuggestions] = useState<Array<{ value: string; display: string }>>([]);
   const [cursorPosition, setCursorPosition] = useState(0);
   const [isEditing, setIsEditing] = useState(false);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [nodeDefCache, setNodeDefCache] = useState<Map<string, any>>(new Map());
   const inputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Get available nodes (excluding current node)
   const availableNodes = nodes.filter(n => n.id !== nodeId);
+
+  // Helper to get node definition (with caching)
+  const getCachedNodeDef = async (nodeType: string) => {
+    if (nodeDefCache.has(nodeType)) {
+      return nodeDefCache.get(nodeType);
+    }
+    const nodeDef = await getNodeByType(nodeType);
+    if (nodeDef) {
+      setNodeDefCache(prev => new Map(prev).set(nodeType, nodeDef));
+    }
+    return nodeDef;
+  };
 
   // Parse value into segments (text and templates)
   const parseValue = (val: string): TemplateSegment[] => {
@@ -97,38 +110,14 @@ export function TemplateInput({
   const resolveNodeName = (nodeId: string): string => {
     const node = availableNodes.find(n => n.id === nodeId);
     if (node) {
-      return node.data?.label || node.type || nodeId;
+      const label: string | null = typeof node.data?.label === 'string' && node.data.label.length > 0 ? node.data.label : null;
+      const type: string | null = typeof node.type === 'string' && node.type.length > 0 ? node.type : null;
+      return label || type || nodeId;
     }
     return nodeId;
   };
 
-  // Helper to get all available properties from a node (output ports + preset output)
-  const getNodeProperties = (nodeId: string): string[] => {
-    const node = availableNodes.find(n => n.id === nodeId);
-    if (!node) return [];
-    
-    const nodeDef = getNodeByType(node.data?.type || '');
-    const properties = new Set<string>();
-    
-    // Add output ports
-    if (nodeDef?.outputPorts) {
-      nodeDef.outputPorts.forEach(port => {
-        properties.add(port.id);
-      });
-    }
-    
-    // Add properties from preset output
-    const presetOutput = (nodeDef as any)?.presetOutput;
-    if (presetOutput && typeof presetOutput === 'object') {
-      Object.keys(presetOutput).forEach(key => {
-        properties.add(key);
-      });
-    }
-    
-    return Array.from(properties);
-  };
-
-  const generateSuggestions = (input: string, cursorPos: number): Array<{ value: string; display: string }> => {
+  const generateSuggestions = async (input: string, cursorPos: number): Promise<Array<{ value: string; display: string }>> => {
     const beforeCursor = input.substring(0, cursorPos);
     const lastOpen = beforeCursor.lastIndexOf('{{');
     const lastClose = beforeCursor.lastIndexOf('}}');
@@ -152,8 +141,8 @@ export function TemplateInput({
       const nodePrefix = pathParts.length > 0 ? pathParts[0].trim().toLowerCase() : '';
       availableNodes.forEach(node => {
         const nodeId = node.id;
-        const nodeLabel = node.data?.label || node.type || nodeId;
-        if (!nodePrefix || nodeId.toLowerCase().startsWith(nodePrefix) || nodeLabel.toLowerCase().includes(nodePrefix)) {
+        const nodeLabelStr = typeof node.data?.label === 'string' ? node.data.label : (typeof node.type === 'string' ? node.type : nodeId);
+        if (!nodePrefix || nodeId.toLowerCase().startsWith(nodePrefix) || nodeLabelStr.toLowerCase().includes(nodePrefix)) {
           const nodeName = resolveNodeName(nodeId);
           suggestionsList.push({
             value: `{{state.${nodeId}.output}}`,
@@ -169,7 +158,8 @@ export function TemplateInput({
       
       if (node) {
         const nodeName = resolveNodeName(nodeId);
-        const nodeDef = getNodeByType(node.data?.type || '');
+        const nodeTypeStr = typeof node.data?.type === 'string' ? node.data.type : '';
+        const nodeDef = await getCachedNodeDef(nodeTypeStr);
         
         // Add output and input
         const commonProps = ['output', 'input'];
@@ -189,7 +179,7 @@ export function TemplateInput({
         if (isOutputPrefix || hasTrailingDot) {
           // Get properties from output ports
           if (nodeDef?.outputPorts) {
-            nodeDef.outputPorts.forEach(port => {
+            nodeDef.outputPorts.forEach((port: { id: string; label: string; type?: string }) => {
               suggestionsList.push({
                 value: `{{state.${nodeId}.output.${port.id}}}`,
                 display: `state.${nodeName}.output.${port.id} (${port.label})`
@@ -210,7 +200,7 @@ export function TemplateInput({
         } else {
           // Filter by prefix for output ports
           if (nodeDef?.outputPorts) {
-            nodeDef.outputPorts.forEach(port => {
+            nodeDef.outputPorts.forEach((port: { id: string; label: string; type?: string }) => {
               if (port.id.toLowerCase().startsWith(propPrefix)) {
                 suggestionsList.push({
                   value: `{{state.${nodeId}.output.${port.id}}}`,
@@ -229,11 +219,12 @@ export function TemplateInput({
       if (node && pathParts[1].trim() === 'output') {
         const propPrefix = pathParts[2] ? pathParts[2].trim().toLowerCase() : '';
         const nodeName = resolveNodeName(nodeId);
-        const nodeDef = getNodeByType(node.data?.type || '');
+        const nodeTypeStr = typeof node.data?.type === 'string' ? node.data.type : '';
+        const nodeDef = await getCachedNodeDef(nodeTypeStr);
         
         // Get properties from output ports
         if (nodeDef?.outputPorts) {
-          nodeDef.outputPorts.forEach(port => {
+          nodeDef.outputPorts.forEach((port: { id: string; label: string; type: string; description: string }) => {
             if (!propPrefix || port.id.toLowerCase().startsWith(propPrefix)) {
               suggestionsList.push({
                 value: `{{state.${nodeId}.output.${port.id}}}`,
@@ -265,7 +256,8 @@ export function TemplateInput({
         const parentProp = pathParts[2].trim();
         const propPrefix = pathParts[3].trim().toLowerCase();
         const nodeName = resolveNodeName(nodeId);
-        const nodeDef = getNodeByType(node.data?.type || '');
+        const nodeTypeStr = typeof node.data?.type === 'string' ? node.data.type : '';
+        const nodeDef = await getCachedNodeDef(nodeTypeStr);
         
         // Get nested properties from preset output
         const presetOutput = (nodeDef as any)?.presetOutput;
@@ -291,9 +283,10 @@ export function TemplateInput({
     setCursorPosition(cursorPos);
 
     // Generate suggestions
-    const newSuggestions = generateSuggestions(newValue, cursorPos);
-    setSuggestions(newSuggestions);
-    setShowSuggestions(newSuggestions.length > 0);
+    generateSuggestions(newValue, cursorPos).then(newSuggestions => {
+      setSuggestions(newSuggestions);
+      setShowSuggestions(newSuggestions.length > 0);
+    });
 
     // Call original onChange
     if (onChange) {
@@ -463,9 +456,10 @@ export function TemplateInput({
               onChange={handleInputChange}
               onFocus={(e) => {
                 setIsEditing(true);
-                const suggestions = generateSuggestions(e.target.value, e.target.selectionStart || 0);
-                setSuggestions(suggestions);
-                setShowSuggestions(suggestions.length > 0);
+                generateSuggestions(e.target.value, e.target.selectionStart || 0).then(suggestions => {
+                  setSuggestions(suggestions);
+                  setShowSuggestions(suggestions.length > 0);
+                });
               }}
               onBlur={() => {
                 // Delay to allow badge clicks
@@ -489,9 +483,10 @@ export function TemplateInput({
               onChange={handleInputChange}
               onFocus={(e) => {
                 setIsEditing(true);
-                const suggestions = generateSuggestions(e.target.value, e.target.selectionStart || 0);
-                setSuggestions(suggestions);
-                setShowSuggestions(suggestions.length > 0);
+                generateSuggestions(e.target.value, e.target.selectionStart || 0).then(suggestions => {
+                  setSuggestions(suggestions);
+                  setShowSuggestions(suggestions.length > 0);
+                });
               }}
               onBlur={() => {
                 setIsEditing(false);

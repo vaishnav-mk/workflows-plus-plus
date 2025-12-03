@@ -1,12 +1,13 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useWorkflowStore } from '../../stores/workflowStore';
-import { useNodeRegistry } from '../../hooks/useNodeRegistry';
-import { CloudflareCard, CloudflareCardContent } from '../ui/CloudflareCard';
+import { useWorkflowStore } from '@/stores/workflowStore';
+import { useNodeRegistry } from '@/hooks/useNodeRegistry';
+import { Card, CardContent, CopyButton } from '@/components';
 import { ChevronRight, ChevronDown, Check, Type, Hash, ToggleLeft, Folder, List, FileJson } from 'lucide-react';
+import type { StateTreeNode } from '@/types/components';
 
-interface StateTreeNode {
+interface ExtendedStateTreeNode extends StateTreeNode {
   nodeId: string;
   nodeLabel: string;
   nodeType: string;
@@ -18,7 +19,7 @@ interface StateTreeNode {
 
 export function WorkflowStateView() {
   const { nodes, edges } = useWorkflowStore();
-  const { nodes: nodeDefinitions, getNodeByType } = useNodeRegistry();
+  const { catalog } = useNodeRegistry();
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
   const [copiedItem, setCopiedItem] = useState<string | null>(null);
 
@@ -26,7 +27,7 @@ export function WorkflowStateView() {
   const getNodeName = (nodeId: string): string => {
     const node = nodes.find(n => n.id === nodeId);
     if (node) {
-      return node.data?.label || node.type || nodeId;
+      return typeof node.data?.label === 'string' ? node.data.label : (node.type || nodeId);
     }
     return nodeId;
   };
@@ -51,10 +52,10 @@ export function WorkflowStateView() {
   };
 
   // Build state structure from nodes with output ports
-  const stateTree: StateTreeNode[] = nodes.map(node => {
+  const stateTree: ExtendedStateTreeNode[] = nodes.map(node => {
     const nodeId = node.id;
-    const nodeLabel = node.data?.label || node.type || nodeId;
-    const nodeType = node.data?.type || 'unknown';
+    const nodeLabel: string = typeof node.data?.label === 'string' ? node.data.label : (typeof node.type === 'string' ? node.type : nodeId);
+    const nodeType: string = typeof node.data?.type === 'string' ? node.data.type : 'unknown';
     
     // Find incoming edges to determine input source
     const incomingEdges = edges.filter(e => e.target === nodeId);
@@ -62,20 +63,28 @@ export function WorkflowStateView() {
       ? incomingEdges[0].source 
       : null;
     
-    // Get output ports and preset output from node definition
-    const nodeDef = getNodeByType(nodeType);
-    const outputPorts = nodeDef?.outputPorts || [];
-    const presetOutput = (nodeDef as any)?.presetOutput || {};
+    // Get output ports from catalog (synchronous)
+    const catalogItem = catalog.find(item => item.type === nodeType);
+    const outputPorts: Array<{ id: string; label: string; type: string; description: string }> = [];
+    const presetOutput: any = {};
     
     return {
+      id: nodeId,
+      label: nodeLabel as string,
+      value: {
+        nodeType: nodeType as string,
+        inputSource,
+        outputPorts,
+        presetOutput
+      },
       nodeId,
-      nodeLabel,
-      nodeType,
+      nodeLabel: nodeLabel as string,
+      nodeType: nodeType as string,
       inputSource,
       outputPorts,
       presetOutput,
       expanded: expandedNodes.has(nodeId)
-    };
+    } as ExtendedStateTreeNode;
   });
 
   const toggleNode = (nodeId: string, e: React.MouseEvent) => {
@@ -162,8 +171,8 @@ export function WorkflowStateView() {
   };
 
   return (
-    <CloudflareCard className="w-full mb-4">
-      <CloudflareCardContent className="p-4">
+    <Card className="w-full mb-4">
+      <CardContent className="p-4">
         <h3 className="text-sm font-semibold text-gray-900 mb-3">Workflow State</h3>
         <div className="space-y-1 max-h-96 overflow-y-auto">
           {stateTree.length === 0 ? (
@@ -310,7 +319,7 @@ export function WorkflowStateView() {
             })
           )}
         </div>
-      </CloudflareCardContent>
-    </CloudflareCard>
+      </CardContent>
+    </Card>
   );
 }

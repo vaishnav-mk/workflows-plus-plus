@@ -93,7 +93,9 @@ export function useWorkflowLogs({
       try {
         const tailUrl = `http://localhost:8787/api/workflows/${workflowNameRef.current}/instances/${instanceIdRef.current}/logs/tail-url`;
         
-        const response = await fetch(tailUrl);
+        const response = await fetch(tailUrl, {
+          credentials: "include" // Include cookies for authentication
+        });
         const data = await response.json();
 
         if (!data.success) {
@@ -228,16 +230,22 @@ export function useWorkflowLogs({
       }
 
       if (lastLog.type === "WF_NODE_START" || lastLog.type === "WF_NODE_END") {
+        // Use React Query to fetch status
         const fetchStatus = async () => {
           try {
-            const statusUrl = `http://localhost:8787/api/workflows/${workflowName}/instances/${instanceId}`;
-            const response = await fetch(statusUrl);
-            const data = await response.json();
+            const { useInstanceQuery } = await import('./useWorkflowsQuery');
+            // Note: This is a hook, so we can't call it here directly
+            // Instead, we'll use the query client to refetch
+            const { useQueryClient } = await import('@tanstack/react-query');
+            // For now, keep the direct API call but we'll refactor this differently
+            const { apiClient } = await import('../lib/api-client');
+            const result = await apiClient.getInstance(workflowName, instanceId);
             
-            if (data.success && onStatusUpdate) {
-              onStatusUpdate(data.data);
+            if (result.success && onStatusUpdate) {
+              onStatusUpdate(result.data);
             }
           } catch (error) {
+            // Silently fail - status updates are not critical
           }
         };
 

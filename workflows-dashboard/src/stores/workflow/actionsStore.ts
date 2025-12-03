@@ -1,0 +1,203 @@
+import { create } from "zustand";
+import type { Node, Edge } from "reactflow";
+import { useNodesStore } from "@/stores/workflow/nodesStore";
+import { useSelectionStore } from "@/stores/workflow/selectionStore";
+import { createNodeFromBackend } from "@/stores/workflow/nodeBuilder";
+import { applyNodeChanges, applyEdgeChanges, addEdge as addEdgeUtil } from "reactflow";
+import type { ActionsState } from "@/types/stores";
+
+const LOG_PREFIX = '[ActionsStore]';
+
+// Helper to trigger auto-save
+function triggerAutoSave() {
+  // Use setTimeout to debounce auto-save
+  if (typeof window !== 'undefined') {
+    const timeoutId = (window as any).__workflowAutoSaveTimeout;
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+    (window as any).__workflowAutoSaveTimeout = setTimeout(() => {
+      try {
+        const { useNodesStore } = require("@/stores/workflow/nodesStore");
+        const { generateWorkflowId } = require("@/utils/id-generator");
+        const { nodes, edges } = useNodesStore.getState();
+        
+        if (typeof window !== 'undefined') {
+          const params = new URLSearchParams(window.location.search);
+          const workflowId = params.get('id') || generateWorkflowId();
+          
+          const workflow = {
+            id: workflowId,
+            nodes: nodes.map((n: any) => ({
+              id: n.id,
+              type: n.data?.type || n.type,
+              position: n.position,
+              data: n.data,
+            })),
+            edges: edges.map((e: any) => ({
+              id: e.id,
+              source: e.source,
+              target: e.target,
+              type: e.type,
+            })),
+            metadata: {
+              updatedAt: Date.now(),
+            }
+          };
+          
+          const key = `workflow-${workflowId}`;
+          localStorage.setItem(key, JSON.stringify(workflow));
+        }
+      } catch (error) {
+        console.error('[ActionsStore] Failed to auto-save workflow:', error);
+      }
+    }, 1000); // Debounce by 1 second
+  }
+}
+
+export const useActionsStore = create<ActionsState>(() => ({
+  addNode: async (nodeType: string) => {
+    try {
+      const { nodes } = useNodesStore.getState();
+
+      const newNode = await createNodeFromBackend(nodeType, { x: 0, y: 0 });
+      useNodesStore.getState().addNode(newNode);
+      triggerAutoSave();
+    } catch (error) {
+      console.error(`${LOG_PREFIX} Failed to add node:`, error);
+    }
+  },
+  
+  removeNode: (nodeId: string) => {
+    const { nodes } = useNodesStore.getState();
+    const node = nodes.find(n => n.id === nodeId);
+    
+    if (node?.data?.type === 'entry' || node?.data?.type === 'return') {
+      return;
+    }
+    
+    useNodesStore.getState().removeNode(nodeId);
+    useSelectionStore.getState().clearSelection();
+    triggerAutoSave();
+  },
+  
+  updateNode: (nodeId: string, updates: Partial<Node['data']>) => {
+    useNodesStore.getState().updateNode(nodeId, updates);
+    triggerAutoSave();
+  },
+  
+  insertNodeBetweenEdge: async (edgeId: string, nodeType: string) => {
+    try {
+      const { nodes, edges } = useNodesStore.getState();
+      const edge = edges.find(e => e.id === edgeId);
+      
+      if (!edge) {
+        return;
+      }
+      
+      const sourceNode = nodes.find(n => n.id === edge.source);
+      const targetNode = nodes.find(n => n.id === edge.target);
+      
+      if (!sourceNode || !targetNode) {
+        return;
+      }
+      
+      const centerX = (sourceNode.position.x + targetNode.position.x) / 2;
+      const centerY = (sourceNode.position.y + targetNode.position.y) / 2;
+      
+      const newNode = await createNodeFromBackend(nodeType, { x: centerX, y: centerY });
+      
+      const newEdge1: Edge = {
+        id: `${edge.source}-${newNode.id}`,
+        source: edge.source,
+        target: newNode.id,
+        type: "step",
+        animated: true,
+      };
+      
+      const newEdge2: Edge = {
+        id: `${newNode.id}-${edge.target}`,
+        source: newNode.id,
+        target: edge.target,
+        type: "step",
+        animated: true,
+      };
+      
+      useNodesStore.getState().removeEdge(edgeId);
+      useNodesStore.getState().addEdge(newEdge1);
+      useNodesStore.getState().addEdge(newEdge2);
+      useNodesStore.getState().addNodeAtPosition(newNode);
+      useSelectionStore.getState().clearSelection();
+      triggerAutoSave();
+    } catch (error) {
+      console.error(`${LOG_PREFIX} Failed to insert node:`, error);
+    }
+  },
+  
+  handleNodesChange: (changes) => {
+    if (!changes || changes.length === 0) return;
+    
+    const { nodes, setNodes } = useNodesStore.getState();
+    const filteredChanges = changes.filter((change: any) => {
+      if (change.type === 'remove') {
+        const node = nodes.find(n => n.id === change.id);
+        if (node?.data?.type === 'entry' || node?.data?.type === 'return') {
+          return false;
+        }
+      }
+      return true;
+    });
+    
+    if (filteredChanges.length > 0) {
+      const updatedNodes = applyNodeChanges(filteredChanges, nodes);
+      const nodesChanged = updatedNodes.length !== nodes.length || 
+        updatedNodes.some((node, index) => {
+          const oldNode = nodes[index];
+          return !oldNode || 
+            node.id !== oldNode.id || 
+            node.position.x !== oldNode.position.x || 
+            node.position.y !== oldNode.position.y ||
+            JSON.stringify(node.data) !== JSON.stringify(oldNode.data);
+        });
+      
+      if (nodesChanged) {
+        setNodes(updatedNodes);
+        triggerAutoSave();
+      }
+    }
+  },
+  
+  handleEdgesChange: (changes) => {
+    if (!changes || changes.length === 0) return;
+    
+    const { edges, setEdges } = useNodesStore.getState();
+    const filtered = changes.filter((c: any) => c.type !== 'remove');
+    
+    if (filtered.length === 0) return;
+    
+    const updatedEdges = applyEdgeChanges(filtered, edges);
+    const edgesChanged = updatedEdges.length !== edges.length ||
+      updatedEdges.some((edge, index) => {
+        const oldEdge = edges[index];
+        return !oldEdge || edge.id !== oldEdge.id;
+      });
+    
+    if (edgesChanged) {
+      setEdges(updatedEdges);
+      triggerAutoSave();
+    }
+  },
+  
+  handleConnect: (connection) => {
+    const { edges, setEdges } = useNodesStore.getState();
+    const newEdge = addEdgeUtil(connection, edges);
+    // Ensure new edge has 'step' type for straight lines
+    const edgesWithType = newEdge.map(edge => ({
+      ...edge,
+      type: edge.type || 'step',
+    }));
+    setEdges(edgesWithType);
+    triggerAutoSave();
+  },
+}));
+

@@ -1,0 +1,46 @@
+/**
+ * Settings-related types
+ * Centralized types for node settings configuration
+ */
+
+export interface SettingField {
+  type:
+    | "input"
+    | "select"
+    | "textarea"
+    | "button"
+    | "card"
+    | "text"
+    | "conditional-builder";
+  key: string;
+  label?: string;
+  placeholder?: string;
+  options?: { value: string; label: string }[];
+  defaultValue?: any;
+  props?: any;
+  children?: SettingField[];
+  required?: boolean;
+  conditional?: {
+    parentKey: string;
+    showWhen: any;
+  };
+  description?: string;
+}
+
+export interface NodeSettingsConfig {
+  [nodeType: string]: SettingField[];
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+

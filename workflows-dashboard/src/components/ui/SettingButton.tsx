@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { Button } from '@/components';
 
 interface SettingButtonProps {
   children: React.ReactNode;
@@ -10,11 +11,13 @@ interface SettingButtonProps {
 
 export function SettingButton({ children, onClick, className }: SettingButtonProps) {
   return (
-    <button
+    <Button
+      variant="secondary"
+      size="sm"
       onClick={onClick}
-      className={className || "px-3 py-1.5 text-xs text-blue-500 border border-blue-500 rounded hover:bg-blue-50 transition-colors"}
+      className={className}
     >
       {children}
-    </button>
+    </Button>
   );
 }

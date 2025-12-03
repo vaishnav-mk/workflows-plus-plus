@@ -1,27 +1,8 @@
-import { useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { useNodeRegistry } from '@/hooks/useNodeRegistry';
+import type { SettingField, NodeSettingsConfig } from '@/types/settings';
 
-export interface SettingField {
-  type:
-    | "input"
-    | "select"
-    | "textarea"
-    | "button"
-    | "card"
-    | "text"
-    | "conditional-builder";
-  key: string;
-  label?: string;
-  placeholder?: string;
-  options?: { value: string; label: string }[];
-  defaultValue?: any;
-  props?: any;
-  children?: SettingField[];
-}
-
-export interface NodeSettingsConfig {
-  [nodeType: string]: SettingField[];
-}
+export type { SettingField, NodeSettingsConfig };
 
 interface JSONSchema {
   type?: string;
@@ -32,6 +13,7 @@ interface JSONSchema {
   min?: number;
   max?: number;
   format?: string;
+  required?: string[];
 }
 
 // Convert JSON Schema to SettingField array
@@ -41,6 +23,12 @@ function generateSettingsFromSchema(
   metadata: { name: string; description: string }
 ): SettingField[] {
   const fields: SettingField[] = [];
+
+  // Validate schema structure
+  if (!schema || typeof schema !== 'object') {
+    console.warn(`[NodeSettingsConfigs] Invalid schema for ${nodeType}:`, schema);
+    return DEFAULT_CONFIG;
+  }
 
   // Add card wrapper
   fields.push({
@@ -68,23 +56,42 @@ function generateSettingsFromSchema(
   return fields;
 }
 
-function generateFieldsFromSchema(schema: JSONSchema, prefix = ''): SettingField[] {
+function generateFieldsFromSchema(schema: JSONSchema, prefix = '', requiredFields: string[] = []): SettingField[] {
   if (!schema.properties) return [];
 
   const fields: SettingField[] = [];
+  const schemaRequired = (schema.required as string[]) || [];
 
   Object.entries(schema.properties).forEach(([key, prop]: [string, any]) => {
     const fullKey = prefix ? `${prefix}.${key}` : key;
+    const isRequired = schemaRequired.includes(key) || requiredFields.includes(fullKey);
     
     // Handle nested objects recursively
-    if (prop.type === 'object' && prop.properties) {
-      // Create a card/section for nested objects
-      fields.push({
-        type: "card",
-        key: `${fullKey}-container`,
-        label: prop.title || formatLabel(key),
-        children: generateFieldsFromSchema(prop, fullKey)
-      });
+    if (prop.type === 'object') {
+      if (prop.properties) {
+        // Object with defined properties - create a card/section
+        fields.push({
+          type: "card",
+          key: `${fullKey}-container`,
+          label: prop.title || formatLabel(key),
+          children: generateFieldsFromSchema(prop, fullKey, schemaRequired.map((r: string) => `${fullKey}.${r}`))
+        });
+      } else {
+        // Object without properties (like value.content) - treat as JSON input
+        const field: SettingField = {
+          type: "textarea",
+          key: fullKey,
+          label: prop.title || formatLabel(key),
+          placeholder: prop.description || "Enter JSON object",
+          defaultValue: prop.default,
+          required: isRequired,
+          description: prop.description,
+          props: {
+            className: "settings-object-input"
+          }
+        };
+        fields.push(field);
+      }
     } else {
       // Handle regular fields
       const field: SettingField = {
@@ -93,6 +100,8 @@ function generateFieldsFromSchema(schema: JSONSchema, prefix = ''): SettingField
         label: prop.title || formatLabel(key),
         placeholder: prop.description || "",
         defaultValue: prop.default,
+        required: isRequired,
+        description: prop.description,
       };
 
       // Add options for enum types
@@ -120,6 +129,16 @@ function generateFieldsFromSchema(schema: JSONSchema, prefix = ''): SettingField
         } else {
           field.props.style = { height: '96px' };
         }
+      }
+
+      // Handle conditional rendering for nested fields
+      // If this field is inside a parent object that has a type field, check if we should conditionally show it
+      if (prefix && key === 'content') {
+        // This is a content field - show it when type is set
+        field.conditional = {
+          parentKey: prefix + '.type',
+          showWhen: true // Show when type is set (not empty)
+        };
       }
 
       fields.push(field);
@@ -195,30 +214,69 @@ const DEFAULT_CONFIG: SettingField[] = [
 
 // Hook to get node settings configs dynamically from backend
 export function useNodeSettingsConfigs(): NodeSettingsConfig {
-  const { nodes } = useNodeRegistry();
+  const { catalog, getNodeByType } = useNodeRegistry();
+  const [configs, setConfigs] = useState<NodeSettingsConfig>({});
 
-  const configs = useMemo(() => {
-    const settingsConfig: NodeSettingsConfig = {};
+  useEffect(() => {
+    const catalogLength = catalog.length;
+    console.log(`[NodeSettingsConfigs] Effect triggered. Catalog length: ${catalogLength}`);
+    
+    if (catalogLength === 0) {
+      console.log(`[NodeSettingsConfigs] Catalog is empty, skipping load`);
+      return;
+    }
 
-    nodes.forEach(node => {
-      const fields = generateSettingsFromSchema(
-        node.configSchema,
-        node.metadata.type,
-        node.metadata
-      );
-      settingsConfig[node.metadata.type] = fields;
-    });
+    const loadConfigs = async () => {
+      console.log(`[NodeSettingsConfigs] Loading configs for ${catalogLength} node types`);
+      const nodeTypes = catalog.map(item => item.type);
+      console.log(`[NodeSettingsConfigs] Catalog items:`, nodeTypes);
+      
+      const settingsConfig: NodeSettingsConfig = {};
 
-    // Always add fallback default config
-    settingsConfig.default = DEFAULT_CONFIG;
+      // Load node definitions for all catalog items
+      for (const catalogItem of catalog) {
+        try {
+          console.log(`[NodeSettingsConfigs] Fetching: ${catalogItem.type}`);
+          const nodeDef = await getNodeByType(catalogItem.type);
+          if (nodeDef) {
+            console.log(`[NodeSettingsConfigs] Loaded: ${catalogItem.type}`, {
+              hasSchema: !!nodeDef.configSchema,
+              schemaType: typeof nodeDef.configSchema,
+              schemaKeys: nodeDef.configSchema ? Object.keys(nodeDef.configSchema) : []
+            });
+            
+            if (!nodeDef.configSchema) {
+              console.warn(`[NodeSettingsConfigs] No configSchema for ${catalogItem.type}`);
+              continue;
+            }
+            
+            const fields = generateSettingsFromSchema(
+              nodeDef.configSchema,
+              nodeDef.metadata.type,
+              nodeDef.metadata
+            );
+            console.log(`[NodeSettingsConfigs] Generated ${fields.length} fields for ${catalogItem.type}`);
+            settingsConfig[nodeDef.metadata.type] = fields;
+          } else {
+            console.warn(`[NodeSettingsConfigs] No definition: ${catalogItem.type}`);
+          }
+        } catch (error) {
+          const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+          console.error(`[NodeSettingsConfigs] Failed: ${catalogItem.type} - ${errorMsg}`);
+        }
+      }
+      
+      const configCount = Object.keys(settingsConfig).length;
+      console.log(`[NodeSettingsConfigs] Loaded ${configCount} configs`);
+      setConfigs(settingsConfig);
+    };
 
-    return settingsConfig;
-  }, [nodes]);
+    if (catalog.length > 0) {
+      loadConfigs();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [catalog]);
 
-  return configs;
+  // Always add fallback default config
+  return { ...configs, default: DEFAULT_CONFIG };
 }
-
-// Legacy static config for backward compatibility during transition
-export const nodeSettingsConfigs: NodeSettingsConfig = {
-  default: DEFAULT_CONFIG
-};

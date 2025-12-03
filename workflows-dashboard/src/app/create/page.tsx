@@ -2,16 +2,16 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { CloudflareLayout } from '../components/CloudflareLayout';
-import { useApiStore } from '../../stores/apiStore';
 import { useWorkflowStore } from '../../stores/workflowStore';
 import { toast } from '../../stores/toastStore';
-import { Upload, FileText, Loader2, Clipboard } from 'lucide-react';
-import Link from 'next/link';
+import { generateWorkflowId } from '@/utils/id-generator';
+import { Upload, FileText, X, Sparkles } from 'lucide-react';
+import { PageHeader, Card, CardContent, CardHeader, Button, Input, Spinner } from '@/components';
+import { useGenerateWorkflowFromAIMutation } from '../../hooks/useWorkflowsQuery';
 
 export default function CreateWorkflowPage() {
   const router = useRouter();
-  const { generateWorkflowFromAI, loading } = useApiStore();
+  const generateWorkflowMutation = useGenerateWorkflowFromAIMutation();
   const { saveWorkflowToStorage } = useWorkflowStore();
   
   const [image, setImage] = useState<File | null>(null);
@@ -108,21 +108,26 @@ export default function CreateWorkflowPage() {
   };
 
   const saveAndRedirect = (workflow: any) => {
-    saveWorkflowToStorage(workflow);
+    // Ensure workflow has standardized ID
+    const workflowId = workflow.id || generateWorkflowId();
+    const workflowWithId = {
+      ...workflow,
+      id: workflowId
+    };
+    
+    saveWorkflowToStorage(workflowWithId);
 
-    const workflowId = workflow.id;
     toast.success(
       'Workflow Generated!',
       'Redirecting to workflow builder...'
     );
     
-    router.push(`/?workflowId=${workflowId}`);
+    router.push(`/builder?type=ai&id=${workflowId}`);
   };
 
   const handleCompleteFields = () => {
     if (!generatedWorkflow) return;
 
-    // Update workflow nodes with filled fields
     const updatedNodes = generatedWorkflow.nodes.map((node: any) => {
       const nodeFields = fieldValues[node.id];
       if (!nodeFields) return node;
@@ -172,28 +177,44 @@ export default function CreateWorkflowPage() {
     setIsGenerating(true);
     
     try {
-      const result = await generateWorkflowFromAI(image || undefined, text.trim() || undefined);
+      let requestBody: { image?: string; imageMimeType?: string; text?: string } = {};
       
-      if (result.error) {
-        toast.error('Generation Failed', result.error);
-        setIsGenerating(false);
-        return;
+      if (image) {
+        const reader = new FileReader();
+        const imageBase64 = await new Promise<string>((resolve, reject) => {
+          reader.onload = () => {
+            const result = reader.result as string;
+            const base64 = result.split(',')[1];
+            resolve(base64);
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(image);
+        });
+
+        requestBody.image = imageBase64;
+        requestBody.imageMimeType = image.type || 'image/png';
+      }
+      
+      if (text.trim()) {
+        requestBody.text = text.trim();
       }
 
-      if (!result.data) {
+      const result = await generateWorkflowMutation.mutateAsync(requestBody);
+      
+      if (!result) {
         toast.error('Generation Failed', 'No workflow data received');
         setIsGenerating(false);
         return;
       }
 
-      if (result.data.missingRequiredFields && result.data.missingRequiredFields.length > 0) {
-        setMissingFields(result.data.missingRequiredFields);
-        setGeneratedWorkflow(result.data);
+      if (result.missingRequiredFields && result.missingRequiredFields.length > 0) {
+        setMissingFields(result.missingRequiredFields);
+        setGeneratedWorkflow(result);
         setIsGenerating(false);
         return;
       }
 
-      saveAndRedirect(result.data);
+      saveAndRedirect(result);
     } catch (error) {
       toast.error(
         'Generation Failed',
@@ -204,155 +225,146 @@ export default function CreateWorkflowPage() {
   };
 
   return (
-    <CloudflareLayout>
-      <div className="min-h-screen bg-gray-50" ref={containerRef}>
-        <div className="max-w-4xl mx-auto px-6 py-8">
-          {/* Header */}
-          <div className="mb-8">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900">Create Workflow with AI</h1>
-                <p className="text-gray-600 mt-2">
-                  Upload, paste, or describe your workflow, and AI will generate it for you
-                </p>
-              </div>
-              <Link
-                href="/"
-                className="px-4 py-2 text-sm text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors"
-              >
-                ← Back to Builder
-              </Link>
-            </div>
-          </div>
+    <div className="min-h-screen bg-white" ref={containerRef}>
+      <div className="w-full px-6 py-8">
+        <PageHeader
+          title="Create Workflow with AI"
+          description="Upload, paste, or describe your workflow, and AI will generate it for you"
+        />
 
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            {/* Image Upload Section */}
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Upload or Paste Image (Optional)
-              </label>
-              {!image ? (
-                <div 
-                  className={`border-2 border-dashed rounded-lg p-8 text-center transition-all ${
-                    pasteIndicator 
-                      ? 'border-green-500 bg-green-50' 
-                      : 'border-gray-300 hover:border-blue-400'
-                  }`}
-                >
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageChange}
-                    className="hidden"
-                    id="image-upload"
-                  />
-                  <label
-                    htmlFor="image-upload"
-                    className="cursor-pointer flex flex-col items-center"
-                  >
-                    {pasteIndicator ? (
-                      <Clipboard className="w-12 h-12 text-green-500 mb-4" />
-                    ) : (
-                      <Upload className="w-12 h-12 text-gray-400 mb-4" />
-                    )}
-                    <span className="text-sm text-gray-600 mb-1">
-                      {pasteIndicator 
-                        ? 'Image pasted!'
-                        : 'Click to upload, drag and drop, or paste image (Ctrl/Cmd+V)'}
-                    </span>
-                    <span className="text-xs text-gray-500">
-                      PNG, JPG, GIF up to 10MB
-                    </span>
+        <Card className="mt-6">
+          <CardHeader>
+            <h3 className="text-lg font-semibold text-gray-900">Generate Workflow</h3>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Image Upload and Text Input Side by Side */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Image Upload Section */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Upload or Paste Image (Optional)
                   </label>
+                  {!image ? (
+                    <div 
+                      className={`border-2 border-dashed rounded-lg p-8 text-center transition-all ${
+                        pasteIndicator 
+                          ? 'border-green-500 bg-green-50' 
+                          : 'border-gray-300 hover:border-[#056DFF]'
+                      }`}
+                    >
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageChange}
+                        className="hidden"
+                        id="image-upload"
+                      />
+                      <label
+                        htmlFor="image-upload"
+                        className="cursor-pointer flex flex-col items-center"
+                      >
+                        <Upload className={`w-12 h-12 mb-4 ${pasteIndicator ? 'text-green-500' : 'text-gray-400'}`} />
+                        <span className="text-sm text-gray-600 mb-1">
+                          {pasteIndicator 
+                            ? 'Image pasted!'
+                            : 'Click to upload, drag and drop, or paste image (Ctrl/Cmd+V)'}
+                        </span>
+                        <span className="text-xs text-gray-500">
+                          PNG, JPG, GIF up to 10MB
+                        </span>
+                      </label>
+                    </div>
+                  ) : (
+                    <div className="relative">
+                      <img
+                        src={imagePreview || ''}
+                        alt="Preview"
+                        className="w-full max-h-96 object-contain rounded-lg border border-gray-200"
+                      />
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        onClick={handleRemoveImage}
+                        className="absolute top-2 right-2"
+                      >
+                        <X className="w-4 h-4 mr-1" />
+                        Remove
+                      </Button>
+                    </div>
+                  )}
                 </div>
-              ) : (
-                <div className="relative">
-                  <img
-                    src={imagePreview || ''}
-                    alt="Preview"
-                    className="w-full max-h-96 object-contain rounded-lg border border-gray-200"
+
+                {/* Text Input Section */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <FileText className="w-4 h-4 inline mr-1" />
+                    Describe Your Workflow (Optional)
+                  </label>
+                  <textarea
+                    value={text}
+                    onChange={(e) => setText(e.target.value)}
+                    placeholder="Example: Create a workflow that fetches data from an API, stores it in KV, and returns the result..."
+                    rows={12}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#056DFF] focus:border-[#056DFF] resize-none text-sm"
                   />
-                  <button
-                    type="button"
-                    onClick={handleRemoveImage}
-                    className="absolute top-2 right-2 px-3 py-1 bg-red-500 text-white text-sm rounded-md hover:bg-red-600 transition-colors"
-                  >
-                    Remove
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* Text Input Section */}
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                <FileText className="w-4 h-4 inline mr-1" />
-                Describe Your Workflow (Optional)
-              </label>
-              <textarea
-                value={text}
-                onChange={(e) => setText(e.target.value)}
-                placeholder="Example: Create a workflow that fetches data from an API, stores it in KV, and returns the result..."
-                rows={6}
-                className="w-full px-4 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
-              />
-              <p className="text-xs text-gray-500 mt-2">
-                {text.length} characters
-              </p>
-            </div>
-
-            {/* Submit Button */}
-            <div className="flex items-center justify-end space-x-3">
-              <Link
-                href="/"
-                className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
-              >
-                Cancel
-              </Link>
-              <button
-                type="submit"
-                disabled={isGenerating || loading || (!image && !text.trim())}
-                className="px-6 py-2 bg-orange-500 text-white rounded-md hover:bg-orange-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center space-x-2"
-              >
-                {isGenerating || loading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Generating...</span>
-                  </>
-                ) : (
-                  <span>Generate Workflow</span>
-                )}
-              </button>
-            </div>
-
-            {/* Info Box */}
-            <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-md">
-              <p className="text-sm text-blue-800">
-                <strong>Tip:</strong> You can provide both an image and text description for better results. 
-                The AI will analyze your image and text to create a workflow with appropriate nodes and connections.
-                <br />
-                <strong>Quick Tip:</strong> Press Ctrl+V (or Cmd+V on Mac) anywhere on this page to paste an image from your clipboard!
-              </p>
-            </div>
-          </form>
-
-          {/* Missing Required Fields Form */}
-          {missingFields.length > 0 && generatedWorkflow && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-              <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-                <div className="p-6">
-                  <h2 className="text-2xl font-bold text-gray-900 mb-4">
-                    Complete Required Fields
-                  </h2>
-                  <p className="text-gray-600 mb-6">
-                    The AI generated your workflow, but some required fields need your input to complete the configuration.
+                  <p className="text-xs text-gray-500 mt-2">
+                    {text.length} characters
                   </p>
+                </div>
+              </div>
 
-                  <div className="space-y-6">
-                    {missingFields.map((nodeMissing) => (
-                      <div key={nodeMissing.nodeId} className="border border-gray-200 rounded-lg p-4">
-                        <h3 className="font-semibold text-gray-900 mb-2">
+              {/* Submit Button */}
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => router.push('/builder')}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  variant="primary"
+                  disabled={isGenerating || generateWorkflowMutation.isPending || (!image && !text.trim())}
+                >
+                  {isGenerating || generateWorkflowMutation.isPending ? (
+                    <>
+                      <Spinner size="sm" className="mr-2" />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4 mr-2" />
+                      Generate Workflow
+                    </>
+                  )}
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+
+        {/* Missing Required Fields Form */}
+        {missingFields.length > 0 && generatedWorkflow && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <Card className="max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              <CardHeader>
+                <h2 className="text-xl font-semibold text-gray-900">
+                  Complete Required Fields
+                </h2>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-gray-600 mb-6">
+                  The AI generated your workflow, but some required fields need your input to complete the configuration.
+                </p>
+
+                <div className="space-y-6">
+                  {missingFields.map((nodeMissing) => (
+                    <Card key={nodeMissing.nodeId}>
+                      <CardContent className="p-4">
+                        <h3 className="font-semibold text-gray-900 mb-3">
                           {nodeMissing.nodeLabel} ({nodeMissing.nodeType})
                         </h3>
                         <div className="space-y-3">
@@ -368,49 +380,46 @@ export default function CreateWorkflowPage() {
                                   )}
                                 </label>
                                 {field.description && (
-                                  <p className="text-xs text-gray-500 mb-1">{field.description}</p>
+                                  <p className="text-xs text-gray-500 mb-2">{field.description}</p>
                                 )}
-                                <input
+                                <Input
                                   type="text"
                                   value={currentValue}
                                   onChange={(e) => handleFieldChange(nodeMissing.nodeId, field.field, e.target.value)}
                                   placeholder={`Enter ${field.field}`}
-                                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                 />
                               </div>
                             );
                           })}
                         </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="flex items-center justify-end space-x-3 mt-6 pt-4 border-t border-gray-200">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setMissingFields([]);
-                        setGeneratedWorkflow(null);
-                        setFieldValues({});
-                      }}
-                      className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleCompleteFields}
-                      className="px-6 py-2 bg-orange-500 text-white rounded-md hover:bg-orange-600 transition-colors"
-                    >
-                      Complete & Continue
-                    </button>
-                  </div>
+                      </CardContent>
+                    </Card>
+                  ))}
                 </div>
-              </div>
-            </div>
-          )}
-        </div>
+
+                <div className="flex items-center justify-end gap-3 mt-6 pt-4 border-t border-gray-200">
+                  <Button
+                    variant="secondary"
+                    onClick={() => {
+                      setMissingFields([]);
+                      setGeneratedWorkflow(null);
+                      setFieldValues({});
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    variant="primary"
+                    onClick={handleCompleteFields}
+                  >
+                    Complete & Continue
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
-    </CloudflareLayout>
+    </div>
   );
 }

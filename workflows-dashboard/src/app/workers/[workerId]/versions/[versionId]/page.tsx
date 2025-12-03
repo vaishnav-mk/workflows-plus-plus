@@ -1,10 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
-import { CloudflareLayout } from '../../../../components/CloudflareLayout';
-import { WorkflowLoader } from '../../../../../components/ui/Loader';
-import { useApi } from '../../../../../hooks/useApi';
+import { useParams, useRouter } from 'next/navigation';
+import { useState, useMemo } from 'react';
+import { WorkflowLoader } from '@/components/ui/Loader';
+import { Spinner } from '@/components';
+import { useWorkerQuery, useWorkerVersionQuery } from '@/hooks/useWorkflowsQuery';
+import { PageHeader, Card, CardHeader, CardContent, Button, Badge, DetailsList, Alert, AlertTitle, CopyButton, Separator } from '@/components';
+import { apiClient } from '@/lib/api-client';
+import { toast } from '@/stores/toastStore';
 
 interface Version {
   id: string;
@@ -32,264 +35,428 @@ interface Version {
   }>;
 }
 
-interface Worker {
-  id: string;
-  name: string;
-  created_on: string;
-  modified_on: string;
+type Module = NonNullable<Version['modules']>[number];
+
+type FileTreeNode =
+  | {
+      type: 'folder';
+      name: string;
+      path: string;
+      children: FileTreeNode[];
+      isOpen?: boolean;
+    }
+  | {
+      type: 'file';
+      name: string;
+      path: string;
+      module: Module;
+    };
+
+interface FileTreeItemProps {
+  node: FileTreeNode;
+  level: number;
+  selectedPath: string | null;
+  onSelect: (path: string) => void;
+}
+
+function FileTreeItem({ node, level, selectedPath, onSelect }: FileTreeItemProps) {
+  const paddingLeft = 10 + level * 12;
+
+  if (node.type === 'folder') {
+    const [open, setOpen] = useState(false);
+
+    return (
+      <div className="mb-0.5">
+        <button
+          type="button"
+          onClick={() => setOpen((prev) => !prev)}
+          className="flex w-full items-center gap-2 px-2 py-1.5 rounded-md text-[11px] text-gray-800 hover:bg-gray-100"
+          style={{ paddingLeft }}
+        >
+          <span className="text-gray-500 select-none w-3 text-center text-[10px]">
+            {open ? '▾' : '▸'}
+          </span>
+          <span className="font-medium text-gray-900 truncate">{node.name}</span>
+        </button>
+        {open && node.children.length > 0 && (
+          <div>
+            {node.children.map((child) => (
+              <FileTreeItem
+                key={child.path}
+                node={child}
+                level={level + 1}
+                selectedPath={selectedPath}
+                onSelect={onSelect}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  const isSelected = selectedPath === node.path || selectedPath === node.module.name;
+
+  return (
+    <button
+      type="button"
+      onClick={() => onSelect(node.module.name)}
+      className={`flex w-full items-center gap-2 px-2 py-1.5 rounded-md text-[11px] text-left border border-transparent ${
+        isSelected
+          ? 'bg-blue-50 text-blue-700 border-blue-200'
+          : 'text-gray-800 hover:bg-gray-100'
+      }`}
+      style={{ paddingLeft }}
+    >
+      <span className="text-gray-400 text-[9px]">●</span>
+      <span className="truncate">{node.name}</span>
+    </button>
+  );
 }
 
 export default function VersionDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const workerId = params.workerId as string;
   const versionId = params.versionId as string;
+  const [isEditing, setIsEditing] = useState(false);
+  const [selectedModulePath, setSelectedModulePath] = useState<string | null>(null);
   
-  const [worker, setWorker] = useState<Worker | null>(null);
-  const [version, setVersion] = useState<Version | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data: worker, isLoading: workerLoading, error: workerError } = useWorkerQuery(workerId);
+  const { data: version, isLoading: versionLoading, error: versionError } = useWorkerVersionQuery(workerId, versionId, 'modules');
+  
+  const loading = workerLoading || versionLoading;
+  const error = workerError instanceof Error ? workerError.message : (versionError instanceof Error ? versionError.message : (workerError || versionError ? String(workerError || versionError) : null));
 
-  const { fetchWorker, fetchWorkerVersion } = useApi();
+  const modules: Module[] = version?.modules || [];
 
-  useEffect(() => {
-    const run = async () => {
-      if (!workerId || !versionId) return;
-      setLoading(true);
-      const workerRes = await fetchWorker(workerId);
-      const w = workerRes.data;
-      if (w?.success) {
-        setWorker(w.data);
-      } else {
-        setError(w?.error || workerRes.error || 'Failed to fetch worker');
-        setLoading(false);
+  const fileTree = useMemo<FileTreeNode[]>(() => {
+    if (!modules.length) return [];
+
+    const roots: FileTreeNode[] = [];
+
+    const getOrCreateFolder = (
+      nodes: FileTreeNode[],
+      name: string,
+      parentPath: string
+    ): FileTreeNode => {
+      const path = parentPath ? `${parentPath}/${name}` : name;
+      const existing = nodes.find((n) => n.type === 'folder' && n.name === name);
+      if (existing) {
+        return existing;
+      }
+
+      const folder: FileTreeNode = {
+        type: 'folder',
+        name,
+        path,
+        children: [],
+      };
+      nodes.push(folder);
+      return folder;
+    };
+
+    modules.forEach((module) => {
+      const segments = module.name.split('/');
+
+      // No folder path, just a file at the root
+      if (segments.length === 1) {
+        roots.push({
+          type: 'file',
+          name: module.name,
+          path: module.name,
+          module,
+        });
         return;
       }
 
-      const versionRes = await fetchWorkerVersion(workerId, versionId, 'modules');
-      const v = versionRes.data;
-      if (v?.success) {
-        setVersion(v.data);
-        setError(null);
-      } else {
-        setError(v?.error || versionRes.error || 'Failed to fetch version');
+      let currentNodes = roots;
+      let parentPath = '';
+
+      // Create / find folders for all but the last segment
+      for (let i = 0; i < segments.length - 1; i++) {
+        const folderName = segments[i];
+        const folderNode = getOrCreateFolder(currentNodes, folderName, parentPath);
+        parentPath = folderNode.path;
+        currentNodes = folderNode.children;
       }
-      setLoading(false);
+
+      const fileName = segments[segments.length - 1];
+      const filePath = parentPath ? `${parentPath}/${fileName}` : fileName;
+
+      // Avoid duplicates
+      const exists = currentNodes.some(
+        (n) => n.type === 'file' && n.name === fileName && n.path === filePath
+      );
+      if (!exists) {
+        currentNodes.push({
+          type: 'file',
+          name: fileName,
+          path: filePath,
+          module,
+        });
+      }
+    });
+
+    // Sort folders first, then files, alphabetically
+    const sortNodes = (nodes: FileTreeNode[]): FileTreeNode[] => {
+      const folders: FileTreeNode[] = [];
+      const files: FileTreeNode[] = [];
+
+      nodes.forEach((node) => {
+        if (node.type === 'folder') {
+          folders.push({
+            ...node,
+            children: sortNodes(node.children),
+          });
+        } else {
+          files.push(node);
+        }
+      });
+
+      folders.sort((a, b) => a.name.localeCompare(b.name));
+      files.sort((a, b) => a.name.localeCompare(b.name));
+
+      return [...folders, ...files];
     };
-    run();
-  }, [fetchWorker, fetchWorkerVersion, workerId, versionId]);
+
+    return sortNodes(roots);
+  }, [modules]);
+
+  const selectedModule: Module | null = useMemo(() => {
+    if (!modules.length) return null;
+
+    if (selectedModulePath) {
+      const found = modules.find((m) => m.name === selectedModulePath);
+      if (found) return found;
+    }
+
+    // Prefer the main module if it exists
+    if (version?.main_module) {
+      const main = modules.find((m) => m.name === version.main_module);
+      if (main) return main;
+    }
+
+    // Fallback: first JS/TS file, otherwise first module
+    const mainCodeModule =
+      modules.find((m) => m.name.endsWith('.ts') || m.name.endsWith('.js') || m.name.endsWith('.mjs')) ||
+      modules[0];
+
+    return mainCodeModule || null;
+  }, [modules, selectedModulePath, version?.main_module]);
+
+  const decodeModuleContent = (module?: Module | null) => {
+    if (!module) return '';
+    try {
+      return atob(module.content_base64 || '');
+    } catch {
+      return '';
+    }
+  };
+
+  const handleEditVersion = async () => {
+    if (!version?.modules || version.modules.length === 0) {
+      toast.error('No source code available', 'This version does not have any modules to edit.');
+      return;
+    }
+
+    setIsEditing(true);
+    try {
+      // Find the main TypeScript/JavaScript module
+      const mainModule = version.modules.find(
+        (m: any) => m.name.endsWith('.ts') || m.name.endsWith('.js') || m.name.endsWith('.mjs')
+      ) || version.modules[0];
+
+      if (!mainModule) {
+        toast.error('No code module found', 'Could not find a code module in this version.');
+        setIsEditing(false);
+        return;
+      }
+
+      // Decode the base64 content
+      const workflowCode = atob(mainModule.content_base64);
+
+      // Call reverse codegen to parse the code
+      const result = await apiClient.reverseCodegen(workflowCode);
+
+      if (!result.success || !result.data) {
+        throw new Error(result.error || result.message || 'Failed to parse workflow code');
+      }
+
+      // Store the parsed workflow in sessionStorage for the builder to load
+      const workflowData = {
+        nodes: result.data.nodes,
+        edges: result.data.edges,
+      };
+      
+      sessionStorage.setItem('workflow-from-version', JSON.stringify(workflowData));
+      
+      // Navigate to builder
+      router.push('/builder?type=version');
+      
+      toast.success('Loading workflow', 'Parsed workflow code and loading in builder...');
+    } catch (error) {
+      console.error('Failed to edit version:', error);
+      toast.error(
+        'Failed to Edit Version',
+        error instanceof Error ? error.message : 'Unknown error occurred'
+      );
+      setIsEditing(false);
+    }
+  };
 
   if (loading) {
     return (
-      <CloudflareLayout>
-        <WorkflowLoader text="Loading version details..." />
-      </CloudflareLayout>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-6">
+          <Spinner size="lg" />
+          <p className="text-base text-gray-600 font-medium">Loading version details...</p>
+        </div>
+      </div>
     );
   }
 
   if (error) {
     return (
-      <CloudflareLayout>
-        <div className="p-6">
-          <div className="bg-red-50 border border-red-200 rounded-md p-4">
-            <div className="flex">
-              <div className="ml-3">
-                <h3 className="text-sm font-medium text-red-800">Error</h3>
-                <div className="mt-2 text-sm text-red-700">{error}</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </CloudflareLayout>
+      <div className="p-8">
+        <Alert variant="error">
+          <AlertTitle>Error</AlertTitle>
+          {error}
+        </Alert>
+      </div>
     );
   }
 
+  const versionDetails: Array<{ label: string; value: string | React.ReactNode }> = [
+    { label: 'Version ID', value: version?.id || 'N/A' },
+    { label: 'Version Number', value: `v${version?.number || 'N/A'}` },
+    { 
+      label: 'Created', 
+      value: version?.created_on ? new Date(version.created_on).toLocaleString() : 'N/A' 
+    },
+    { 
+      label: 'Status', 
+      value: <Badge variant="success">Active</Badge>
+    },
+    { label: 'Compatibility Date', value: version?.compatibility_date || 'N/A' },
+    { label: 'Main Module', value: version?.main_module || 'N/A' },
+    { 
+      label: 'Usage Model', 
+      value: version?.usage_model ? (
+        <Badge variant={version.usage_model === 'standard' ? 'info' : 'info'}>
+          {version.usage_model}
+        </Badge>
+      ) : 'N/A'
+    },
+    { 
+      label: 'Source', 
+      value: version?.source ? (
+        <Badge variant={version.source === 'api' ? 'success' : 'info'}>
+          {version.source}
+        </Badge>
+      ) : 'N/A'
+    },
+  ];
+
+  const annotationDetails: Array<{ label: string; value: string }> = version?.annotations
+    ? Object.entries(version.annotations).map(([key, value]) => ({
+        label: key.replace('workers/', '').replace(/_/g, ' '),
+        value: String(value),
+      }))
+    : [];
+
   return (
-    <CloudflareLayout>
-      <div className="min-h-screen bg-gray-50">
-        {/* Header */}
-        <div className="px-6 py-8">
-          <div className="flex items-center justify-between">
+    <div className="min-h-screen bg-gray-50">
+      <div className="w-full px-6 py-8">
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-4">
             <div>
-              <nav className="flex" aria-label="Breadcrumb">
-                <ol className="flex items-center space-x-4">
-                  <li>
-                    <div>
-                      <a href="/workers" className="text-gray-400 hover:text-gray-500">
-                        Workers
-                      </a>
-                    </div>
-                  </li>
-                  <li>
-                    <div className="flex items-center">
-                      <svg className="flex-shrink-0 h-5 w-5 text-gray-300" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-                      </svg>
-                      <a href={`/workers/${workerId}/versions`} className="ml-4 text-sm font-medium text-gray-500 hover:text-gray-700">
-                        {worker?.name}
-                      </a>
-                    </div>
-                  </li>
-                  <li>
-                    <div className="flex items-center">
-                      <svg className="flex-shrink-0 h-5 w-5 text-gray-300" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-                      </svg>
-                      <span className="ml-4 text-sm font-medium text-gray-500">v{version?.number}</span>
-                    </div>
-                  </li>
-                </ol>
-              </nav>
-              <h1 className="mt-2 text-3xl font-bold text-gray-900">{worker?.name} v{version?.number}</h1>
-              <p className="mt-2 text-base text-gray-500">
-                Version details and configuration
-              </p>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                {worker?.name || 'Worker'}
+              </h1>
+              <div className="flex items-center gap-3">
+                <Badge variant="info" className="text-sm px-3 py-1">
+                  Version {version?.number || 'N/A'}
+                </Badge>
+                {version?.created_on && (
+                  <span className="text-base text-gray-600">
+                    Created {new Date(version.created_on).toLocaleDateString('en-US', { 
+                      year: 'numeric', 
+                      month: 'long', 
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
+                  </span>
+                )}
+              </div>
             </div>
-            <div className="flex space-x-3">
-              <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                Deploy
-              </button>
-              <button className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                Edit
-              </button>
+            <div className="flex items-center gap-3">
+              <Button variant="secondary" size="lg">
+                View All Versions
+              </Button>
+              <Button 
+                variant="secondary" 
+                size="lg"
+                onClick={handleEditVersion}
+                disabled={isEditing || !version?.modules || version.modules.length === 0}
+              >
+                {isEditing ? 'Parsing...' : 'Edit Version'}
+              </Button>
+              <Button variant="primary" size="lg">
+                Deploy to Production
+              </Button>
             </div>
           </div>
         </div>
 
-        {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 px-6 pb-8">
-          {/* Version Details (3/4 width) */}
-          <div className="lg:col-span-3">
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-200">
-                <h3 className="text-lg font-medium text-gray-900">Version Information</h3>
-              </div>
-              <div className="px-6 py-4">
-                <dl className="grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2">
-                  <div>
-                    <dt className="text-sm font-medium text-gray-500">Version ID</dt>
-                    <dd className="mt-1 text-sm text-gray-900 font-mono">{version?.id}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm font-medium text-gray-500">Version Number</dt>
-                    <dd className="mt-1 text-sm text-gray-900">v{version?.number}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm font-medium text-gray-500">Created</dt>
-                    <dd className="mt-1 text-sm text-gray-900">
-                      {version?.created_on ? new Date(version.created_on).toLocaleString() : 'N/A'}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm font-medium text-gray-500">Status</dt>
-                    <dd className="mt-1">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                        Active
-                      </span>
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm font-medium text-gray-500">Compatibility Date</dt>
-                    <dd className="mt-1 text-sm text-gray-900">
-                      {version?.compatibility_date || 'N/A'}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm font-medium text-gray-500">Main Module</dt>
-                    <dd className="mt-1 text-sm text-gray-900 font-mono">
-                      {version?.main_module || 'N/A'}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm font-medium text-gray-500">Usage Model</dt>
-                    <dd className="mt-1">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        version?.usage_model === 'standard' 
-                          ? 'bg-blue-100 text-blue-800' 
-                          : 'bg-gray-100 text-gray-800'
-                      }`}>
-                        {version?.usage_model || 'N/A'}
-                      </span>
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm font-medium text-gray-500">Source</dt>
-                    <dd className="mt-1">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        version?.source === 'api' 
-                          ? 'bg-green-100 text-green-800' 
-                          : 'bg-gray-100 text-gray-800'
-                      }`}>
-                        {version?.source || 'N/A'}
-                      </span>
-                    </dd>
-                  </div>
-                </dl>
-              </div>
-            </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 space-y-6">
+            <Card className="overflow-hidden">
+              <CardHeader className="bg-gray-50 border-b border-gray-200">
+                <h2 className="text-xl font-semibold text-gray-900">Version Information</h2>
+              </CardHeader>
+              <CardContent className="p-0">
+                <DetailsList items={versionDetails} />
+              </CardContent>
+            </Card>
 
-            {/* Annotations Section */}
-            {version?.annotations && Object.keys(version.annotations).length > 0 && (
-              <div className="mt-6 bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-                <div className="px-6 py-4 border-b border-gray-200">
-                  <h3 className="text-lg font-medium text-gray-900">Annotations</h3>
-                </div>
-                <div className="px-6 py-4">
-                  <dl className="grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2">
-                    {version.annotations['workers/triggered_by'] && (
-                      <div>
-                        <dt className="text-sm font-medium text-gray-500">Triggered By</dt>
-                        <dd className="mt-1 text-sm text-gray-900">{version.annotations['workers/triggered_by']}</dd>
-                      </div>
-                    )}
-                    {version.annotations['workers/message'] && (
-                      <div>
-                        <dt className="text-sm font-medium text-gray-500">Message</dt>
-                        <dd className="mt-1 text-sm text-gray-900">{version.annotations['workers/message']}</dd>
-                      </div>
-                    )}
-                    {version.annotations['workers/tag'] && (
-                      <div>
-                        <dt className="text-sm font-medium text-gray-500">Tag</dt>
-                        <dd className="mt-1 text-sm text-gray-900">{version.annotations['workers/tag']}</dd>
-                      </div>
-                    )}
-                  </dl>
-                </div>
-              </div>
+            {annotationDetails.length > 0 && (
+              <Card className="overflow-hidden">
+                <CardHeader className="bg-gray-50 border-b border-gray-200">
+                  <h2 className="text-xl font-semibold text-gray-900">Annotations</h2>
+                </CardHeader>
+                <CardContent className="p-0">
+                  <DetailsList items={annotationDetails} />
+                </CardContent>
+              </Card>
             )}
 
-            {/* Bindings Section */}
             {version?.bindings && version.bindings.length > 0 && (
-              <div className="mt-6 bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-                <div className="px-6 py-4 border-b border-gray-200">
-                  <h3 className="text-lg font-medium text-gray-900">Environment Variables & Bindings</h3>
-                </div>
-                <div className="px-6 py-4">
+              <Card className="overflow-hidden">
+                <CardHeader className="bg-gray-50 border-b border-gray-200">
+                  <h2 className="text-xl font-semibold text-gray-900">Environment Variables & Bindings</h2>
+                </CardHeader>
+                <CardContent className="p-6">
                   <div className="space-y-4">
-                    {version.bindings.map((binding, index) => (
-                      <div key={index} className="border border-gray-200 rounded-md p-4">
-                        <div className="flex items-center justify-between mb-2">
-                          <h4 className="text-sm font-medium text-gray-900">{binding.name}</h4>
-                          <div className="flex items-center space-x-2">
-                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                              binding.type === 'plain_text' 
-                                ? 'bg-blue-100 text-blue-800' 
-                                : binding.type === 'json'
-                                ? 'bg-green-100 text-green-800'
-                                : 'bg-gray-100 text-gray-800'
-                            }`}>
-                              {binding.type}
-                            </span>
-                            {binding.json && (
-                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                                JSON
-                              </span>
-                            )}
+                    {version.bindings.map((binding: { name: string; type: string; text?: string; json?: boolean }, index: number) => (
+                      <div key={index} className="border border-gray-200 rounded-lg p-5 bg-white hover:border-gray-300 transition-colors">
+                        <div className="flex items-center justify-between mb-4">
+                          <h3 className="text-lg font-semibold text-gray-900">{binding.name}</h3>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="info" className="text-sm">{binding.type}</Badge>
+                            {binding.json && <Badge variant="info" className="text-sm">JSON</Badge>}
                           </div>
                         </div>
                         {binding.text && (
-                          <div className="mt-2">
-                            <pre className="text-sm text-gray-900 bg-gray-50 rounded p-2 overflow-x-auto">
+                          <div className="relative">
+                            <div className="absolute top-3 right-3 z-10">
+                              <CopyButton 
+                                text={binding.json ? JSON.stringify(JSON.parse(binding.text), null, 2) : binding.text}
+                                size="md"
+                              />
+                            </div>
+                            <pre className="text-sm text-gray-800 bg-gray-50 rounded-lg p-4 overflow-x-auto border border-gray-200 font-mono leading-relaxed">
                               {binding.json ? JSON.stringify(JSON.parse(binding.text), null, 2) : binding.text}
                             </pre>
                           </div>
@@ -297,92 +464,190 @@ export default function VersionDetailPage() {
                       </div>
                     ))}
                   </div>
-                </div>
-              </div>
+                </CardContent>
+              </Card>
             )}
-
-            {/* Code Section */}
-            <div className="mt-6 bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-200">
-                <h3 className="text-lg font-medium text-gray-900">Code</h3>
-              </div>
-              <div className="px-6 py-4">
-                {version?.modules && version.modules.length > 0 ? (
-                  <div className="space-y-4">
-                    {version.modules.map((module, index) => (
-                      <div key={index} className="bg-gray-50 rounded-md p-4">
-                        <div className="flex items-center justify-between mb-2">
-                          <h4 className="text-sm font-medium text-gray-900">{module.name}</h4>
-                          <span className="text-xs text-gray-500">{module.content_type}</span>
-                        </div>
-                        <pre className="text-sm text-gray-900 whitespace-pre-wrap overflow-x-auto">
-                          {atob(module.content_base64)}
-                        </pre>
+            <Card className="overflow-hidden">
+              <CardHeader className="bg-gray-50 border-b border-gray-200">
+                <h2 className="text-xl font-semibold text-gray-900">Source Code</h2>
+              </CardHeader>
+              <CardContent className="p-0">
+                {modules.length > 0 ? (
+                  <div className="flex flex-col lg:flex-row max-h-[70vh] min-h-[420px] border-t border-gray-200">
+                    {/* File tree */}
+                    <div className="w-full lg:w-72 border-b lg:border-b-0 lg:border-r border-gray-200 bg-gray-50 overflow-y-auto">
+                      <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
+                        <span className="text-sm font-semibold text-gray-700">Files</span>
+                        <span className="text-xs text-gray-500">{modules.length} modules</span>
                       </div>
-                    ))}
+                      <div className="p-2">
+                        {fileTree.map((node) => (
+                          <FileTreeItem
+                            key={node.path}
+                            node={node}
+                            level={0}
+                            selectedPath={selectedModule?.name || null}
+                            onSelect={(path) => setSelectedModulePath(path)}
+                          />
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Code viewer */}
+                    <div className="flex-1 min-w-0 bg-white text-gray-900 flex flex-col">
+                      <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <span className="text-xs uppercase tracking-wide text-gray-400">
+                            {selectedModule ? selectedModule.content_type : 'text/plain'}
+                          </span>
+                          {selectedModule && (
+                            <span className="text-sm font-mono text-gray-800 truncate max-w-[280px]">
+                              {selectedModule.name}
+                            </span>
+                          )}
+                        </div>
+                        {selectedModule && (
+                          <CopyButton text={decodeModuleContent(selectedModule)} size="sm" />
+                        )}
+                      </div>
+                      <div className="flex-1 overflow-auto">
+                        <div className="h-full bg-gray-50">
+                          {selectedModule ? (
+                            <pre className="text-xs sm:text-sm leading-relaxed font-mono px-4 py-4 whitespace-pre text-gray-900">
+                              {decodeModuleContent(selectedModule)}
+                            </pre>
+                          ) : (
+                            <div className="h-full flex items-center justify-center text-sm text-gray-400">
+                              No file selected
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 ) : (
-                  <div className="bg-gray-50 rounded-md p-4">
-                    <pre className="text-sm text-gray-900 whitespace-pre-wrap">
-                      {`// Worker code for ${worker?.name} v${version?.number}
-export default {
-  async fetch(request) {
-    return new Response('Hello World!');
-  }
-};`}
-                    </pre>
+                  <div className="p-6">
+                    <div className="border border-gray-200 rounded-lg overflow-hidden bg-white">
+                      <div className="px-5 py-3 bg-gray-50 border-b border-gray-200">
+                        <h3 className="text-base font-semibold text-gray-900">Default Worker Code</h3>
+                      </div>
+                      <div className="relative">
+                        <div className="absolute top-3 right-3 z-10">
+                          <CopyButton 
+                            text={`export default {\n  async fetch(request) {\n    return new Response('Hello World!');\n  }\n};`}
+                            size="md"
+                          />
+                        </div>
+                        <pre className="text-sm text-gray-800 p-5 overflow-x-auto font-mono leading-relaxed bg-gray-50">
+                          {`export default {\n  async fetch(request) {\n    return new Response('Hello World!');\n  }\n};`}
+                        </pre>
+                      </div>
+                    </div>
                   </div>
                 )}
-              </div>
-            </div>
+              </CardContent>
+            </Card>
           </div>
 
-          {/* Actions Section (1/4 width) */}
-          <div className="lg:col-span-1">
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Actions</h2>
-            
-            <div className="space-y-4">
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-                <h3 className="text-sm font-medium text-gray-900 mb-3">Deployment</h3>
-                <div className="space-y-2">
-                  <button className="w-full px-3 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+          <div className="space-y-6">
+            <Card>
+              <CardHeader className="bg-gray-50 border-b border-gray-200">
+                <h2 className="text-xl font-semibold text-gray-900">Quick Actions</h2>
+              </CardHeader>
+              <CardContent className="p-6">
+                <div className="space-y-3">
+                  <Button variant="primary" size="lg" className="w-full justify-center">
                     Deploy to Production
-                  </button>
-                  <button className="w-full px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                  </Button>
+                  <Button variant="secondary" size="lg" className="w-full justify-center">
                     Deploy to Staging
-                  </button>
+                  </Button>
+                  <Separator />
+                  <Button 
+                    variant="primary" 
+                    size="lg" 
+                    className="w-full justify-center"
+                    onClick={handleEditVersion}
+                    disabled={isEditing || !version?.modules || version.modules.length === 0}
+                  >
+                    {isEditing ? 'Parsing...' : 'Edit Version'}
+                  </Button>
                 </div>
-              </div>
-              
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-                <h3 className="text-sm font-medium text-gray-900 mb-3">Management</h3>
-                <div className="space-y-2">
-                  <button className="w-full px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                    Edit Version
-                  </button>
-                  <button className="w-full px-3 py-2 text-sm font-medium text-red-700 bg-white border border-red-300 rounded-md hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
-                    Delete Version
-                  </button>
-                </div>
-              </div>
+              </CardContent>
+            </Card>
 
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-                <h3 className="text-sm font-medium text-gray-900 mb-3">Worker Details</h3>
-                <dl className="space-y-2">
+            <Card>
+              <CardHeader className="bg-gray-50 border-b border-gray-200">
+                <h2 className="text-xl font-semibold text-gray-900">Worker Details</h2>
+              </CardHeader>
+              <CardContent className="p-6">
+                <div className="space-y-4">
                   <div>
-                    <dt className="text-xs font-medium text-gray-500">Worker ID</dt>
-                    <dd className="text-sm text-gray-900 font-mono">{worker?.id}</dd>
+                    <label className="text-sm font-medium text-gray-500 block mb-1">Worker ID</label>
+                    <div className="flex items-center gap-2">
+                      <code className="text-sm text-gray-900 font-mono bg-gray-50 px-2 py-1 rounded border border-gray-200 flex-1 truncate">
+                        {worker?.id || 'N/A'}
+                      </code>
+                      {worker?.id && <CopyButton text={worker.id} size="sm" />}
+                    </div>
                   </div>
                   <div>
-                    <dt className="text-xs font-medium text-gray-500">Worker Name</dt>
-                    <dd className="text-sm text-gray-900">{worker?.name}</dd>
+                    <label className="text-sm font-medium text-gray-500 block mb-1">Worker Name</label>
+                    <p className="text-base text-gray-900 font-medium">{worker?.name || 'N/A'}</p>
                   </div>
-                </dl>
-              </div>
-            </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="bg-gray-50 border-b border-gray-200">
+                <h2 className="text-xl font-semibold text-gray-900">Version Metadata</h2>
+              </CardHeader>
+              <CardContent className="p-6">
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-sm font-medium text-gray-500 block mb-1">Version ID</label>
+                    <div className="flex items-center gap-2">
+                      <code className="text-sm text-gray-900 font-mono bg-gray-50 px-2 py-1 rounded border border-gray-200 flex-1 truncate">
+                        {version?.id || 'N/A'}
+                      </code>
+                      {version?.id && <CopyButton text={version.id} size="sm" />}
+                    </div>
+                  </div>
+                  {version?.compatibility_date && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-500 block mb-1">Compatibility Date</label>
+                      <p className="text-base text-gray-900">{version.compatibility_date}</p>
+                    </div>
+                  )}
+                  {version?.main_module && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-500 block mb-1">Main Module</label>
+                      <p className="text-base text-gray-900 font-mono">{version.main_module}</p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-red-200">
+              <CardHeader className="bg-red-50 border-b border-red-200">
+                <h2 className="text-xl font-semibold text-red-900">Danger Zone</h2>
+              </CardHeader>
+              <CardContent className="p-6">
+                <div className="space-y-3">
+                  <p className="text-sm text-gray-600 mb-4">
+                    Irreversible actions. Please be certain before proceeding.
+                  </p>
+                  <Button variant="danger" size="lg" className="w-full justify-center">
+                    Delete Version
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </div>
-    </CloudflareLayout>
+    </div>
   );
 }
