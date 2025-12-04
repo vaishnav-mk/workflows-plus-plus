@@ -49,18 +49,30 @@ function generateSettingsFromSchema(
           }
         },
       // Generate fields from schema properties
-      ...generateFieldsFromSchema(schema)
+      ...generateFieldsFromSchema(schema, '', [], metadata.type)
     ]
   });
 
   return fields;
 }
 
-function generateFieldsFromSchema(schema: JSONSchema, prefix = '', requiredFields: string[] = []): SettingField[] {
+function generateFieldsFromSchema(schema: JSONSchema, prefix = '', requiredFields: string[] = [], nodeType?: string): SettingField[] {
   if (!schema.properties) return [];
 
   const fields: SettingField[] = [];
   const schemaRequired = (schema.required as string[]) || [];
+
+  // Special handling for conditional-router: use custom builder
+  if (nodeType === 'conditional-router' && !prefix) {
+    // Check if this schema has conditionPath and cases
+    if (schema.properties.conditionPath && schema.properties.cases) {
+      fields.push({
+        type: 'conditional-router-builder',
+        key: 'conditional-router-config',
+      });
+      return fields;
+    }
+  }
 
   Object.entries(schema.properties).forEach(([key, prop]: [string, any]) => {
     const fullKey = prefix ? `${prefix}.${key}` : key;
@@ -74,7 +86,7 @@ function generateFieldsFromSchema(schema: JSONSchema, prefix = '', requiredField
           type: "card",
           key: `${fullKey}-container`,
           label: prop.title || formatLabel(key),
-          children: generateFieldsFromSchema(prop, fullKey, schemaRequired.map((r: string) => `${fullKey}.${r}`))
+          children: generateFieldsFromSchema(prop, fullKey, schemaRequired.map((r: string) => `${fullKey}.${r}`), nodeType)
         });
       } else {
         // Object without properties (like value.content) - treat as JSON input

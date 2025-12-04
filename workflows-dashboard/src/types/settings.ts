@@ -11,7 +11,8 @@ export interface SettingField {
     | "button"
     | "card"
     | "text"
-    | "conditional-builder";
+    | "conditional-builder"
+    | "conditional-router-builder";
   key: string;
   label?: string;
   placeholder?: string;

@@ -3,6 +3,7 @@
 import React from 'react';
 import { SettingField } from '@/components/settings/NodeSettingsConfigs';
 import { ConditionalBuilder } from '@/components/settings/ConditionalBuilder';
+import { ConditionalRouterBuilder } from '@/components/settings/ConditionalRouterBuilder';
 import { SettingCard } from '@/components/ui/SettingCard';
 import { SettingInput } from '@/components/ui/SettingInput';
 import { TemplateInput } from '@/components/ui/TemplateInput';
@@ -296,6 +297,16 @@ export function DynamicSettingsRenderer({
       case 'conditional-builder':
         return (
           <ConditionalBuilder
+            key={key}
+            nodeData={nodeData}
+            onNodeUpdate={onNodeUpdate}
+            nodeId={nodeId}
+          />
+        );
+
+      case 'conditional-router-builder':
+        return (
+          <ConditionalRouterBuilder
             key={key}
             nodeData={nodeData}
             onNodeUpdate={onNodeUpdate}
