@@ -9,6 +9,7 @@ import { ExecutionError } from "./errors";
 import { ErrorCode } from "../../core/enums";
 import { logger } from "../../core/logging/logger";
 import { WorkflowNodeDefinition } from "../../core/types";
+import { DEFAULT_VALUES } from "../../core/constants";
 
 export class NodeExecutionService {
   async executeNode(request: ExecutionRequest): Promise<ExecutionResult> {
@@ -79,7 +80,8 @@ export class NodeExecutionService {
     const startTime = Date.now();
 
     try {
-      if (nodeDefinition.presetOutput) {
+      // For nodes with preset output and no special runtime, just return the preset
+      if (nodeDefinition.presetOutput && nodeDefinition.metadata.type !== "http-request") {
         logs.push(`Using preset output for node type: ${nodeDefinition.metadata.type}`);
         return {
           output: nodeDefinition.presetOutput,
@@ -89,16 +91,25 @@ export class NodeExecutionService {
         };
       }
 
-      const simulatedOutput = this.simulateNodeExecution(
-        nodeDefinition.metadata.type,
-        config,
-        inputData
-      );
+      let output: unknown;
 
-      logs.push(`Simulated execution for node type: ${nodeDefinition.metadata.type}`);
+      // Special-case: actually execute HTTP requests for local testing
+      if (nodeDefinition.metadata.type === "http-request") {
+        logs.push("Executing real HTTP request for local node test");
+        output = await this.executeHttpRequestNode(config, inputData, logs);
+      } else {
+        const simulatedOutput = this.simulateNodeExecution(
+          nodeDefinition.metadata.type,
+          config,
+          inputData
+        );
+
+        logs.push(`Simulated execution for node type: ${nodeDefinition.metadata.type}`);
+        output = simulatedOutput;
+      }
 
       return {
-        output: simulatedOutput,
+        output,
         logs,
         duration: Date.now() - startTime,
         success: true
@@ -116,6 +127,125 @@ export class NodeExecutionService {
         }
       };
     }
+  }
+
+  /**
+   * Execute an HTTP Request node using the provided config.
+   * This is used for local testing from the dashboard and intentionally
+   * does NOT support template expressions or workflow state references.
+   */
+  private async executeHttpRequestNode(
+    config: Record<string, unknown>,
+    inputData: Record<string, unknown>,
+    logs: string[]
+  ): Promise<unknown> {
+    const cfg = (config || {}) as {
+      url?: unknown;
+      method?: unknown;
+      headers?: Array<{ key?: string; value?: string }> | unknown;
+      body?: { type?: string; content?: unknown } | unknown;
+      timeout?: unknown;
+    };
+
+    const rawUrl = cfg.url;
+    if (typeof rawUrl !== "string" || rawUrl.trim().length === 0) {
+      throw new ExecutionError(
+        ErrorCode.INVALID_CONFIG,
+        "HTTP request node requires a non-empty 'url' string in config"
+      );
+    }
+
+    // For now, keep things simple and disallow template expressions in local tests
+    if (rawUrl.includes("{{")) {
+      throw new ExecutionError(
+        ErrorCode.INVALID_CONFIG,
+        "Template expressions (e.g. {{state.*}}) are not supported in local HTTP tests. Please use a concrete URL."
+      );
+    }
+
+    const method =
+      typeof cfg.method === "string" && cfg.method.length > 0
+        ? cfg.method.toUpperCase()
+        : "GET";
+
+    const timeoutMs =
+      typeof cfg.timeout === "number" && Number.isFinite(cfg.timeout)
+        ? cfg.timeout
+        : DEFAULT_VALUES.TIMEOUT;
+
+    const headersArray =
+      Array.isArray(cfg.headers) && cfg.headers.length > 0
+        ? (cfg.headers as Array<{ key?: string; value?: string }>)
+        : [];
+
+    const headers: Record<string, string> = {};
+    for (const h of headersArray) {
+      if (h && typeof h.key === "string" && typeof h.value === "string") {
+        headers[h.key] = h.value;
+      }
+    }
+
+    const bodyConfig = (cfg.body || { type: "none", content: "" }) as {
+      type?: string;
+      content?: unknown;
+    };
+
+    let body: BodyInit | undefined;
+    if (bodyConfig.type && bodyConfig.type !== "none") {
+      if (bodyConfig.type === "json") {
+        body = JSON.stringify(bodyConfig.content ?? inputData);
+        if (!headers["Content-Type"] && !headers["content-type"]) {
+          headers["Content-Type"] = "application/json";
+        }
+      } else if (bodyConfig.type === "text") {
+        body = String(bodyConfig.content ?? "");
+      } else if (bodyConfig.type === "form") {
+        const params = new URLSearchParams();
+        const content = bodyConfig.content as Record<string, unknown>;
+        if (content && typeof content === "object") {
+          for (const [key, value] of Object.entries(content)) {
+            if (value != null) {
+              params.append(key, String(value));
+            }
+          }
+        }
+        body = params;
+      }
+    }
+
+    logs.push(`Request: ${method} ${rawUrl}`);
+
+    const response = await fetch(rawUrl, {
+      method,
+      headers,
+      body,
+      // Cloudflare Workers and modern runtimes support AbortSignal.timeout
+      signal: AbortSignal.timeout(timeoutMs)
+    });
+
+    const responseText = await response.text();
+    let parsedBody: unknown;
+    try {
+      parsedBody = JSON.parse(responseText);
+    } catch {
+      parsedBody = responseText;
+    }
+
+    if (!response.ok) {
+      const message = `HTTP ${response.status}: ${response.statusText}`;
+      logs.push(`Error: ${message}`);
+      throw new ExecutionError(ErrorCode.EXECUTION_ERROR, message);
+    }
+
+    const result = {
+      status: response.status,
+      headers: Object.fromEntries(response.headers.entries()),
+      body: parsedBody,
+      message: "HTTP request completed successfully"
+    };
+
+    logs.push("HTTP request completed successfully");
+    return result;
   }
 
   private simulateNodeExecution(

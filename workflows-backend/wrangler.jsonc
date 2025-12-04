@@ -14,15 +14,15 @@
 	"kv_namespaces": [
 		{
 			"binding": "WORKFLOWS_KV",
-			"id": "your-kv-namespace-id",
-			"preview_id": "your-preview-kv-namespace-id"
+			"id": "c082820183944e10b4a2d85643fb433c",
+			"preview_id": "ecdd2c5c83e24d0f89d3f7636590abdd"
 		}
 	],
 	"d1_databases": [
 		{
 			"binding": "DB",
 			"database_name": "workflows-db",
-			"database_id": "your-d1-database-id",
+			"database_id": "a30253fe-db09-4ce4-a35e-ff8179f98fd9",
 			"migrations_dir": "src/db/migrations"
 		}
 	],
@@ -40,14 +40,30 @@
 		"bindings": [
 			{
 				"name": "DEPLOYMENT_DO",
-				"class_name": "DeploymentDurableObject",
-				"script_name": "workflows-backend"
+				"class_name": "DeploymentDurableObject"
 			}
 		]
 	},
+	"migrations": [
+		{
+			"tag": "v1",
+			"new_classes": ["DeploymentDurableObject"]
+		}
+	],
+	// Environment variables should be set via:
+	// 1. wrangler secret put <KEY> (for secrets)
+	// 2. .dev.vars file for local development (gitignored)
+	// 3. Cloudflare Dashboard > Workers & Pages > Settings > Variables
+	// 
+	// Required environment variables:
+	// - ENVIRONMENT: "production" | "development" (defaults to "development")
+	// - CF_ACCOUNT_ID: Your Cloudflare Account ID (can be set via vars or secrets)
+	// - CF_API_TOKEN: Cloudflare API Token (should be set as secret)
+	// - AI_GATEWAY_URL: AI Gateway endpoint URL (optional, for AI features)
+	// - AI_GATEWAY_TOKEN: AI Gateway token (optional, should be set as secret)
+	//
+	// Note: Sensitive values like API tokens should NOT be in vars, use secrets instead
 	"vars": {
-		"CF_ACCOUNT_ID": "c714a393dbfabeb858a7dea729b5e8f8",
-		"AI_GATEWAY_URL": "https://gateway.ai.cloudflare.com/v1/c714a393dbfabeb858a7dea729b5e8f8/cloudflare-blogs-rag/google-ai-studio/v1/models/gemini-2.0-flash:generateContent",
-		"AI_GATEWAY_TOKEN": "AIzaSyCLB3eP_aH7p7eWXtl4HAB-Gc-e92RoLak"
+		// "ENVIRONMENT": "development"
 	}
 }

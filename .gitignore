@@ -9,10 +9,15 @@ node_modules/
 
 # Environment variables
 .env
+.env.*
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
+.env.production
+.env.local.backup
+.dev.vars
+*/.dev.vars
 
 # Logs
 npm-debug.log*
@@ -63,6 +68,7 @@ jspm_packages/
 
 # Next.js build output
 .next
+.open-next
 
 # Nuxt.js build / generate output
 .nuxt

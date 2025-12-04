@@ -13,7 +13,13 @@ export class GraphAnalyzer {
    */
   static buildGraphContext(
     nodes: Array<{ id: string; type: string; data?: Record<string, unknown> }>,
-    edges: Array<{ id: string; source: string; target: string }>
+    edges: Array<{
+      id: string;
+      source: string;
+      target: string;
+      sourceHandle?: string;
+      targetHandle?: string;
+    }>
   ): Effect.Effect<GraphContext, { _tag: ErrorCode; message: string }> {
     return Effect.gen(function* (_) {
       const nodeIdMap = new Map<string, string>();

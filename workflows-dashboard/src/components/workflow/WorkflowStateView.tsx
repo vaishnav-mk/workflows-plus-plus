@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { useWorkflowStore } from '@/stores/workflowStore';
 import { useNodeRegistry } from '@/hooks/useNodeRegistry';
+import { useNodeExecutionStore } from '@/stores/workflow/nodeExecutionStore';
 import { Card, CardContent, CopyButton } from '@/components';
 import { ChevronRight, ChevronDown, Check, Type, Hash, ToggleLeft, Folder, List, FileJson } from 'lucide-react';
 import type { StateTreeNode } from '@/types/components';
@@ -20,6 +21,7 @@ interface ExtendedStateTreeNode extends StateTreeNode {
 export function WorkflowStateView() {
   const { nodes, edges } = useWorkflowStore();
   const { catalog } = useNodeRegistry();
+  const { executions } = useNodeExecutionStore();
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
   const [copiedItem, setCopiedItem] = useState<string | null>(null);
 
@@ -62,11 +64,15 @@ export function WorkflowStateView() {
     const inputSource = incomingEdges.length > 0 
       ? incomingEdges[0].source 
       : null;
+    const execution = executions[nodeId];
     
-    // Get output ports from catalog (synchronous)
+    // Get output ports from catalog (synchronous) – kept for future use
     const catalogItem = catalog.find(item => item.type === nodeType);
     const outputPorts: Array<{ id: string; label: string; type: string; description: string }> = [];
-    const presetOutput: any = {};
+
+    // Use actual execution output when available, otherwise fall back to an empty structure.
+    // This lets us visually inspect the “current data” flowing through the workflow.
+    const presetOutput: any = execution?.output ?? {};
     
     return {
       id: nodeId,

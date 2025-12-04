@@ -93,6 +93,9 @@ function WorkflowBuilderContent() {
           id: e.id,
           source: e.source,
           target: e.target,
+          // Preserve branch information for conditional routing
+          sourceHandle: (e as any).sourceHandle,
+          targetHandle: (e as any).targetHandle,
         })),
         options: {
           workflowId: currentWorkflowId,
@@ -146,6 +149,9 @@ function WorkflowBuilderContent() {
           id: e.id,
           source: e.source,
           target: e.target,
+          // Preserve branch information for conditional routing
+          sourceHandle: (e as any).sourceHandle,
+          targetHandle: (e as any).targetHandle,
         })),
         options: {
           workflowId: currentWorkflowId,

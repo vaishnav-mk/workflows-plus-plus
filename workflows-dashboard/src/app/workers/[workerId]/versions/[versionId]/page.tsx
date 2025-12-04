@@ -1,13 +1,28 @@
-'use client';
+"use client";
 
-import { useParams, useRouter } from 'next/navigation';
-import { useState, useMemo } from 'react';
-import { WorkflowLoader } from '@/components/ui/Loader';
-import { Spinner } from '@/components';
-import { useWorkerQuery, useWorkerVersionQuery } from '@/hooks/useWorkflowsQuery';
-import { PageHeader, Card, CardHeader, CardContent, Button, Badge, DetailsList, Alert, AlertTitle, CopyButton, Separator } from '@/components';
-import { apiClient } from '@/lib/api-client';
-import { toast } from '@/stores/toastStore';
+import { useParams, useRouter } from "next/navigation";
+import { useState, useMemo } from "react";
+import { WorkflowLoader } from "@/components/ui/Loader";
+import { Spinner } from "@/components";
+import {
+  useWorkerQuery,
+  useWorkerVersionQuery
+} from "@/hooks/useWorkflowsQuery";
+import {
+  PageHeader,
+  Card,
+  CardHeader,
+  CardContent,
+  Button,
+  Badge,
+  DetailsList,
+  Alert,
+  AlertTitle,
+  CopyButton,
+  Separator
+} from "@/components";
+import { apiClient } from "@/lib/api-client";
+import { toast } from "@/stores/toastStore";
 
 interface Version {
   id: string;
@@ -16,9 +31,9 @@ interface Version {
   compatibility_date?: string;
   main_module?: string;
   annotations?: {
-    'workers/triggered_by'?: string;
-    'workers/message'?: string;
-    'workers/tag'?: string;
+    "workers/triggered_by"?: string;
+    "workers/message"?: string;
+    "workers/tag"?: string;
   };
   usage_model?: string;
   source?: string;
@@ -35,18 +50,18 @@ interface Version {
   }>;
 }
 
-type Module = NonNullable<Version['modules']>[number];
+type Module = NonNullable<Version["modules"]>[number];
 
 type FileTreeNode =
   | {
-      type: 'folder';
+      type: "folder";
       name: string;
       path: string;
       children: FileTreeNode[];
       isOpen?: boolean;
     }
   | {
-      type: 'file';
+      type: "file";
       name: string;
       path: string;
       module: Module;
@@ -59,10 +74,15 @@ interface FileTreeItemProps {
   onSelect: (path: string) => void;
 }
 
-function FileTreeItem({ node, level, selectedPath, onSelect }: FileTreeItemProps) {
+function FileTreeItem({
+  node,
+  level,
+  selectedPath,
+  onSelect
+}: FileTreeItemProps) {
   const paddingLeft = 10 + level * 12;
 
-  if (node.type === 'folder') {
+  if (node.type === "folder") {
     const [open, setOpen] = useState(false);
 
     return (
@@ -74,9 +94,11 @@ function FileTreeItem({ node, level, selectedPath, onSelect }: FileTreeItemProps
           style={{ paddingLeft }}
         >
           <span className="text-gray-500 select-none w-3 text-center text-[10px]">
-            {open ? '▾' : '▸'}
+            {open ? "▾" : "▸"}
           </span>
-          <span className="font-medium text-gray-900 truncate">{node.name}</span>
+          <span className="font-medium text-gray-900 truncate">
+            {node.name}
+          </span>
         </button>
         {open && node.children.length > 0 && (
           <div>
@@ -95,7 +117,8 @@ function FileTreeItem({ node, level, selectedPath, onSelect }: FileTreeItemProps
     );
   }
 
-  const isSelected = selectedPath === node.path || selectedPath === node.module.name;
+  const isSelected =
+    selectedPath === node.path || selectedPath === node.module.name;
 
   return (
     <button
@@ -103,8 +126,8 @@ function FileTreeItem({ node, level, selectedPath, onSelect }: FileTreeItemProps
       onClick={() => onSelect(node.module.name)}
       className={`flex w-full items-center gap-2 px-2 py-1.5 rounded-md text-[11px] text-left border border-transparent ${
         isSelected
-          ? 'bg-blue-50 text-blue-700 border-blue-200'
-          : 'text-gray-800 hover:bg-gray-100'
+          ? "bg-blue-50 text-blue-700 border-blue-200"
+          : "text-gray-800 hover:bg-gray-100"
       }`}
       style={{ paddingLeft }}
     >
@@ -120,13 +143,30 @@ export default function VersionDetailPage() {
   const workerId = params.workerId as string;
   const versionId = params.versionId as string;
   const [isEditing, setIsEditing] = useState(false);
-  const [selectedModulePath, setSelectedModulePath] = useState<string | null>(null);
-  
-  const { data: worker, isLoading: workerLoading, error: workerError } = useWorkerQuery(workerId);
-  const { data: version, isLoading: versionLoading, error: versionError } = useWorkerVersionQuery(workerId, versionId, 'modules');
-  
+  const [selectedModulePath, setSelectedModulePath] = useState<string | null>(
+    null
+  );
+
+  const {
+    data: worker,
+    isLoading: workerLoading,
+    error: workerError
+  } = useWorkerQuery(workerId);
+  const {
+    data: version,
+    isLoading: versionLoading,
+    error: versionError
+  } = useWorkerVersionQuery(workerId, versionId, "modules");
+
   const loading = workerLoading || versionLoading;
-  const error = workerError instanceof Error ? workerError.message : (versionError instanceof Error ? versionError.message : (workerError || versionError ? String(workerError || versionError) : null));
+  const error =
+    workerError instanceof Error
+      ? workerError.message
+      : versionError instanceof Error
+        ? versionError.message
+        : workerError || versionError
+          ? String(workerError || versionError)
+          : null;
 
   const modules: Module[] = version?.modules || [];
 
@@ -141,42 +181,48 @@ export default function VersionDetailPage() {
       parentPath: string
     ): FileTreeNode => {
       const path = parentPath ? `${parentPath}/${name}` : name;
-      const existing = nodes.find((n) => n.type === 'folder' && n.name === name);
+      const existing = nodes.find(
+        (n) => n.type === "folder" && n.name === name
+      );
       if (existing) {
         return existing;
       }
 
       const folder: FileTreeNode = {
-        type: 'folder',
+        type: "folder",
         name,
         path,
-        children: [],
+        children: []
       };
       nodes.push(folder);
       return folder;
     };
 
     modules.forEach((module) => {
-      const segments = module.name.split('/');
+      const segments = module.name.split("/");
 
       // No folder path, just a file at the root
       if (segments.length === 1) {
         roots.push({
-          type: 'file',
+          type: "file",
           name: module.name,
           path: module.name,
-          module,
+          module
         });
         return;
       }
 
       let currentNodes = roots;
-      let parentPath = '';
+      let parentPath = "";
 
       // Create / find folders for all but the last segment
       for (let i = 0; i < segments.length - 1; i++) {
         const folderName = segments[i];
-        const folderNode = getOrCreateFolder(currentNodes, folderName, parentPath);
+        const folderNode = getOrCreateFolder(
+          currentNodes,
+          folderName,
+          parentPath
+        );
         parentPath = folderNode.path;
         currentNodes = folderNode.children;
       }
@@ -186,14 +232,14 @@ export default function VersionDetailPage() {
 
       // Avoid duplicates
       const exists = currentNodes.some(
-        (n) => n.type === 'file' && n.name === fileName && n.path === filePath
+        (n) => n.type === "file" && n.name === fileName && n.path === filePath
       );
       if (!exists) {
         currentNodes.push({
-          type: 'file',
+          type: "file",
           name: fileName,
           path: filePath,
-          module,
+          module
         });
       }
     });
@@ -204,10 +250,10 @@ export default function VersionDetailPage() {
       const files: FileTreeNode[] = [];
 
       nodes.forEach((node) => {
-        if (node.type === 'folder') {
+        if (node.type === "folder") {
           folders.push({
             ...node,
-            children: sortNodes(node.children),
+            children: sortNodes(node.children)
           });
         } else {
           files.push(node);
@@ -239,36 +285,50 @@ export default function VersionDetailPage() {
 
     // Fallback: first JS/TS file, otherwise first module
     const mainCodeModule =
-      modules.find((m) => m.name.endsWith('.ts') || m.name.endsWith('.js') || m.name.endsWith('.mjs')) ||
-      modules[0];
+      modules.find(
+        (m) =>
+          m.name.endsWith(".ts") ||
+          m.name.endsWith(".js") ||
+          m.name.endsWith(".mjs")
+      ) || modules[0];
 
     return mainCodeModule || null;
   }, [modules, selectedModulePath, version?.main_module]);
 
   const decodeModuleContent = (module?: Module | null) => {
-    if (!module) return '';
+    if (!module) return "";
     try {
-      return atob(module.content_base64 || '');
+      return atob(module.content_base64 || "");
     } catch {
-      return '';
+      return "";
     }
   };
 
   const handleEditVersion = async () => {
     if (!version?.modules || version.modules.length === 0) {
-      toast.error('No source code available', 'This version does not have any modules to edit.');
+      toast.error(
+        "No source code available",
+        "This version does not have any modules to edit."
+      );
       return;
     }
 
     setIsEditing(true);
     try {
       // Find the main TypeScript/JavaScript module
-      const mainModule = version.modules.find(
-        (m: any) => m.name.endsWith('.ts') || m.name.endsWith('.js') || m.name.endsWith('.mjs')
-      ) || version.modules[0];
+      const mainModule =
+        version.modules.find(
+          (m: any) =>
+            m.name.endsWith(".ts") ||
+            m.name.endsWith(".js") ||
+            m.name.endsWith(".mjs")
+        ) || version.modules[0];
 
       if (!mainModule) {
-        toast.error('No code module found', 'Could not find a code module in this version.');
+        toast.error(
+          "No code module found",
+          "Could not find a code module in this version."
+        );
         setIsEditing(false);
         return;
       }
@@ -280,26 +340,34 @@ export default function VersionDetailPage() {
       const result = await apiClient.reverseCodegen(workflowCode);
 
       if (!result.success || !result.data) {
-        throw new Error(result.error || result.message || 'Failed to parse workflow code');
+        throw new Error(
+          result.error || result.message || "Failed to parse workflow code"
+        );
       }
 
       // Store the parsed workflow in sessionStorage for the builder to load
       const workflowData = {
         nodes: result.data.nodes,
-        edges: result.data.edges,
+        edges: result.data.edges
       };
-      
-      sessionStorage.setItem('workflow-from-version', JSON.stringify(workflowData));
-      
+
+      sessionStorage.setItem(
+        "workflow-from-version",
+        JSON.stringify(workflowData)
+      );
+
       // Navigate to builder
-      router.push('/builder?type=version');
-      
-      toast.success('Loading workflow', 'Parsed workflow code and loading in builder...');
+      router.push("/builder?type=version");
+
+      toast.success(
+        "Loading workflow",
+        "Parsed workflow code and loading in builder..."
+      );
     } catch (error) {
-      console.error('Failed to edit version:', error);
+      console.error("Failed to edit version:", error);
       toast.error(
-        'Failed to Edit Version',
-        error instanceof Error ? error.message : 'Unknown error occurred'
+        "Failed to Edit Version",
+        error instanceof Error ? error.message : "Unknown error occurred"
       );
       setIsEditing(false);
     }
@@ -310,7 +378,9 @@ export default function VersionDetailPage() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="flex flex-col items-center gap-6">
           <Spinner size="lg" />
-          <p className="text-base text-gray-600 font-medium">Loading version details...</p>
+          <p className="text-base text-gray-600 font-medium">
+            Loading version details...
+          </p>
         </div>
       </div>
     );
@@ -327,43 +397,56 @@ export default function VersionDetailPage() {
     );
   }
 
-  const versionDetails: Array<{ label: string; value: string | React.ReactNode }> = [
-    { label: 'Version ID', value: version?.id || 'N/A' },
-    { label: 'Version Number', value: `v${version?.number || 'N/A'}` },
-    { 
-      label: 'Created', 
-      value: version?.created_on ? new Date(version.created_on).toLocaleString() : 'N/A' 
+  const versionDetails: Array<{
+    label: string;
+    value: string | React.ReactNode;
+  }> = [
+    { label: "Version ID", value: version?.id || "N/A" },
+    { label: "Version Number", value: `v${version?.number || "N/A"}` },
+    {
+      label: "Created",
+      value: version?.created_on
+        ? new Date(version.created_on).toLocaleString()
+        : "N/A"
     },
-    { 
-      label: 'Status', 
+    {
+      label: "Status",
       value: <Badge variant="success">Active</Badge>
     },
-    { label: 'Compatibility Date', value: version?.compatibility_date || 'N/A' },
-    { label: 'Main Module', value: version?.main_module || 'N/A' },
-    { 
-      label: 'Usage Model', 
+    {
+      label: "Compatibility Date",
+      value: version?.compatibility_date || "N/A"
+    },
+    { label: "Main Module", value: version?.main_module || "N/A" },
+    {
+      label: "Usage Model",
       value: version?.usage_model ? (
-        <Badge variant={version.usage_model === 'standard' ? 'info' : 'info'}>
+        <Badge variant={version.usage_model === "standard" ? "info" : "info"}>
           {version.usage_model}
         </Badge>
-      ) : 'N/A'
+      ) : (
+        "N/A"
+      )
     },
-    { 
-      label: 'Source', 
+    {
+      label: "Source",
       value: version?.source ? (
-        <Badge variant={version.source === 'api' ? 'success' : 'info'}>
+        <Badge variant={version.source === "api" ? "success" : "info"}>
           {version.source}
         </Badge>
-      ) : 'N/A'
-    },
+      ) : (
+        "N/A"
+      )
+    }
   ];
 
-  const annotationDetails: Array<{ label: string; value: string }> = version?.annotations
-    ? Object.entries(version.annotations).map(([key, value]) => ({
-        label: key.replace('workers/', '').replace(/_/g, ' '),
-        value: String(value),
-      }))
-    : [];
+  const annotationDetails: Array<{ label: string; value: string }> =
+    version?.annotations
+      ? Object.entries(version.annotations).map(([key, value]) => ({
+          label: key.replace("workers/", "").replace(/_/g, " "),
+          value: String(value)
+        }))
+      : [];
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -372,20 +455,21 @@ export default function VersionDetailPage() {
           <div className="flex items-center justify-between mb-4">
             <div>
               <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                {worker?.name || 'Worker'}
+                {worker?.name || "Worker"}
               </h1>
               <div className="flex items-center gap-3">
                 <Badge variant="info" className="text-sm px-3 py-1">
-                  Version {version?.number || 'N/A'}
+                  Version {version?.number || "N/A"}
                 </Badge>
                 {version?.created_on && (
                   <span className="text-base text-gray-600">
-                    Created {new Date(version.created_on).toLocaleDateString('en-US', { 
-                      year: 'numeric', 
-                      month: 'long', 
-                      day: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit'
+                    Created{" "}
+                    {new Date(version.created_on).toLocaleDateString("en-US", {
+                      year: "numeric",
+                      month: "long",
+                      day: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit"
                     })}
                   </span>
                 )}
@@ -395,13 +479,15 @@ export default function VersionDetailPage() {
               <Button variant="secondary" size="lg">
                 View All Versions
               </Button>
-              <Button 
-                variant="secondary" 
+              <Button
+                variant="secondary"
                 size="lg"
                 onClick={handleEditVersion}
-                disabled={isEditing || !version?.modules || version.modules.length === 0}
+                disabled={
+                  isEditing || !version?.modules || version.modules.length === 0
+                }
               >
-                {isEditing ? 'Parsing...' : 'Edit Version'}
+                {isEditing ? "Parsing..." : "Edit Version"}
               </Button>
               <Button variant="primary" size="lg">
                 Deploy to Production
@@ -414,7 +500,9 @@ export default function VersionDetailPage() {
           <div className="lg:col-span-2 space-y-6">
             <Card className="overflow-hidden">
               <CardHeader className="bg-gray-50 border-b border-gray-200">
-                <h2 className="text-xl font-semibold text-gray-900">Version Information</h2>
+                <h2 className="text-xl font-semibold text-gray-900">
+                  Version Information
+                </h2>
               </CardHeader>
               <CardContent className="p-0">
                 <DetailsList items={versionDetails} />
@@ -424,7 +512,9 @@ export default function VersionDetailPage() {
             {annotationDetails.length > 0 && (
               <Card className="overflow-hidden">
                 <CardHeader className="bg-gray-50 border-b border-gray-200">
-                  <h2 className="text-xl font-semibold text-gray-900">Annotations</h2>
+                  <h2 className="text-xl font-semibold text-gray-900">
+                    Annotations
+                  </h2>
                 </CardHeader>
                 <CardContent className="p-0">
                   <DetailsList items={annotationDetails} />
@@ -435,41 +525,80 @@ export default function VersionDetailPage() {
             {version?.bindings && version.bindings.length > 0 && (
               <Card className="overflow-hidden">
                 <CardHeader className="bg-gray-50 border-b border-gray-200">
-                  <h2 className="text-xl font-semibold text-gray-900">Environment Variables & Bindings</h2>
+                  <h2 className="text-xl font-semibold text-gray-900">
+                    Environment Variables & Bindings
+                  </h2>
                 </CardHeader>
                 <CardContent className="p-6">
                   <div className="space-y-4">
-                    {version.bindings.map((binding: { name: string; type: string; text?: string; json?: boolean }, index: number) => (
-                      <div key={index} className="border border-gray-200 rounded-lg p-5 bg-white hover:border-gray-300 transition-colors">
-                        <div className="flex items-center justify-between mb-4">
-                          <h3 className="text-lg font-semibold text-gray-900">{binding.name}</h3>
-                          <div className="flex items-center gap-2">
-                            <Badge variant="info" className="text-sm">{binding.type}</Badge>
-                            {binding.json && <Badge variant="info" className="text-sm">JSON</Badge>}
-                          </div>
-                        </div>
-                        {binding.text && (
-                          <div className="relative">
-                            <div className="absolute top-3 right-3 z-10">
-                              <CopyButton 
-                                text={binding.json ? JSON.stringify(JSON.parse(binding.text), null, 2) : binding.text}
-                                size="md"
-                              />
+                    {version.bindings.map(
+                      (
+                        binding: {
+                          name: string;
+                          type: string;
+                          text?: string;
+                          json?: boolean;
+                        },
+                        index: number
+                      ) => (
+                        <div
+                          key={index}
+                          className="border border-gray-200 rounded-lg p-5 bg-white hover:border-gray-300 transition-colors"
+                        >
+                          <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-lg font-semibold text-gray-900">
+                              {binding.name}
+                            </h3>
+                            <div className="flex items-center gap-2">
+                              <Badge variant="info" className="text-sm">
+                                {binding.type}
+                              </Badge>
+                              {binding.json && (
+                                <Badge variant="info" className="text-sm">
+                                  JSON
+                                </Badge>
+                              )}
                             </div>
-                            <pre className="text-sm text-gray-800 bg-gray-50 rounded-lg p-4 overflow-x-auto border border-gray-200 font-mono leading-relaxed">
-                              {binding.json ? JSON.stringify(JSON.parse(binding.text), null, 2) : binding.text}
-                            </pre>
                           </div>
-                        )}
-                      </div>
-                    ))}
+                          {binding.text && (
+                            <div className="relative">
+                              <div className="absolute top-3 right-3 z-10">
+                                <CopyButton
+                                  text={
+                                    binding.json
+                                      ? JSON.stringify(
+                                          JSON.parse(binding.text),
+                                          null,
+                                          2
+                                        )
+                                      : binding.text
+                                  }
+                                  size="md"
+                                />
+                              </div>
+                              <pre className="text-sm text-gray-800 bg-gray-50 rounded-lg p-4 overflow-x-auto border border-gray-200 font-mono leading-relaxed">
+                                {binding.json
+                                  ? JSON.stringify(
+                                      JSON.parse(binding.text),
+                                      null,
+                                      2
+                                    )
+                                  : binding.text}
+                              </pre>
+                            </div>
+                          )}
+                        </div>
+                      )
+                    )}
                   </div>
                 </CardContent>
               </Card>
             )}
             <Card className="overflow-hidden">
               <CardHeader className="bg-gray-50 border-b border-gray-200">
-                <h2 className="text-xl font-semibold text-gray-900">Source Code</h2>
+                <h2 className="text-xl font-semibold text-gray-900">
+                  Source Code
+                </h2>
               </CardHeader>
               <CardContent className="p-0">
                 {modules.length > 0 ? (
@@ -477,8 +606,12 @@ export default function VersionDetailPage() {
                     {/* File tree */}
                     <div className="w-full lg:w-72 border-b lg:border-b-0 lg:border-r border-gray-200 bg-gray-50 overflow-y-auto">
                       <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
-                        <span className="text-sm font-semibold text-gray-700">Files</span>
-                        <span className="text-xs text-gray-500">{modules.length} modules</span>
+                        <span className="text-sm font-semibold text-gray-700">
+                          Files
+                        </span>
+                        <span className="text-xs text-gray-500">
+                          {modules.length} modules
+                        </span>
                       </div>
                       <div className="p-2">
                         {fileTree.map((node) => (
@@ -498,7 +631,9 @@ export default function VersionDetailPage() {
                       <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
                         <div className="flex items-center gap-3">
                           <span className="text-xs uppercase tracking-wide text-gray-400">
-                            {selectedModule ? selectedModule.content_type : 'text/plain'}
+                            {selectedModule
+                              ? selectedModule.content_type
+                              : "text/plain"}
                           </span>
                           {selectedModule && (
                             <span className="text-sm font-mono text-gray-800 truncate max-w-[280px]">
@@ -507,7 +642,10 @@ export default function VersionDetailPage() {
                           )}
                         </div>
                         {selectedModule && (
-                          <CopyButton text={decodeModuleContent(selectedModule)} size="sm" />
+                          <CopyButton
+                            text={decodeModuleContent(selectedModule)}
+                            size="sm"
+                          />
                         )}
                       </div>
                       <div className="flex-1 overflow-auto">
@@ -529,11 +667,13 @@ export default function VersionDetailPage() {
                   <div className="p-6">
                     <div className="border border-gray-200 rounded-lg overflow-hidden bg-white">
                       <div className="px-5 py-3 bg-gray-50 border-b border-gray-200">
-                        <h3 className="text-base font-semibold text-gray-900">Default Worker Code</h3>
+                        <h3 className="text-base font-semibold text-gray-900">
+                          Default Worker Code
+                        </h3>
                       </div>
                       <div className="relative">
                         <div className="absolute top-3 right-3 z-10">
-                          <CopyButton 
+                          <CopyButton
                             text={`export default {\n  async fetch(request) {\n    return new Response('Hello World!');\n  }\n};`}
                             size="md"
                           />
@@ -552,25 +692,39 @@ export default function VersionDetailPage() {
           <div className="space-y-6">
             <Card>
               <CardHeader className="bg-gray-50 border-b border-gray-200">
-                <h2 className="text-xl font-semibold text-gray-900">Quick Actions</h2>
+                <h2 className="text-xl font-semibold text-gray-900">
+                  Quick Actions
+                </h2>
               </CardHeader>
               <CardContent className="p-6">
                 <div className="space-y-3">
-                  <Button variant="primary" size="lg" className="w-full justify-center">
+                  <Button
+                    variant="primary"
+                    size="lg"
+                    className="w-full justify-center"
+                  >
                     Deploy to Production
                   </Button>
-                  <Button variant="secondary" size="lg" className="w-full justify-center">
+                  <Button
+                    variant="secondary"
+                    size="lg"
+                    className="w-full justify-center"
+                  >
                     Deploy to Staging
                   </Button>
                   <Separator />
-                  <Button 
-                    variant="primary" 
-                    size="lg" 
+                  <Button
+                    variant="primary"
+                    size="lg"
                     className="w-full justify-center"
                     onClick={handleEditVersion}
-                    disabled={isEditing || !version?.modules || version.modules.length === 0}
+                    disabled={
+                      isEditing ||
+                      !version?.modules ||
+                      version.modules.length === 0
+                    }
                   >
-                    {isEditing ? 'Parsing...' : 'Edit Version'}
+                    {isEditing ? "Parsing..." : "Edit Version"}
                   </Button>
                 </div>
               </CardContent>
@@ -578,22 +732,30 @@ export default function VersionDetailPage() {
 
             <Card>
               <CardHeader className="bg-gray-50 border-b border-gray-200">
-                <h2 className="text-xl font-semibold text-gray-900">Worker Details</h2>
+                <h2 className="text-xl font-semibold text-gray-900">
+                  Worker Details
+                </h2>
               </CardHeader>
               <CardContent className="p-6">
                 <div className="space-y-4">
                   <div>
-                    <label className="text-sm font-medium text-gray-500 block mb-1">Worker ID</label>
+                    <label className="text-sm font-medium text-gray-500 block mb-1">
+                      Worker ID
+                    </label>
                     <div className="flex items-center gap-2">
                       <code className="text-sm text-gray-900 font-mono bg-gray-50 px-2 py-1 rounded border border-gray-200 flex-1 truncate">
-                        {worker?.id || 'N/A'}
+                        {worker?.id || "N/A"}
                       </code>
                       {worker?.id && <CopyButton text={worker.id} size="sm" />}
                     </div>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-500 block mb-1">Worker Name</label>
-                    <p className="text-base text-gray-900 font-medium">{worker?.name || 'N/A'}</p>
+                    <label className="text-sm font-medium text-gray-500 block mb-1">
+                      Worker Name
+                    </label>
+                    <p className="text-base text-gray-900 font-medium">
+                      {worker?.name || "N/A"}
+                    </p>
                   </div>
                 </div>
               </CardContent>
@@ -601,29 +763,43 @@ export default function VersionDetailPage() {
 
             <Card>
               <CardHeader className="bg-gray-50 border-b border-gray-200">
-                <h2 className="text-xl font-semibold text-gray-900">Version Metadata</h2>
+                <h2 className="text-xl font-semibold text-gray-900">
+                  Version Metadata
+                </h2>
               </CardHeader>
               <CardContent className="p-6">
                 <div className="space-y-4">
                   <div>
-                    <label className="text-sm font-medium text-gray-500 block mb-1">Version ID</label>
+                    <label className="text-sm font-medium text-gray-500 block mb-1">
+                      Version ID
+                    </label>
                     <div className="flex items-center gap-2">
                       <code className="text-sm text-gray-900 font-mono bg-gray-50 px-2 py-1 rounded border border-gray-200 flex-1 truncate">
-                        {version?.id || 'N/A'}
+                        {version?.id || "N/A"}
                       </code>
-                      {version?.id && <CopyButton text={version.id} size="sm" />}
+                      {version?.id && (
+                        <CopyButton text={version.id} size="sm" />
+                      )}
                     </div>
                   </div>
                   {version?.compatibility_date && (
                     <div>
-                      <label className="text-sm font-medium text-gray-500 block mb-1">Compatibility Date</label>
-                      <p className="text-base text-gray-900">{version.compatibility_date}</p>
+                      <label className="text-sm font-medium text-gray-500 block mb-1">
+                        Compatibility Date
+                      </label>
+                      <p className="text-base text-gray-900">
+                        {version.compatibility_date}
+                      </p>
                     </div>
                   )}
                   {version?.main_module && (
                     <div>
-                      <label className="text-sm font-medium text-gray-500 block mb-1">Main Module</label>
-                      <p className="text-base text-gray-900 font-mono">{version.main_module}</p>
+                      <label className="text-sm font-medium text-gray-500 block mb-1">
+                        Main Module
+                      </label>
+                      <p className="text-base text-gray-900 font-mono">
+                        {version.main_module}
+                      </p>
                     </div>
                   )}
                 </div>
@@ -632,14 +808,20 @@ export default function VersionDetailPage() {
 
             <Card className="border-red-200">
               <CardHeader className="bg-red-50 border-b border-red-200">
-                <h2 className="text-xl font-semibold text-red-900">Danger Zone</h2>
+                <h2 className="text-xl font-semibold text-red-900">
+                  Danger Zone
+                </h2>
               </CardHeader>
               <CardContent className="p-6">
                 <div className="space-y-3">
                   <p className="text-sm text-gray-600 mb-4">
                     Irreversible actions. Please be certain before proceeding.
                   </p>
-                  <Button variant="danger" size="lg" className="w-full justify-center">
+                  <Button
+                    variant="danger"
+                    size="lg"
+                    className="w-full justify-center"
+                  >
                     Delete Version
                   </Button>
                 </div>

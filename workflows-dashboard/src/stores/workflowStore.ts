@@ -117,6 +117,8 @@ export function useWorkflowStore() {
               source: e.source,
               target: e.target,
               type: e.type,
+              sourceHandle: (e as any).sourceHandle,
+              targetHandle: (e as any).targetHandle,
             })),
             metadata: {
               updatedAt: Date.now(),
