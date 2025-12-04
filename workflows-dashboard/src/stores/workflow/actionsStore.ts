@@ -5,6 +5,7 @@ import { useSelectionStore } from "@/stores/workflow/selectionStore";
 import { createNodeFromBackend } from "@/stores/workflow/nodeBuilder";
 import { applyNodeChanges, applyEdgeChanges, addEdge as addEdgeUtil } from "reactflow";
 import type { ActionsState } from "@/types/stores";
+import { enrichEdges, enrichEdge } from "./edgeEnrichment";
 
 const LOG_PREFIX = '[ActionsStore]';
 
@@ -39,6 +40,8 @@ function triggerAutoSave() {
               source: e.source,
               target: e.target,
               type: e.type,
+              sourceHandle: e.sourceHandle,
+              targetHandle: e.targetHandle,
             })),
             metadata: {
               updatedAt: Date.now(),
@@ -111,6 +114,7 @@ export const useActionsStore = create<ActionsState>(() => ({
         id: `${edge.source}-${newNode.id}`,
         source: edge.source,
         target: newNode.id,
+        sourceHandle: edge.sourceHandle, // Preserve sourceHandle if present
         type: "step",
         animated: true,
       };
@@ -189,14 +193,11 @@ export const useActionsStore = create<ActionsState>(() => ({
   },
   
   handleConnect: (connection) => {
-    const { edges, setEdges } = useNodesStore.getState();
-    const newEdge = addEdgeUtil(connection, edges);
-    // Ensure new edge has 'step' type for straight lines
-    const edgesWithType = newEdge.map(edge => ({
-      ...edge,
-      type: edge.type || 'step',
-    }));
-    setEdges(edgesWithType);
+    const { nodes, edges, setEdges } = useNodesStore.getState();
+    const newEdges = addEdgeUtil(connection, edges);
+    // Enrich all edges (including the new one) with conditional case data
+    const enrichedEdges = enrichEdges(newEdges, nodes);
+    setEdges(enrichedEdges);
     triggerAutoSave();
   },
 }));
