@@ -7,30 +7,41 @@ import { Effect } from "effect";
 import { WorkflowNodeDefinition, CodeGenResult } from "../../core/types";
 import { NodeType, NodeCategory, DataType, ErrorCode } from "../../core/enums";
 
+const CaseSchema = z.object({
+  case: z.string().min(1, "Case name is required"),
+  value: z.any().optional(), // Value to match against
+  isDefault: z.boolean().optional().default(false), // If true, this is the default case
+});
+
 const ConditionalConfigSchema = z.object({
-  condition: z.object({
-    type: z.enum(["simple", "expression"]),
-    left: z.string().optional(),
-    operator: z.enum(["===", "!==", ">", "<", ">=", "<="]).optional(),
-    right: z.any().optional(),
-    expression: z.string().optional(),
-  }),
+  conditionPath: z.string().min(1, "Condition path is required"), // Path to condition value in input (e.g., "status", "event.payload.status", "step_http_1.output.code")
+  cases: z.array(CaseSchema).min(1, "At least one case is required"),
 });
 
 type ConditionalConfig = z.infer<typeof ConditionalConfigSchema>;
+type Case = z.infer<typeof CaseSchema>;
 
-function generateConditionExpression(condition: ConditionalConfig["condition"]): string {
-  if (condition.type === "simple") {
-    let left = condition.left || "";
-    if (left.includes(".")) {
-      left = `event.payload.${left}`;
-    } else if (!left.startsWith("event.") && !left.startsWith("data.")) {
-      left = `event.payload.${left}`;
-    }
-    return `${left} ${condition.operator} ${JSON.stringify(condition.right)}`;
-  } else {
-    return condition.expression || "true";
+function resolveConditionPath(path: string): string {
+  // If path starts with step_ or contains step reference, resolve it to _workflowState
+  if (path.startsWith("step_")) {
+    const parts = path.split(".");
+    const nodeId = parts[0];
+    const tail = parts.slice(1).join(".");
+    // Use nodeId directly as key in _workflowState (nodeId is the step identifier)
+    return `_workflowState['${nodeId}']${tail ? "." + tail : ".output"}`;
   }
+  
+  // If path includes dots, assume it's a nested path
+  if (path.includes(".")) {
+    if (path.startsWith("event.") || path.startsWith("data.")) {
+      return path;
+    }
+    // Assume it's a path in event.payload
+    return `event.payload.${path}`;
+  }
+  
+  // Simple path - assume it's in event.payload
+  return `event.payload.${path}`;
 }
 
 export const ConditionalRouterNode: WorkflowNodeDefinition<ConditionalConfig> = {
@@ -54,19 +65,28 @@ export const ConditionalRouterNode: WorkflowNodeDefinition<ConditionalConfig> = 
       required: true,
     },
   ],
+  // Output ports are dynamic based on cases, but we provide a default set
+  // The actual ports will be determined by the cases in config
   outputPorts: [
     {
-      id: "true",
-      label: "True",
+      id: "case1",
+      label: "Case 1",
       type: DataType.ANY,
-      description: "Condition is true",
+      description: "First case route",
       required: false,
     },
     {
-      id: "false",
-      label: "False",
+      id: "case2",
+      label: "Case 2",
       type: DataType.ANY,
-      description: "Condition is false",
+      description: "Second case route",
+      required: false,
+    },
+    {
+      id: "default",
+      label: "Default",
+      type: DataType.ANY,
+      description: "Default case route",
       required: false,
     },
   ],
@@ -83,26 +103,81 @@ export const ConditionalRouterNode: WorkflowNodeDefinition<ConditionalConfig> = 
   },
   examples: [
     {
-      name: "Route by Status",
-      description: "Route to different paths based on status code",
-      config: { condition: { type: "simple", left: "status", operator: "===", right: 200 } },
+      name: "Route by Status Code",
+      description: "Route to different paths based on HTTP status code",
+      config: {
+        conditionPath: "status",
+        cases: [
+          { case: "success", value: 200 },
+          { case: "notFound", value: 404 },
+          { case: "error", value: 500 },
+          { case: "default", isDefault: true },
+        ],
+      },
+    },
+    {
+      name: "Route by User Type",
+      description: "Route based on user type from previous step",
+      config: {
+        conditionPath: "step_transform_0.output.userType",
+        cases: [
+          { case: "admin", value: "admin" },
+          { case: "user", value: "user" },
+          { case: "guest", value: "guest" },
+          { case: "default", isDefault: true },
+        ],
+      },
     },
   ],
   codegen: ({ config, stepName }): Effect.Effect<CodeGenResult, { _tag: ErrorCode; message: string }> => {
     return Effect.gen(function* (_) {
-      const conditionExpr = generateConditionExpression(config.condition);
-      const operator = config.condition.operator || "===";
-      const left = config.condition.left || "";
-      const right = config.condition.right;
-
+      // Resolve condition path from input
+      const conditionPath = resolveConditionPath(config.conditionPath);
+      
+      // Build routing object with cases
+      const routingCases: Array<{ name: string; value: string }> = [];
+      let defaultCase: string | undefined;
+      
+      config.cases.forEach((caseConfig) => {
+        const caseName = caseConfig.case;
+        if (caseConfig.isDefault) {
+          defaultCase = caseName;
+        } else {
+          // Compare condition value with case value
+          const caseValue = JSON.stringify(caseConfig.value);
+          routingCases.push({ name: caseName, value: caseValue });
+        }
+      });
+      
+      // Build routing object entries
+      const routingEntries: string[] = [];
+      
+      // Add specific cases
+      routingCases.forEach(({ name, value }) => {
+        routingEntries.push(`'${name}': (${conditionPath} === ${value})`);
+      });
+      
+      // Add default case (true if none of the other cases match)
+      if (defaultCase) {
+        const otherCaseChecks = routingCases.map(c => `routing['${c.name}']`).join(' || ');
+        const defaultCheck = routingCases.length > 0 
+          ? `!(${otherCaseChecks})`
+          : 'true';
+        routingEntries.push(`'${defaultCase}': ${defaultCheck}`);
+      }
+      
       const code = `
     _workflowResults.${stepName} = await step.do('${stepName}', async () => {
-      const condition = ${conditionExpr};
-      if (condition) {
-        return { branch: 'true', result: true, condition: '${left} ${operator} ${JSON.stringify(right)}' };
-      } else {
-        return { branch: 'false', result: false, condition: '${left} ${operator} ${JSON.stringify(right)}' };
-      }
+      // Get condition value from input
+      const conditionValue = ${conditionPath};
+      
+      // Build routing object: {case1: boolean, case2: boolean, default: boolean}
+      // Only one key will be true, indicating which route to take
+      const routing = {
+        ${routingEntries.join(",\n        ")}
+      };
+      
+      return routing;
     });`;
 
       return {
