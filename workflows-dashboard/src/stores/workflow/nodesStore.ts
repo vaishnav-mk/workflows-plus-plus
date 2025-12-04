@@ -3,6 +3,7 @@ import type { Node, Edge } from "reactflow";
 import type { NodesState } from "@/types/stores";
 import { useSelectionStore } from "@/stores/workflow/selectionStore";
 import { getLayoutedNodes } from "@/utils/layout";
+import { enrichEdges, enrichEdge } from "./edgeEnrichment";
 
 export const useNodesStore = create<NodesState>((set, get) => ({
   nodes: [],
@@ -15,14 +16,11 @@ export const useNodesStore = create<NodesState>((set, get) => ({
   },
   
   setEdges: (edges) => {
-    const edgesWithType = edges.map(edge => ({
-      ...edge,
-      type: edge.type || 'step',
-    }));
-    set({ edges: edgesWithType });
-    // Recalculate layout when edges change
     const { nodes } = get();
-    const layoutedNodes = getLayoutedNodes(nodes, edgesWithType);
+    const enrichedEdges = enrichEdges(edges, nodes);
+    set({ edges: enrichedEdges });
+    // Recalculate layout when edges change
+    const layoutedNodes = getLayoutedNodes(nodes, enrichedEdges);
     set({ nodes: layoutedNodes });
   },
   
@@ -93,18 +91,17 @@ export const useNodesStore = create<NodesState>((set, get) => ({
         }
       }
       
-      return { nodes: updatedNodes };
+      // Re-enrich all edges if node config changed (especially for conditional routers)
+      const enrichedEdges = enrichEdges(state.edges, updatedNodes);
+      return { nodes: updatedNodes, edges: enrichedEdges };
     });
   },
   
   addEdge: (edge) => {
     set((state) => {
-      // Ensure edge has 'step' type for straight lines
-      const edgeWithType = {
-        ...edge,
-        type: edge.type || 'step',
-      };
-      const newEdges = [...state.edges, edgeWithType];
+      const sourceNode = state.nodes.find(n => n.id === edge.source);
+      const enrichedEdge = enrichEdge(edge, sourceNode, [...state.edges, edge]);
+      const newEdges = [...state.edges, enrichedEdge];
       // Recalculate layout when edges change
       const layoutedNodes = getLayoutedNodes(state.nodes, newEdges);
       return { edges: newEdges, nodes: layoutedNodes };
@@ -121,11 +118,14 @@ export const useNodesStore = create<NodesState>((set, get) => ({
   },
   
   updateEdge: (edgeId, updates) => {
-    set((state) => ({
-      edges: state.edges.map((e) =>
+    set((state) => {
+      const updatedEdges = state.edges.map((e) =>
         e.id === edgeId ? { ...e, ...updates } : e
-      ),
-    }));
+      );
+      // Re-enrich edges after update (in case sourceHandle changed)
+      const enrichedEdges = enrichEdges(updatedEdges, state.nodes);
+      return { edges: enrichedEdges };
+    });
   },
 }));
 
