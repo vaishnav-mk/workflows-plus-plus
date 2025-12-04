@@ -10,11 +10,16 @@ import ReactFlow, {
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { WorkflowNode } from './WorkflowNode';
+import { ConditionalEdge } from './ConditionalEdge';
 import type { WorkflowCanvasProps } from '@/types/components';
 
 const nodeTypes = {
   workflow: WorkflowNode,
   default: WorkflowNode,
+};
+
+const edgeTypes = {
+  conditional: ConditionalEdge,
 };
 
 export function WorkflowCanvas({ 
@@ -94,6 +99,7 @@ export function WorkflowCanvas({
         onNodeClick={onNodeClick}
         onEdgeClick={onEdgeClick}
         nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
         defaultEdgeOptions={{ 
           type: 'step', 
           animated: true

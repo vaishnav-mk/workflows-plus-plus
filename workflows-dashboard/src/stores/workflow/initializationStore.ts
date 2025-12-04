@@ -110,15 +110,22 @@ export const useInitializationStore = create<InitializationState>(() => ({
       });
       
       // Map workflow edges to ReactFlow edges
+      // Note: setEdges will enrich them with conditional case data
       const mappedEdges: Edge[] = (workflow.edges || []).map((edge: any) => ({
         id: edge.id || `${edge.source}-${edge.target}`,
         source: edge.source,
         target: edge.target,
         type: edge.type || "step", // Use step edges for straight horizontal/vertical lines
         animated: true,
+        // Preserve branch handles for conditional routing
+        sourceHandle: edge.sourceHandle,
+        targetHandle: edge.targetHandle,
+        // Preserve existing edge data if present
+        data: edge.data || {},
       }));
       
       useNodesStore.getState().setNodes(mappedNodes);
+      // setEdges will automatically enrich edges with conditional case data
       useNodesStore.getState().setEdges(mappedEdges);
       useUIStore.getState().setLoading(false);
       
