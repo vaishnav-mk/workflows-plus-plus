@@ -21,7 +21,6 @@ export class NodeRegistry {
       NodeLibrary.HttpRequestNode,
       NodeLibrary.TransformNode,
       NodeLibrary.ValidateNode,
-      NodeLibrary.ConditionalInlineNode,
       NodeLibrary.ConditionalRouterNode,
       NodeLibrary.ForEachNode,
       NodeLibrary.WaitEventNode,

@@ -5,7 +5,6 @@
 // Flow nodes
 export { EntryNode } from "./flow/entry.node";
 export { ReturnNode } from "./flow/return.node";
-export { ConditionalInlineNode } from "./flow/conditional-inline.node";
 export { ConditionalRouterNode } from "./flow/conditional-router.node";
 export { ForEachNode } from "./flow/for-each.node";
 export { WaitEventNode } from "./flow/wait-event.node";

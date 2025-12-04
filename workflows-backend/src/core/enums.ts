@@ -20,7 +20,6 @@ export enum NodeType {
   HTTP_REQUEST = "http-request",
   TRANSFORM = "transform",
   SLEEP = "sleep",
-  CONDITIONAL_INLINE = "conditional-inline",
   CONDITIONAL_ROUTER = "conditional-router",
   VALIDATE = "validate",
   FOR_EACH = "for-each",
