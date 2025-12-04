@@ -417,13 +417,6 @@ export class ReverseCodegen {
         }
         break;
 
-      case NodeType.CONDITIONAL_INLINE:
-        // Conditional nodes: extract condition
-        const conditionMatch = code.match(/if\s*\(([^)]+)\)/);
-        if (conditionMatch) {
-          config.condition = conditionMatch[1].trim();
-        }
-        break;
 
       case NodeType.VALIDATE:
         // Validate nodes: extract schema

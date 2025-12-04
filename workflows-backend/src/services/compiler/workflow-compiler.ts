@@ -21,7 +21,13 @@ export class WorkflowCompiler {
     workflow: {
       name: string;
       nodes: Array<{ id: string; type: string; data?: Record<string, unknown>; config?: Record<string, unknown> }>;
-      edges: Array<{ id: string; source: string; target: string }>;
+      edges: Array<{
+        id: string;
+        source: string;
+        target: string;
+        sourceHandle?: string;
+        targetHandle?: string;
+      }>;
     },
     options?: CompilationOptions
   ): Effect.Effect<CompilationResult, { _tag: ErrorCode; message: string }> {
@@ -148,9 +154,26 @@ export class WorkflowCompiler {
   private static generateCodeForNodes(
     nodes: Array<{ id: string; type: string; data?: Record<string, unknown>; config?: Record<string, unknown> }>,
     graphContext: GraphContext
-  ): Effect.Effect<Array<{ nodeId: string; nodeLabel: string; nodeType: string; result: CodeGenResult }>, { _tag: ErrorCode; message: string }> {
+  ): Effect.Effect<
+    Array<{
+      nodeId: string;
+      nodeLabel: string;
+      nodeType: string;
+      result: CodeGenResult;
+      branchCondition?: string;
+      branchReason?: string;
+    }>,
+    { _tag: ErrorCode; message: string }
+  > {
     return Effect.gen(function* (_) {
-      const results: Array<{ nodeId: string; nodeLabel: string; nodeType: string; result: CodeGenResult }> = [];
+      const results: Array<{
+        nodeId: string;
+        nodeLabel: string;
+        nodeType: string;
+        result: CodeGenResult;
+        branchCondition?: string;
+        branchReason?: string;
+      }> = [];
       
       logger.debug("Starting code generation for nodes", {
         totalNodes: graphContext.topoOrder.length,
@@ -267,6 +290,35 @@ export class WorkflowCompiler {
           bindings: validBindings.map(b => ({ name: b.name, type: b.type }))
         });
 
+        // Determine conditional branch guard (if this node is a target of a conditional-router)
+        // Router returns routing object: {true: boolean, false: boolean} (or {case1: boolean, case2: boolean, ...} for switch cases)
+        let branchCondition: string | undefined;
+        let branchReason: string | undefined;
+
+        const incomingEdges = graphContext.edges.filter(e => e.target === nodeId);
+        const conditionalIncoming = incomingEdges
+          .map(edge => {
+            const sourceNode = nodes.find(n => n.id === edge.source);
+            return { edge, sourceNode };
+          })
+          .filter(
+            (entry): entry is { edge: GraphContext["edges"][number]; sourceNode: { id: string; type: string } } =>
+              Boolean(entry.sourceNode && entry.sourceNode.type === NodeType.CONDITIONAL_ROUTER && entry.edge.sourceHandle)
+          );
+
+        if (conditionalIncoming.length > 0) {
+          const { edge, sourceNode } = conditionalIncoming[0];
+          // sourceHandle is the route key (e.g., "true", "false", or future "case1", "case2", "default")
+          const routeKey = edge.sourceHandle || "true";
+          // Results for nodes are stored using the node ID as the step name
+          const sanitizedRouterStepName = sourceNode.id.replace(/[^a-zA-Z0-9_]/g, "_");
+
+          // Check if the routing object has this route key set to true
+          // Structure: {true: boolean, false: boolean} or {case1: boolean, case2: boolean, ...}
+          branchCondition = `(_workflowResults.${sanitizedRouterStepName}?.['${routeKey}'] === true)`;
+          branchReason = `route_${routeKey}_not_taken`;
+        }
+
         results.push({
           nodeId,
           nodeLabel,
@@ -275,6 +327,8 @@ export class WorkflowCompiler {
             code: result.code,
             requiredBindings: validBindings
           },
+          branchCondition,
+          branchReason,
         });
 
         const nodeDuration = Date.now() - nodeStart;
@@ -309,7 +363,6 @@ export class WorkflowCompiler {
       [NodeType.HTTP_REQUEST]: NodeLibrary.HttpRequestNode as WorkflowNodeDefinition<unknown>,
       [NodeType.TRANSFORM]: NodeLibrary.TransformNode as WorkflowNodeDefinition<unknown>,
       [NodeType.VALIDATE]: NodeLibrary.ValidateNode as WorkflowNodeDefinition<unknown>,
-      [NodeType.CONDITIONAL_INLINE]: NodeLibrary.ConditionalInlineNode as WorkflowNodeDefinition<unknown>,
       [NodeType.CONDITIONAL_ROUTER]: NodeLibrary.ConditionalRouterNode as WorkflowNodeDefinition<unknown>,
       [NodeType.FOR_EACH]: NodeLibrary.ForEachNode as WorkflowNodeDefinition<unknown>,
       [NodeType.WAIT_EVENT]: NodeLibrary.WaitEventNode as WorkflowNodeDefinition<unknown>,
@@ -325,7 +378,14 @@ export class WorkflowCompiler {
    */
   private static generateWorkerCode(
     workflow: { name: string; nodes: Array<{ id: string; type: string; data?: Record<string, unknown> }> },
-    codegenResults: Array<{ nodeId: string; nodeLabel: string; nodeType: string; result: CodeGenResult }>,
+    codegenResults: Array<{
+      nodeId: string;
+      nodeLabel: string;
+      nodeType: string;
+      result: CodeGenResult;
+      branchCondition?: string;
+      branchReason?: string;
+    }>,
     options?: CompilationOptions,
     workflowId?: string
   ): Effect.Effect<string, { _tag: ErrorCode; message: string }> {
@@ -379,7 +439,7 @@ export class WorkflowCompiler {
         nodeCount: codegenResults.length
       });
       
-      const nodeCodes = codegenResults.map(({ nodeId, nodeLabel, nodeType, result }, index) => {
+      const nodeCodes = codegenResults.map(({ nodeId, nodeLabel, nodeType, result, branchCondition, branchReason }, index) => {
         const nodeName = nodeLabel || nodeType;
         const nodeCode = result.code;
         
@@ -390,8 +450,27 @@ export class WorkflowCompiler {
           position: index + 1,
           originalCodeLength: nodeCode.length
         });
-        
-        // Wrap node code with START and END logs (single-line for minification)
+
+        // If this node is guarded by a conditional branch, only execute when condition is met.
+        if (branchCondition) {
+          const reason = branchReason || "branch_condition_not_met";
+          return `
+    if (${branchCondition}) {
+      try {
+        console.log(JSON.stringify({type:'WF_NODE_START',nodeId:'${nodeId}',nodeName:${JSON.stringify(nodeName)},nodeType:'${nodeType}',timestamp:Date.now(),instanceId:event.instanceId}));
+        ${nodeCode}
+        console.log(JSON.stringify({type:'WF_NODE_END',nodeId:'${nodeId}',nodeName:${JSON.stringify(nodeName)},nodeType:'${nodeType}',timestamp:Date.now(),instanceId:event.instanceId,success:true,output:_workflowState['${nodeId}']?.output}));
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.log(JSON.stringify({type:'WF_NODE_ERROR',nodeId:'${nodeId}',nodeName:${JSON.stringify(nodeName)},nodeType:'${nodeType}',timestamp:Date.now(),instanceId:event.instanceId,success:false,error:errorMessage}));
+        throw error;
+      }
+    } else {
+      console.log(JSON.stringify({type:'WF_NODE_SKIP',nodeId:'${nodeId}',nodeName:${JSON.stringify(nodeName)},nodeType:'${nodeType}',timestamp:Date.now(),instanceId:event.instanceId,reason:'${reason}'}));
+    }`;
+        }
+
+        // Default behaviour: always execute node
         return `
     try {
       console.log(JSON.stringify({type:'WF_NODE_START',nodeId:'${nodeId}',nodeName:${JSON.stringify(nodeName)},nodeType:'${nodeType}',timestamp:Date.now(),instanceId:event.instanceId}));
