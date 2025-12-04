@@ -386,34 +386,18 @@ export function WorkflowNode({ id, data, selected, style }: WorkflowNodeProps) {
       {data.type !== 'return' && (
         <>
           {isConditionalRouter ? (
-            <>
-              <Handle
-                type="source"
-                id="true"
-                position={Position.Bottom}
-                style={{ 
-                  bottom: '-4px',
-                  left: '30%',
-                  background: '#10b981',
-                  border: '2px solid white',
-                  width: '12px',
-                  height: '12px'
-                }}
-              />
-              <Handle
-                type="source"
-                id="false"
-                position={Position.Bottom}
-                style={{ 
-                  bottom: '-4px',
-                  right: '30%',
-                  background: '#ef4444',
-                  border: '2px solid white',
-                  width: '12px',
-                  height: '12px'
-                }}
-              />
-            </>
+            // Single output handle - branches will be labeled on edges
+            <Handle
+              type="source"
+              position={Position.Bottom}
+              style={{ 
+                bottom: '-4px',
+                background: borderColor,
+                border: '2px solid white',
+                width: '12px',
+                height: '12px'
+              }}
+            />
           ) : (
             <Handle
               type="source"

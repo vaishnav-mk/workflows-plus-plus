@@ -52,6 +52,18 @@ export async function createNodeFromBackend(
     ? `step_return_${nodes.length}` // Will be updated to last index during compilation
     : `step_${nodeType}_${nodes.length}`;
   
+  // Auto-create default cases for conditional router
+  let defaultConfig = config || {};
+  if (nodeType === 'conditional-router' && !config?.cases) {
+    defaultConfig = {
+      conditionPath: '',
+      cases: [
+        { case: 'success', value: true },
+        { case: 'error', isDefault: true },
+      ],
+    };
+  }
+
   return {
     id: nodeId,
     type: "default", // Use default ReactFlow node type
@@ -61,7 +73,7 @@ export async function createNodeFromBackend(
       type: nodeType,
       icon: metadata.icon,
       status: "idle",
-      config: config || {},
+      config: defaultConfig,
     },
   };
 }
