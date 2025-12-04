@@ -20,7 +20,7 @@ export function WorkflowSidebar({ onAddNode, nodes, edges, edgeSelected = false 
   const returnNodes = nodes.filter(n => n.data?.type === 'return');
   const controlNodes = nodes.filter(n => {
     const type = n.data?.type;
-    return type === 'conditional-inline' || type === 'conditional-router' || type === 'for-each';
+    return type === 'conditional-router' || type === 'for-each';
   });
   const httpNodes = nodes.filter(n => n.data?.type === 'http-request');
   const transformNodes = nodes.filter(n => n.data?.type === 'transform' || n.data?.type === 'validate');

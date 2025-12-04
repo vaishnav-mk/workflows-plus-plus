@@ -64,7 +64,7 @@ function buildCatalogContext(): string {
     return `Available node types: ${nodeTypes}
 
 Node categories:
-- Control: entry, return, conditional-inline, conditional-router, for-each, wait-event
+- Control: entry, return, conditional-router, for-each, wait-event
 - HTTP: http-request
 - Storage: kv-get, kv-put, d1-query
 - Utils: sleep, transform, validate

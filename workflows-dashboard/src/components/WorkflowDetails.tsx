@@ -31,7 +31,7 @@ each workflow node supports:
 
 node categories
 
-- control: entry, return, conditional-inline, conditional-router, for-each, wait-event
+- control: entry, return, conditional-router, for-each, wait-event
 - http: http-request
 - storage: kv-get, kv-put
 - database: d1-query
