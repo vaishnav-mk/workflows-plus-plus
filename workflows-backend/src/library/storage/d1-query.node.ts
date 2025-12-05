@@ -10,6 +10,7 @@ import { BINDING_NAMES, TEMPLATE_PATTERNS } from "../../core/constants";
 
 const D1QueryConfigSchema = z.object({
   database: z.string().default(BINDING_NAMES.DEFAULT_D1).describe("binding:d1"),
+  database_id: z.string().uuid().optional().describe("D1 database UUID"),
   query: z.string().min(1),
   params: z.array(z.object({ value: z.any() })).default([]),
   returnType: z.enum(["all", "first", "run"]).default("all"),
