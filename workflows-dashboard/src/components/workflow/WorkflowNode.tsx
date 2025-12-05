@@ -386,18 +386,55 @@ export function WorkflowNode({ id, data, selected, style }: WorkflowNodeProps) {
       {data.type !== 'return' && (
         <>
           {isConditionalRouter ? (
-            // Single output handle - branches will be labeled on edges
-            <Handle
-              type="source"
-              position={Position.Bottom}
-              style={{ 
-                bottom: '-4px',
-                background: borderColor,
-                border: '2px solid white',
-                width: '12px',
-                height: '12px'
-              }}
-            />
+            // Multiple handles - one per case, positioned horizontally
+            (() => {
+              const config = (data as any)?.config || {};
+              const cases = config.cases || [];
+              
+              if (cases.length === 0) {
+                return (
+                  <Handle
+                    type="source"
+                    position={Position.Bottom}
+                    style={{ 
+                      bottom: '-4px',
+                      background: borderColor,
+                      border: '2px solid white',
+                      width: '12px',
+                      height: '12px'
+                    }}
+                  />
+                );
+              }
+              
+              // Create handles for each case, spread horizontally
+              return cases.map((caseConfig: any, index: number) => {
+                const caseName = caseConfig.case || `case${index + 1}`;
+                const totalCases = cases.length;
+                // Position handles: first at left, last at right, others spread evenly
+                const positionPercent = totalCases === 1 
+                  ? 50 
+                  : (index / (totalCases - 1)) * 80 + 10; // Spread from 10% to 90%
+                
+                return (
+                  <Handle
+                    key={caseName}
+                    type="source"
+                    id={caseName}
+                    position={Position.Bottom}
+                    style={{ 
+                      bottom: '-4px',
+                      background: borderColor,
+                      border: '2px solid white',
+                      width: '12px',
+                      height: '12px',
+                      left: `${positionPercent}%`,
+                      transform: 'translateX(-50%)',
+                    }}
+                  />
+                );
+              });
+            })()
           ) : (
             <Handle
               type="source"

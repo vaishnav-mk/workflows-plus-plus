@@ -37,17 +37,19 @@ export function DataTable<TData>({
   return (
     <Table>
       <thead>
-        {table.getHeaderGroups().map((headerGroup) => (
+            {table.getHeaderGroups().map((headerGroup) => (
           <tr key={headerGroup.id} className="bg-white">
             {headerGroup.headers.map((header) => {
+              const align = (header.column.columnDef.meta as any)?.align || 'left';
               return (
                 <th
                   key={header.id}
                   className={cn(
-                    "p-3 first:pl-4 border-b border-neutral-200 hover:bg-neutral-100 transition-all text-gray-800 font-semibold text-left"
+                    "p-3 first:pl-4 border-b border-neutral-200 hover:bg-neutral-100 transition-all text-gray-800 font-semibold",
+                    align === 'center' ? 'text-center' : align === 'right' ? 'text-right' : 'text-left'
                   )}
                 >
-                  <div className="flex items-center gap-2">
+                  <div className={cn("gap-2", align === 'center' ? "flex items-center justify-center" : align === 'right' ? "flex items-center justify-end" : "flex items-center")}>
                     {header.isPlaceholder
                       ? null
                       : flexRender(
@@ -69,10 +71,12 @@ export function DataTable<TData>({
             className={onRowAction ? "cursor-pointer hover:bg-gray-50" : ""}
           >
             {row.getVisibleCells().map((cell) => {
+              const align = (cell.column.columnDef.meta as any)?.align || 'left';
               return (
                 <TableCell
                   key={cell.id}
                   isActionColumn={false}
+                  className={align === 'center' ? 'text-center' : align === 'right' ? 'text-right' : 'text-left'}
                 >
                   {flexRender(cell.column.columnDef.cell, cell.getContext())}
                 </TableCell>

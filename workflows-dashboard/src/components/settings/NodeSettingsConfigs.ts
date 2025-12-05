@@ -20,7 +20,7 @@ interface JSONSchema {
 function generateSettingsFromSchema(
   schema: any,
   nodeType: string,
-  metadata: { name: string; description: string }
+  metadata: { name: string; description: string; type?: string }
 ): SettingField[] {
   const fields: SettingField[] = [];
 
@@ -49,7 +49,7 @@ function generateSettingsFromSchema(
           }
         },
       // Generate fields from schema properties
-      ...generateFieldsFromSchema(schema, '', [], metadata.type)
+      ...generateFieldsFromSchema(schema, '', [], nodeType)
     ]
   });
 
@@ -71,6 +71,27 @@ function generateFieldsFromSchema(schema: JSONSchema, prefix = '', requiredField
         key: 'conditional-router-config',
       });
       return fields;
+    }
+  }
+
+  // Special handling for d1-query: use D1 database selector
+  if (nodeType === 'd1-query' && !prefix) {
+    // Check if this schema has database field
+    if (schema.properties.database) {
+      fields.push({
+        type: 'd1-database-selector',
+        key: 'd1-database-config',
+      });
+      // Still generate other fields (query, params, etc.)
+      // Remove database from properties to avoid duplicate
+      const { database, ...otherProps } = schema.properties;
+      const otherFields = generateFieldsFromSchema(
+        { ...schema, properties: otherProps },
+        prefix,
+        requiredFields.filter(r => r !== 'database'),
+        nodeType
+      );
+      return [...fields, ...otherFields];
     }
   }
 

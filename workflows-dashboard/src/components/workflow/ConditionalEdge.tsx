@@ -19,7 +19,7 @@ export function ConditionalEdge({
   style = {},
   markerEnd,
   data,
-}: EdgeProps<ConditionalEdgeData>) {
+}: EdgeProps & { data?: ConditionalEdgeData }) {
   // Use smooth step path for straight/square edges
   const [edgePath, labelX, labelY] = getSmoothStepPath({
     sourceX,
