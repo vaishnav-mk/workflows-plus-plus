@@ -341,6 +341,47 @@ class ApiClient {
   async getStarterCategories(): Promise<ApiResponse<string[]>> {
     return this.fetch(`/starters/categories`);
   }
+
+  /**
+   * D1 Database API
+   */
+  async getD1Databases(page = 1, perPage = 1000, name?: string): Promise<ApiResponse<any[]>> {
+    const params = new URLSearchParams();
+    params.append('page', String(page));
+    params.append('per_page', String(perPage));
+    if (name) params.append('name', name);
+    
+    return this.fetch(`/d1?${params.toString()}`);
+  }
+
+  async getD1Database(databaseId: string): Promise<ApiResponse<any>> {
+    return this.fetch(`/d1/${databaseId}`, undefined, `d1-db-${databaseId}`);
+  }
+
+  async createD1Database(name: string): Promise<ApiResponse<any>> {
+    return this.fetch("/d1", {
+      method: "POST",
+      body: JSON.stringify({ name }),
+    });
+  }
+
+  async getD1DatabaseSchema(databaseId: string): Promise<ApiResponse<any>> {
+    return this.fetch(`/d1/${databaseId}/schema`, undefined, `d1-schema-${databaseId}`);
+  }
+
+  async validateD1Query(databaseId: string, query: string): Promise<ApiResponse<any>> {
+    return this.fetch(`/d1/${databaseId}/validate-query`, {
+      method: "POST",
+      body: JSON.stringify({ query }),
+    });
+  }
+
+  async executeD1Query(databaseId: string, sql: string): Promise<ApiResponse<any>> {
+    return this.fetch(`/d1/${databaseId}/query`, {
+      method: "POST",
+      body: JSON.stringify({ sql }),
+    });
+  }
 }
 
 export const apiClient = new ApiClient();

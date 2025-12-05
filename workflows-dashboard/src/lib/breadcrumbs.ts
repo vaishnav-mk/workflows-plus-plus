@@ -13,6 +13,8 @@ const VALID_ROUTE_PATTERNS = [
   /^\/workers\/[^/]+\/versions\/[^/]+$/,
   /^\/setup$/,
   /^\/deployment$/,
+  /^\/databases$/,
+  /^\/databases\/[^/]+$/,
 ];
 
 export function generateBreadcrumbs(pathname: string): BreadcrumbItem[] {
@@ -42,10 +44,18 @@ export function generateBreadcrumbs(pathname: string): BreadcrumbItem[] {
     currentPath += `/${segment}`;
     
     // Format label (capitalize, replace dashes with spaces)
-    const label = segment
+    let label = segment
       .split("-")
       .map(word => word.charAt(0).toUpperCase() + word.slice(1))
       .join(" ");
+
+    // Special handling for databases
+    if (segment === "databases") {
+      label = "Databases";
+    } else if (segments[0] === "databases" && index === 1) {
+      // This is a database ID, show a more user-friendly label
+      label = "Database Details";
+    }
 
     // Last segment is not a link
     const isLast = index === segments.length - 1;
