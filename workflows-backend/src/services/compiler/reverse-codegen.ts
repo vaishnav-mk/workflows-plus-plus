@@ -418,18 +418,6 @@ export class ReverseCodegen {
         break;
 
 
-      case NodeType.VALIDATE:
-        // Validate nodes: extract schema
-        const schemaMatch = code.match(/schema:\s*([^,}]+)/);
-        if (schemaMatch) {
-          try {
-            config.schema = JSON.parse(schemaMatch[1].trim());
-          } catch {
-            config.schema = schemaMatch[1].trim();
-          }
-        }
-        break;
-
       default:
         // For unknown node types, try to extract common patterns
         break;

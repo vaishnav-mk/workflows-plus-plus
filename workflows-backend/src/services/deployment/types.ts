@@ -16,6 +16,7 @@ export interface DeploymentOptions {
   subdomain?: string;
   bindings?: BindingConfiguration[];
   assets?: Record<string, unknown>;
+  mcpEnabled?: boolean;
 }
 
 export interface BindingConfiguration {
@@ -103,8 +104,39 @@ export interface BindingDeploymentContext {
         }): Promise<{ id: string }>;
       };
     };
+    d1?: {
+      databases?: {
+        list?(input: {
+          account_id: string;
+          name?: string;
+          page?: number;
+          per_page?: number;
+        }): Promise<{
+          result?: Array<{ 
+            created_at: string;
+            name: string;
+            uuid: string;
+            version: string;
+          }>;
+          result_info?: {
+            count: number;
+            page: number;
+            per_page: number;
+            total_count: number;
+          };
+        }>;
+        create?(input: {
+          account_id: string;
+          name: string;
+        }): Promise<{
+          uuid: string;
+          name: string;
+        }>;
+      };
+    };
   };
   accountId: string;
+  apiToken: string;
   className?: string;
   /**
    * The Cloudflare Workflow API name (sanitized workflowName) that this

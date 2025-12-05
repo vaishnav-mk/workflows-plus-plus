@@ -362,9 +362,7 @@ export class WorkflowCompiler {
       [NodeType.D1_QUERY]: NodeLibrary.D1QueryNode as WorkflowNodeDefinition<unknown>,
       [NodeType.HTTP_REQUEST]: NodeLibrary.HttpRequestNode as WorkflowNodeDefinition<unknown>,
       [NodeType.TRANSFORM]: NodeLibrary.TransformNode as WorkflowNodeDefinition<unknown>,
-      [NodeType.VALIDATE]: NodeLibrary.ValidateNode as WorkflowNodeDefinition<unknown>,
       [NodeType.CONDITIONAL_ROUTER]: NodeLibrary.ConditionalRouterNode as WorkflowNodeDefinition<unknown>,
-      [NodeType.FOR_EACH]: NodeLibrary.ForEachNode as WorkflowNodeDefinition<unknown>,
       [NodeType.WAIT_EVENT]: NodeLibrary.WaitEventNode as WorkflowNodeDefinition<unknown>,
       [NodeType.WORKERS_AI]: NodeLibrary.WorkersAINode as WorkflowNodeDefinition<unknown>,
       [NodeType.MCP_TOOL_INPUT]: NodeLibrary.MCPToolInputNode as WorkflowNodeDefinition<unknown>,
@@ -434,6 +432,43 @@ export class WorkflowCompiler {
         }
       });
 
+      // Helper function to properly indent node code
+      // Node code comes with 4 spaces base indentation, but needs 8 spaces total inside try block
+      // We preserve relative indentation while adjusting the base level
+      const indentCode = (code: string, targetIndent: number): string => {
+        const lines = code.split("\n");
+        if (lines.length === 0) return "";
+        
+        // Find the minimum indentation (base level) in non-empty lines
+        let minIndent = Infinity;
+        for (const line of lines) {
+          if (line.trim() !== "") {
+            const indent = line.match(/^\s*/)?.[0]?.length || 0;
+            minIndent = Math.min(minIndent, indent);
+          }
+        }
+        
+        // If no indentation found, use 0
+        if (minIndent === Infinity) minIndent = 0;
+        
+        // Adjust each line: remove base indentation, add target indentation
+        return lines
+          .map((line) => {
+            if (line.trim() === "") return "";
+            const currentIndent = line.match(/^\s*/)?.[0]?.length || 0;
+            const relativeIndent = currentIndent - minIndent;
+            const trimmed = line.trimStart();
+            return " ".repeat(targetIndent + relativeIndent) + trimmed;
+          })
+          .filter((line, index, arr) => {
+            // Remove empty lines at start/end
+            if (index === 0 && line === "") return false;
+            if (index === arr.length - 1 && line === "") return false;
+            return true;
+          })
+          .join("\n");
+      };
+
       // Generate wrapped node codes with START/END logs
       logger.debug("Wrapping node codes with logging", {
         nodeCount: codegenResults.length
@@ -451,6 +486,9 @@ export class WorkflowCompiler {
           originalCodeLength: nodeCode.length
         });
 
+        // Indent node code for insertion into try block (8 spaces total)
+        const indentedNodeCode = indentCode(nodeCode, 8);
+
         // If this node is guarded by a conditional branch, only execute when condition is met.
         if (branchCondition) {
           const reason = branchReason || "branch_condition_not_met";
@@ -458,7 +496,7 @@ export class WorkflowCompiler {
     if (${branchCondition}) {
       try {
         console.log(JSON.stringify({type:'WF_NODE_START',nodeId:'${nodeId}',nodeName:${JSON.stringify(nodeName)},nodeType:'${nodeType}',timestamp:Date.now(),instanceId:event.instanceId}));
-        ${nodeCode}
+${indentedNodeCode}
         console.log(JSON.stringify({type:'WF_NODE_END',nodeId:'${nodeId}',nodeName:${JSON.stringify(nodeName)},nodeType:'${nodeType}',timestamp:Date.now(),instanceId:event.instanceId,success:true,output:_workflowState['${nodeId}']?.output}));
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
@@ -474,7 +512,7 @@ export class WorkflowCompiler {
         return `
     try {
       console.log(JSON.stringify({type:'WF_NODE_START',nodeId:'${nodeId}',nodeName:${JSON.stringify(nodeName)},nodeType:'${nodeType}',timestamp:Date.now(),instanceId:event.instanceId}));
-        ${nodeCode}
+${indentedNodeCode}
       console.log(JSON.stringify({type:'WF_NODE_END',nodeId:'${nodeId}',nodeName:${JSON.stringify(nodeName)},nodeType:'${nodeType}',timestamp:Date.now(),instanceId:event.instanceId,success:true,output:_workflowState['${nodeId}']?.output}));
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);

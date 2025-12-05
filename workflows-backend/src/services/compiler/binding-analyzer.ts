@@ -60,9 +60,11 @@ export class BindingAnalyzer {
 
     // Generate binding names with format: binding_{BINDINGNAME}_{workflowId}
     // Example: binding_KV_sacred-tick-satisfied
+    // Exception: D1 bindings use the actual database name directly
     const bindings = Array.from(bindingMap.values()).map(usages => {
       const bindingType = usages[0].type;
-      const baseName = usages[0].name.toUpperCase().replace(/[^A-Z0-9]/g, "_");
+      const originalName = usages[0].name;
+      const baseName = originalName.toUpperCase().replace(/[^A-Z0-9]/g, "_");
 
       // Generate the binding name using standardized format
       let finalName: string;
@@ -70,6 +72,11 @@ export class BindingAnalyzer {
         // Always use the stable binding name "AI" so runtime code can safely
         // reference this.env.AI regardless of workflow ID.
         finalName = "AI";
+      } else if (bindingType === BindingType.D1) {
+        // For D1 bindings, use the actual database name but sanitize it to match
+        // how it's used in the generated code (this.env["${db}"])
+        // The codegen sanitizes with: .replace(/[^a-zA-Z0-9_]/g, "_")
+        finalName = originalName.replace(/[^a-zA-Z0-9_]/g, "_");
       } else {
         if (workflowId) {
           // Use the standardized format: binding_{name}_{workflowid}

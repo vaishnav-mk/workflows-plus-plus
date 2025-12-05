@@ -354,6 +354,7 @@ export async function deployToCloudflare(
     const bindingCtx: BindingDeploymentContext = { 
       client, 
       accountId,
+      apiToken,
       className: className,
       workflowName
     };
@@ -407,29 +408,33 @@ export async function deployToCloudflare(
       }
     ];
 
-    // Always include the embedded MCP/agents bundles as separate modules.
-    logger.info("deployToCloudflare: embedded MCP bundle modules scan result", {
-      bundleCount: MCP_EMBEDDED_MODULES.length
-    });
-    for (const mod of MCP_EMBEDDED_MODULES) {
-      const encoded = base64Encode(mod.content);
-      modules.push({
-        name: mod.name,
-        content_type: "application/javascript+module",
-        content_base64: encoded
+    // Include the embedded MCP/agents bundles only if MCP is enabled
+    if (options.mcpEnabled) {
+      logger.info("deployToCloudflare: embedded MCP bundle modules scan result", {
+        bundleCount: MCP_EMBEDDED_MODULES.length
       });
-      logger.info("deployToCloudflare: added embedded module", {
-        name: mod.name,
-        contentLength: mod.content.length,
-        base64Length: encoded.length
-      });
-      // Extra console log for debugging in test scripts
-      // eslint-disable-next-line no-console
-      console.log("[deployToCloudflare] Module included:", {
-        name: mod.name,
-        contentLength: mod.content.length,
-        base64Length: encoded.length
-      });
+      for (const mod of MCP_EMBEDDED_MODULES) {
+        const encoded = base64Encode(mod.content);
+        modules.push({
+          name: mod.name,
+          content_type: "application/javascript+module",
+          content_base64: encoded
+        });
+        logger.info("deployToCloudflare: added embedded module", {
+          name: mod.name,
+          contentLength: mod.content.length,
+          base64Length: encoded.length
+        });
+        // Extra console log for debugging in test scripts
+        // eslint-disable-next-line no-console
+        console.log("[deployToCloudflare] Module included:", {
+          name: mod.name,
+          contentLength: mod.content.length,
+          base64Length: encoded.length
+        });
+      }
+    } else {
+      logger.info("deployToCloudflare: MCP disabled, skipping MCP bundle modules");
     }
 
     logger.info("deployToCloudflare: final modules list", {
