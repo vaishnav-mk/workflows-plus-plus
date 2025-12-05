@@ -1,10 +1,14 @@
-'use client';
+"use client";
 
-import { PageHeader, Card, CardContent } from '@/components';
-import { Workflow, Server, Plus } from 'lucide-react';
-import Link from 'next/link';
-import { WorkflowDetails, SampleWorkflows } from '@/components';
-import { useWorkflowsQuery, useWorkersQuery, useWorkflowStartersQuery } from '@/hooks/useWorkflowsQuery';
+import { PageHeader, Card, CardContent } from "@/components";
+import { Workflow, Server, Plus, Database } from "lucide-react";
+import Link from "next/link";
+import { WorkflowDetails, SampleWorkflows } from "@/components";
+import {
+  useWorkflowsQuery,
+  useWorkersQuery,
+  useWorkflowStartersQuery
+} from "@/hooks/useWorkflowsQuery";
 
 export default function HomePage() {
   useWorkflowStartersQuery();
@@ -14,32 +18,39 @@ export default function HomePage() {
   const features = [
     {
       icon: Workflow,
-      title: 'Workflow Builder',
-      description: 'Build and deploy workflows with drag and drop interface',
-      href: '/builder',
-      color: 'bg-blue-50 text-blue-600',
+      title: "Workflow Builder",
+      description: "Build and deploy workflows with drag and drop interface",
+      href: "/builder",
+      color: "bg-blue-50 text-blue-600"
     },
     {
       icon: Workflow,
-      title: 'Workflows',
-      description: 'Manage and monitor your deployed workflows',
-      href: '/workflows',
-      color: 'bg-green-50 text-green-600',
+      title: "Workflows",
+      description: "Manage and monitor your deployed workflows",
+      href: "/workflows",
+      color: "bg-green-50 text-green-600"
     },
     {
       icon: Server,
-      title: 'Workers',
-      description: 'View and manage Cloudflare Workers',
-      href: '/workers',
-      color: 'bg-purple-50 text-purple-600',
+      title: "Workers",
+      description: "View and manage Cloudflare Workers",
+      href: "/workers",
+      color: "bg-purple-50 text-purple-600"
+    },
+    {
+      icon: Database,
+      title: "Databases",
+      description: "Manage D1 databases and queries",
+      href: "/databases",
+      color: "bg-indigo-50 text-indigo-600"
     },
     {
       icon: Plus,
-      title: 'Create with AI',
-      description: 'Generate workflows using AI from descriptions or images',
-      href: '/create',
-      color: 'bg-orange-50 text-orange-600',
-    },
+      title: "Create with AI",
+      description: "Generate workflows using AI from descriptions or images",
+      href: "/create",
+      color: "bg-orange-50 text-orange-600"
+    }
   ];
 
   return (
@@ -54,7 +65,11 @@ export default function HomePage() {
           {features.map((feature) => {
             const Icon = feature.icon;
             return (
-              <Link key={feature.href} href={feature.href} className="no-underline">
+              <Link
+                key={feature.href}
+                href={feature.href}
+                className="no-underline"
+              >
                 <Card className="h-full">
                   <CardContent className="p-6">
                     <div className="flex items-start gap-4">
@@ -78,11 +93,10 @@ export default function HomePage() {
         </div>
 
         <WorkflowDetails />
-        
+
         <div className="mt-6">
           <SampleWorkflows />
         </div>
-
       </div>
     </div>
   );

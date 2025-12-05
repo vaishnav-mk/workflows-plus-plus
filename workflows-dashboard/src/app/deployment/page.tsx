@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo } from "react";
+import React, { useMemo, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
   PageHeader,
@@ -324,7 +324,7 @@ function AnimatedStepFlow({
   );
 }
 
-export default function DeploymentPage() {
+function DeploymentPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const deploymentId = searchParams.get("id");
@@ -992,7 +992,7 @@ export default function DeploymentPage() {
                       </p>
                     </div>
                     <div className="space-y-2">
-                      {deploymentState.result.bindings.map((b) => (
+                      {deploymentState.result.bindings.map((b: { type: string; name: string }) => (
                         <div
                           key={`${b.type}:${b.name}`}
                           className="flex items-center justify-between text-xs"
@@ -1033,5 +1033,27 @@ export default function DeploymentPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function DeploymentPage() {
+  return (
+    <Suspense fallback={
+      <div className="w-full px-6 py-8">
+        <PageHeader
+          title="Deployment"
+          description="View the status and progress of your workflow deployment."
+        />
+        <div className="max-w-3xl mt-6">
+          <Card className="p-6">
+            <div className="flex items-center justify-center py-12">
+              <Spinner size="lg" className="text-blue-500" />
+            </div>
+          </Card>
+        </div>
+      </div>
+    }>
+      <DeploymentPageContent />
+    </Suspense>
   );
 }

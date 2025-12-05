@@ -128,23 +128,27 @@ export default function WorkflowsPage() {
     },
     {
       id: 'inactive',
-      header: () => <div className="text-center">Inactive</div>,
-      cell: () => <div className="text-center text-sm text-gray-500">0 instances</div>,
+      header: () => <div>Inactive</div>,
+      cell: () => <div className="text-sm text-gray-500">0 instances</div>,
+      meta: { align: 'center' },
     },
     {
       id: 'running',
-      header: () => <div className="text-center">Running</div>,
-      cell: () => <div className="text-center text-sm text-gray-500">0 instances</div>,
+      header: () => <div>Running</div>,
+      cell: () => <div className="text-sm text-gray-500">0 instances</div>,
+      meta: { align: 'center' },
     },
     {
       id: 'ended',
-      header: () => <div className="text-center">Ended</div>,
-      cell: () => <div className="text-center text-sm text-gray-500">1 instances</div>,
+      header: () => <div>Ended</div>,
+      cell: () => <div className="text-sm text-gray-500">1 instances</div>,
+      meta: { align: 'center' },
     },
     {
       id: 'errored',
-      header: () => <div className="text-center">Errored</div>,
-      cell: () => <div className="text-center text-sm text-gray-500">1 instances</div>,
+      header: () => <div>Errored</div>,
+      cell: () => <div className="text-sm text-gray-500">1 instances</div>,
+      meta: { align: 'center' },
     },
   ], []);
 

@@ -224,7 +224,12 @@ export default function VersionDetailPage() {
           parentPath
         );
         parentPath = folderNode.path;
-        currentNodes = folderNode.children;
+        if (folderNode.type === "folder") {
+          currentNodes = folderNode.children;
+        } else {
+          // This shouldn't happen, but handle it gracefully
+          break;
+        }
       }
 
       const fileName = segments[segments.length - 1];
