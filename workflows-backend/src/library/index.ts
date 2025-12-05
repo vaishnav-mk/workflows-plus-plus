@@ -6,7 +6,6 @@
 export { EntryNode } from "./flow/entry.node";
 export { ReturnNode } from "./flow/return.node";
 export { ConditionalRouterNode } from "./flow/conditional-router.node";
-export { ForEachNode } from "./flow/for-each.node";
 export { WaitEventNode } from "./flow/wait-event.node";
 
 // Storage nodes
@@ -20,7 +19,6 @@ export { HttpRequestNode } from "./http/http-request.node";
 // Utils nodes
 export { SleepNode } from "./utils/sleep.node";
 export { TransformNode } from "./utils/transform.node";
-export { ValidateNode } from "./utils/validate.node";
 
 // AI nodes
 export { WorkersAINode } from "./ai/workers-ai.node";

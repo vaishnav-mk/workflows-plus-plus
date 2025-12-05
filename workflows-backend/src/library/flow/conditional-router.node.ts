@@ -19,7 +19,6 @@ const ConditionalConfigSchema = z.object({
 });
 
 type ConditionalConfig = z.infer<typeof ConditionalConfigSchema>;
-type Case = z.infer<typeof CaseSchema>;
 
 function resolveConditionPath(path: string): string {
   // If path starts with step_ or contains step reference, resolve it to _workflowState

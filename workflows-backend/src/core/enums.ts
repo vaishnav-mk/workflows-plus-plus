@@ -21,8 +21,6 @@ export enum NodeType {
   TRANSFORM = "transform",
   SLEEP = "sleep",
   CONDITIONAL_ROUTER = "conditional-router",
-  VALIDATE = "validate",
-  FOR_EACH = "for-each",
   WAIT_EVENT = "wait-event",
   KV_GET = "kv-get",
   KV_PUT = "kv-put",
