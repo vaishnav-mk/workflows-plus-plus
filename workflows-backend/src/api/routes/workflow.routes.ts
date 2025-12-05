@@ -182,13 +182,42 @@ app.post("/:id/deploy", async (c) => {
 
     // Convert bindings to BindingConfiguration format
     const bindingsArray = (body.bindings ?? compilationResult.bindings) || [];
-    const bindings: BindingConfiguration[] = bindingsArray.map((b: { name: string; type: string; id?: string; databaseName?: string; bucketName?: string }) => ({
+    
+    // Extract database_id from D1 node configs if not already in bindings
+    const d1Nodes = (body.nodes || workflow.nodes || []).filter(
+      (n: any) => (n.type === 'd1-query' || n.data?.type === 'd1-query') && n.config?.database_id
+    );
+    
+    const bindings: BindingConfiguration[] = bindingsArray.map((b: { name: string; type: string; id?: string; databaseName?: string; bucketName?: string }) => {
+      // If this is a D1 binding and we have a node with database_id, use it
+      if (b.type === BindingType.D1) {
+        const matchingNode = d1Nodes.find((n: any) => {
+          const nodeDb = n.config?.database || n.data?.config?.database;
+          return nodeDb === b.name || nodeDb === b.databaseName;
+        });
+        if (matchingNode) {
+          const nodeConfig = matchingNode.config || matchingNode.data?.config;
+          const dbName = nodeConfig?.database || b.databaseName || b.name;
+          // Sanitize the binding name to match how it's used in generated code
+          // The codegen uses: (config.database || BINDING_NAMES.DEFAULT_D1).replace(/[^a-zA-Z0-9_]/g, "_")
+          const sanitizedBindingName = dbName.replace(/[^a-zA-Z0-9_]/g, "_");
+          return {
+            name: sanitizedBindingName, // Use the sanitized database name as the binding name to match the code
+            type: b.type as BindingType,
+            id: nodeConfig?.database_id || b.id,
+            databaseName: dbName, // Keep original name for database creation/lookup
+            bucketName: b.bucketName
+          };
+        }
+      }
+      return {
       name: b.name,
       type: b.type as BindingType,
       id: b.id,
       databaseName: b.databaseName,
       bucketName: b.bucketName
-    }));
+      };
+    });
 
     // Generate deployment ID from workflow ID (e.g., workflow-xxx -> deployment-xxx)
     const deploymentId = id.startsWith("workflow-") 
@@ -230,7 +259,8 @@ app.post("/:id/deploy", async (c) => {
           subdomain: body.subdomain,
           scriptContent: compilationResult.tsCode,
           bindings,
-          assets: body.assets
+          assets: body.assets,
+          mcpEnabled: body.mcpEnabled || false
         },
         apiToken: credentials.apiToken,
         accountId: credentials.accountId,
