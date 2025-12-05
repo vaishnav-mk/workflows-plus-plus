@@ -35,7 +35,9 @@ import {
   Search,
   Brain,
   Network,
-  Monitor
+  Monitor,
+  Bot,
+  Link
 } from "lucide-react";
 
 const API_BASE =
@@ -276,6 +278,12 @@ export default function SetupPage() {
       comingSoon: false
     },
     {
+      icon: Workflow,
+      name: "Workflows",
+      description: "Orchestrate serverless workflows",
+      comingSoon: false
+    },
+    {
       icon: Database,
       name: "D1",
       description: "SQLite database",
@@ -323,6 +331,18 @@ export default function SetupPage() {
       name: "Browser Use",
       description: "Browser automation",
       comingSoon: true
+    },
+    {
+      icon: Bot,
+      name: "Agents",
+      description: "AI agents and automation",
+      comingSoon: false
+    },
+    {
+      icon: Link,
+      name: "MCP",
+      description: "Model Context Protocol",
+      comingSoon: false
     }
   ];
 
@@ -767,9 +787,15 @@ export default function SetupPage() {
                     "row-span-1",
                     "row-span-1",
                     "row-span-1",
+                    "row-span-1",
+                    "row-span-1",
+                    "row-span-1",
                     "row-span-1"
                   ];
                   const colSpans = [
+                    "col-span-1",
+                    "col-span-1",
+                    "col-span-1",
                     "col-span-1",
                     "col-span-1",
                     "col-span-1",
