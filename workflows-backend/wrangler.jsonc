@@ -29,13 +29,6 @@
 	"observability": {
 		"enabled": true
 	},
-	"rules": [
-		{
-			"type": "Data",
-			"globs": ["bundles/**"],
-			"fallthrough": true
-		}
-	],
 	"durable_objects": {
 		"bindings": [
 			{
@@ -47,7 +40,7 @@
 	"migrations": [
 		{
 			"tag": "v1",
-			"new_classes": ["DeploymentDurableObject"]
+			"new_sqlite_classes": ["DeploymentDurableObject"]
 		}
 	],
 	// Environment variables should be set via:
@@ -64,6 +57,6 @@
 	//
 	// Note: Sensitive values like API tokens should NOT be in vars, use secrets instead
 	"vars": {
-		// "ENVIRONMENT": "development"
+		"ENVIRONMENT": "production"
 	}
 }
