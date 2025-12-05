@@ -61,10 +61,85 @@ function triggerAutoSave() {
 export const useActionsStore = create<ActionsState>(() => ({
   addNode: async (nodeType: string) => {
     try {
-      const { nodes } = useNodesStore.getState();
+      const { nodes, edges } = useNodesStore.getState();
 
       const newNode = await createNodeFromBackend(nodeType, { x: 0, y: 0 });
       useNodesStore.getState().addNode(newNode);
+      
+      // If conditional router, automatically create branch edges
+      if (nodeType === 'conditional-router') {
+        // Wait a tick for layout to be applied
+        await new Promise(resolve => setTimeout(resolve, 0));
+        
+        const config = (newNode.data as any)?.config || {};
+        const cases = config.cases || [];
+        
+        if (cases.length > 0) {
+          // Find the return node (main flow) or next node in flow
+          const { nodes: currentNodes, edges: currentEdges } = useNodesStore.getState();
+          const returnNode = currentNodes.find(n => n.data?.type === 'return');
+          
+          // Find what node comes after the router in the flow (if any)
+          // Look for edges that would connect from router to next node
+          let targetNode = returnNode;
+          
+          // If no return node, try to find the next node in the flow
+          if (!targetNode && currentEdges.length > 0) {
+            // Find nodes that don't have incoming edges (potential next nodes)
+            const nodesWithIncoming = new Set(currentEdges.map(e => e.target));
+            const nextNodes = currentNodes.filter(n => 
+              n.id !== newNode.id && 
+              !nodesWithIncoming.has(n.id) &&
+              n.data?.type !== 'entry'
+            );
+            targetNode = nextNodes[0] || null;
+          }
+          
+          // Create edges for each case - connect to different targets
+          const branchEdges: Edge[] = [];
+          
+          // Find all potential target nodes (excluding entry and the router itself)
+          const potentialTargets = currentNodes.filter(n => 
+            n.id !== newNode.id && 
+            n.data?.type !== 'entry'
+          );
+          
+          cases.forEach((caseConfig: any, index: number) => {
+            const caseName = caseConfig.case || `case${index + 1}`;
+            
+            let targetId: string | null = null;
+            
+            if (index === 0) {
+              // First case (left edge) connects to return node (main flow)
+              targetId = returnNode ? returnNode.id : (potentialTargets[0]?.id || null);
+            } else {
+              // Other cases connect to different nodes
+              // Try to find a node that's not already a target
+              const usedTargets = branchEdges.map(e => e.target);
+              const availableTarget = potentialTargets.find(t => !usedTargets.includes(t.id));
+              targetId = availableTarget?.id || returnNode?.id || potentialTargets[index % potentialTargets.length]?.id || null;
+            }
+            
+            if (targetId) {
+              // Create edge from conditional router to target
+              const edge: Edge = {
+                id: `${newNode.id}_${caseName}_${targetId}`,
+                source: newNode.id,
+                target: targetId,
+                sourceHandle: caseName,
+                type: "conditional",
+                animated: true,
+              };
+              
+              branchEdges.push(edge);
+            }
+          });
+          
+          // Add edges (they will be enriched automatically)
+          branchEdges.forEach(edge => useNodesStore.getState().addEdge(edge));
+        }
+      }
+      
       triggerAutoSave();
     } catch (error) {
       console.error(`${LOG_PREFIX} Failed to add node:`, error);

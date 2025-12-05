@@ -78,16 +78,51 @@ export const useNodesStore = create<NodesState>((set, get) => ({
   },
   
   updateNode: (nodeId, updates) => {
+    console.log("[NodesStore] updateNode called", {
+      nodeId,
+      updates,
+      updateKeys: Object.keys(updates || {})
+    });
+    
     set((state) => {
-      const updatedNodes = state.nodes.map((n) =>
-        n.id === nodeId ? { ...n, data: { ...n.data, ...updates } } : n
-      );
+      const nodeToUpdate = state.nodes.find(n => n.id === nodeId);
+      console.log("[NodesStore] Node before update", {
+        nodeId,
+        found: !!nodeToUpdate,
+        currentData: nodeToUpdate?.data,
+        currentConfig: nodeToUpdate?.data?.config
+      });
+      
+      const updatedNodes = state.nodes.map((n) => {
+        if (n.id === nodeId) {
+          const updatedData = { ...n.data, ...updates };
+          console.log("[NodesStore] Node after merge", {
+            nodeId,
+            oldData: n.data,
+            updates,
+            newData: updatedData,
+            newConfig: updatedData.config
+          });
+          return { ...n, data: updatedData };
+        }
+        return n;
+      });
+      
+      const updatedNode = updatedNodes.find(n => n.id === nodeId);
+      console.log("[NodesStore] Final updated node", {
+        nodeId,
+        data: updatedNode?.data,
+        config: updatedNode?.data?.config,
+        query: updatedNode?.data?.config?.query,
+        database: updatedNode?.data?.config?.database,
+        database_id: updatedNode?.data?.config?.database_id
+      });
       
       const selectedNode = useSelectionStore.getState().selectedNode;
       if (selectedNode && selectedNode.id === nodeId) {
-        const updatedNode = updatedNodes.find(n => n.id === nodeId);
         if (updatedNode) {
           useSelectionStore.getState().setSelectedNode(updatedNode);
+          console.log("[NodesStore] Updated selected node");
         }
       }
       

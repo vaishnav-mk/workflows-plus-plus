@@ -27,7 +27,7 @@ export function enrichEdge(edge: Edge, sourceNode: Node | undefined, allEdges: E
         ...edge,
         type: 'conditional',
         data: {
-          ...edge.data,
+          ...(edge.data && typeof edge.data === 'object' ? edge.data : {}),
           caseLabel: caseConfig.case,
           caseValue: caseConfig.value,
           isDefault: caseConfig.isDefault || false,
@@ -47,7 +47,7 @@ export function enrichEdge(edge: Edge, sourceNode: Node | undefined, allEdges: E
       type: 'conditional',
       sourceHandle: caseConfig.case,
       data: {
-        ...edge.data,
+        ...(edge.data && typeof edge.data === 'object' ? edge.data : {}),
         caseLabel: caseConfig.case,
         caseValue: caseConfig.value,
         isDefault: caseConfig.isDefault || false,

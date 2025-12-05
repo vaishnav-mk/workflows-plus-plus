@@ -12,7 +12,8 @@ export interface SettingField {
     | "card"
     | "text"
     | "conditional-builder"
-    | "conditional-router-builder";
+    | "conditional-router-builder"
+    | "d1-database-selector";
   key: string;
   label?: string;
   placeholder?: string;
