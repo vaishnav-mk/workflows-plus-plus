@@ -132,7 +132,7 @@ export default function CreateWorkflowPage() {
       const nodeFields = fieldValues[node.id];
       if (!nodeFields) return node;
 
-      let updatedConfig = { ...node.config };
+      const updatedConfig = { ...node.config };
       
       Object.keys(nodeFields).forEach(fieldPath => {
         const parts = fieldPath.split('.');
@@ -177,7 +177,7 @@ export default function CreateWorkflowPage() {
     setIsGenerating(true);
     
     try {
-      let requestBody: { image?: string; imageMimeType?: string; text?: string } = {};
+      const requestBody: { image?: string; imageMimeType?: string; text?: string } = {};
       
       if (image) {
         const reader = new FileReader();

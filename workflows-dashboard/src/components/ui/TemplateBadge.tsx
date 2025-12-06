@@ -16,7 +16,7 @@ export function TemplateBadge({ expression, onRemove, onClick }: TemplateBadgePr
   const { getNodeByType } = useNodeRegistry();
   
   // Extract the readable part (remove {{ and }})
-  let readable = expression.replace(/\{\{|\}\}/g, '');
+  const readable = expression.replace(/\{\{|\}\}/g, '');
   const originalPath = readable;
   
   // Resolve node IDs to node names

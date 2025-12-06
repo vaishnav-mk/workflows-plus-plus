@@ -33,7 +33,7 @@ export function MarkdownRenderer({ content, className, renderHeadingsAsBadges = 
     return null;
   }
 
-  let normalizedContent = content
+  const normalizedContent = content
     .replace(/\\n/g, "\n")
     .replace(/\\r\\n/g, "\n")
     .replace(/\\r/g, "\n");

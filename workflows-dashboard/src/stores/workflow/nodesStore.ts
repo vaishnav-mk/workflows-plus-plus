@@ -53,7 +53,7 @@ export const useNodesStore = create<NodesState>((set, get) => ({
           .filter((e) => e.source === nodeId || e.target === nodeId)
           .map((e) => e.id)
       );
-      let newEdges = state.edges.filter((e) => !edgesToRemoveIds.has(e.id));
+      const newEdges = state.edges.filter((e) => !edgesToRemoveIds.has(e.id));
       
       if (incomingEdges.length > 0 && outgoingEdges.length > 0) {
         incomingEdges.forEach((incoming) => {
