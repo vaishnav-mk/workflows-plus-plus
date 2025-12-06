@@ -188,6 +188,11 @@ app.post("/:id/deploy", async (c) => {
       (n: any) => (n.type === 'd1-query' || n.data?.type === 'd1-query') && n.config?.database_id
     );
     
+    // Extract namespace_id from KV node configs if not already in bindings
+    const kvNodes = (body.nodes || workflow.nodes || []).filter(
+      (n: any) => ((n.type === 'kv_get' || n.type === 'kv_put') || (n.data?.type === 'kv_get' || n.data?.type === 'kv_put')) && n.config?.namespace_id
+    );
+    
     const bindings: BindingConfiguration[] = bindingsArray.map((b: { name: string; type: string; id?: string; databaseName?: string; bucketName?: string }) => {
       // If this is a D1 binding and we have a node with database_id, use it
       if (b.type === BindingType.D1) {
@@ -206,6 +211,29 @@ app.post("/:id/deploy", async (c) => {
             type: b.type as BindingType,
             id: nodeConfig?.database_id || b.id,
             databaseName: dbName, // Keep original name for database creation/lookup
+            bucketName: b.bucketName
+          };
+        }
+      }
+      // If this is a KV binding and we have a node with namespace_id, use it
+      if (b.type === BindingType.KV) {
+        const matchingNode = kvNodes.find((n: any) => {
+          const nodeNs = n.config?.namespace || n.data?.config?.namespace;
+          // The binding name is now the namespace name (sanitized), so compare with sanitized node namespace
+          const sanitizedNodeNs = nodeNs ? nodeNs.replace(/[^a-zA-Z0-9_]/g, "_") : null;
+          return sanitizedNodeNs === b.name || nodeNs === b.name;
+        });
+        if (matchingNode) {
+          const nodeConfig = matchingNode.config || matchingNode.data?.config;
+          const nsName = nodeConfig?.namespace || b.name;
+          // Sanitize the binding name to match how it's used in generated code
+          // The codegen uses: (config.namespace || BINDING_NAMES.DEFAULT_KV).replace(/[^a-zA-Z0-9_]/g, "_")
+          const sanitizedBindingName = nsName.replace(/[^a-zA-Z0-9_]/g, "_");
+          return {
+            name: sanitizedBindingName, // Use the sanitized namespace name as the binding name to match the code
+            type: b.type as BindingType,
+            id: nodeConfig?.namespace_id || b.id,
+            databaseName: b.databaseName,
             bucketName: b.bucketName
           };
         }

@@ -18,9 +18,11 @@ export async function transformBindingsForAPI(
 
       switch (internalType) {
         case BindingType.KV: {
+          // For KV bindings, bindingName is now the actual namespace name (title)
+          // Use it directly to find/create the namespace
           const namespaceId =
             binding.id ||
-            (await findOrCreateKVNamespace(ctx, `${bindingName} Namespace`));
+            (await findOrCreateKVNamespace(ctx, bindingName));
 
           return {
             type: "kv_namespace",
