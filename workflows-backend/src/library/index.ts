@@ -11,6 +11,8 @@ export { WaitEventNode } from "./flow/wait-event.node";
 // Storage nodes
 export { KVGetNode } from "./storage/kv-get.node";
 export { KVPutNode } from "./storage/kv-put.node";
+export { R2GetNode } from "./storage/r2-get.node";
+export { R2PutNode } from "./storage/r2-put.node";
 export { D1QueryNode } from "./storage/d1-query.node";
 
 // HTTP nodes

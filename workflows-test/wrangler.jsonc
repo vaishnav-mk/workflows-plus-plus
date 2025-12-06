@@ -7,7 +7,7 @@
 {
 	"$schema": "node_modules/wrangler/config-schema.json",
 	"name": "workflows-test",
-	"main": "src/f1-mcp.js",
+	"main": "src/examples.js",
 	"compatibility_date": "2025-10-22",
 	"observability": {
 		"enabled": true
@@ -48,6 +48,13 @@
 			"database_id": "edac1892-557c-417f-93af-dbbe09b22375"
 		}
 	],
+	"r2_buckets": [
+		{
+			"binding": "cloudflare_blogs",
+			"bucket_name": "cloudflare-blogs",
+			"remote": true
+		}
+	],
 	/**
 	 * Environment Variables
 	 * https://developers.cloudflare.com/workers/wrangler/configuration/#environment-variables
@@ -56,22 +63,22 @@
 		"ENVIRONMENT": "development",
 		"LOG_LEVEL": "debug"
 	},
-	"durable_objects": {
-		"bindings": [
-			{
-				"class_name": "SatisfiedRiverBraveWorkflowMCP",
-				"name": "MCP_OBJECT"
-			}
-		]
-	},
-	"migrations": [
-		{
-			"new_sqlite_classes": [
-				"SatisfiedRiverBraveWorkflowMCP"
-			],
-			"tag": "V1"
-		}
-	],
+	// "durable_objects": {
+	// 	"bindings": [
+	// 		{
+	// 			"class_name": "SatisfiedRiverBraveWorkflowMCP",
+	// 			"name": "MCP_OBJECT"
+	// 		}
+	// 	]
+	// },
+	// "migrations": [
+	// 	{
+	// 		"new_sqlite_classes": [
+	// 			"SatisfiedRiverBraveWorkflowMCP"
+	// 		],
+	// 		"tag": "V1"
+	// 	}
+	// ],
 
 	/**
 	 * Note: Use secrets to store sensitive data.
@@ -91,11 +98,11 @@
 	"workflows": [
 		{
 			// name of your workflow
-			"name": "SatisfiedRiverBraveWorkflow",
+			"name": "WindSatisfiedTempleWorkflow",
 			// binding name env.MY_WORKFLOW
-			"binding": "SATISFIEDRIVERBRAVEWORKFLOW_WORKFLOW",
+			"binding": "WINDSATISFIEDTEMPLEWORKFLOW_WORKFLOW",
 			// this is class that extends the Workflow class in src/index.ts
-			"class_name": "SatisfiedRiverBraveWorkflow"
+			"class_name": "WindSatisfiedTempleWorkflow"
 		}
 	],
 	"compatibility_flags": [

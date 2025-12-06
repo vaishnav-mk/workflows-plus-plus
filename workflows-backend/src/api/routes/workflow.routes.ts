@@ -193,6 +193,12 @@ app.post("/:id/deploy", async (c) => {
       (n: any) => ((n.type === 'kv_get' || n.type === 'kv_put') || (n.data?.type === 'kv_get' || n.data?.type === 'kv_put')) && n.config?.namespace_id
     );
     
+    // Extract bucket_name from R2 node configs if not already in bindings
+    const r2Nodes = (body.nodes || workflow.nodes || []).filter(
+      (n: any) => ((n.type === 'r2-get' || n.type === 'r2-put' || n.type === 'r2-list') || 
+                   (n.data?.type === 'r2-get' || n.data?.type === 'r2-put' || n.data?.type === 'r2-list')) && n.config?.bucket
+    );
+    
     const bindings: BindingConfiguration[] = bindingsArray.map((b: { name: string; type: string; id?: string; databaseName?: string; bucketName?: string }) => {
       // If this is a D1 binding and we have a node with database_id, use it
       if (b.type === BindingType.D1) {
@@ -212,6 +218,27 @@ app.post("/:id/deploy", async (c) => {
             id: nodeConfig?.database_id || b.id,
             databaseName: dbName, // Keep original name for database creation/lookup
             bucketName: b.bucketName
+          };
+        }
+      }
+      // If this is an R2 binding and we have a node with bucket, use it
+      if (b.type === BindingType.R2) {
+        const matchingNode = r2Nodes.find((n: any) => {
+          const nodeBucket = n.config?.bucket || n.data?.config?.bucket;
+          return nodeBucket === b.name || nodeBucket === b.bucketName;
+        });
+        if (matchingNode) {
+          const nodeConfig = matchingNode.config || matchingNode.data?.config;
+          const bucketName = nodeConfig?.bucket || b.bucketName || b.name;
+          // Sanitize the binding name to match how it's used in generated code
+          // The codegen uses: (config.bucket || BINDING_NAMES.DEFAULT_R2).replace(/[^a-zA-Z0-9_]/g, "_")
+          const sanitizedBindingName = bucketName.replace(/[^a-zA-Z0-9_]/g, "_");
+          return {
+            name: sanitizedBindingName, // Use the sanitized bucket name as the binding name to match the code
+            type: b.type as BindingType,
+            id: b.id,
+            databaseName: b.databaseName,
+            bucketName: bucketName // Keep original name for bucket creation/lookup
           };
         }
       }

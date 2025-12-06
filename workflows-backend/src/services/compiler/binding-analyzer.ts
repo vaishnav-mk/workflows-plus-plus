@@ -82,6 +82,11 @@ export class BindingAnalyzer {
         // how it's used in the generated code (this.env["${namespace}"])
         // The codegen sanitizes with: .replace(/[^a-zA-Z0-9_]/g, "_")
         finalName = originalName.replace(/[^a-zA-Z0-9_]/g, "_");
+      } else if (bindingType === BindingType.R2) {
+        // For R2 bindings, use the actual bucket name but sanitize it to match
+        // how it's used in the generated code (this.env["${bucket}"])
+        // The codegen sanitizes with: .replace(/[^a-zA-Z0-9_]/g, "_")
+        finalName = originalName.replace(/[^a-zA-Z0-9_]/g, "_");
       } else {
         if (workflowId) {
           // Use the standardized format: binding_{name}_{workflowid}
@@ -200,9 +205,11 @@ export class BindingAnalyzer {
           break;
         case BindingType.R2:
           wranglerBindings.r2_buckets = wranglerBindings.r2_buckets || [];
+          // Extract bucket_name from binding if available, otherwise use binding name
+          const bucketName = (binding as any).bucketName || binding.name;
           wranglerBindings.r2_buckets.push({
             binding: binding.name,
-            bucket_name: binding.name
+            bucket_name: bucketName
           });
           break;
         case BindingType.SERVICE:

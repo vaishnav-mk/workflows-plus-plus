@@ -17,6 +17,8 @@ export class NodeRegistry {
       NodeLibrary.SleepNode,
       NodeLibrary.KVGetNode,
       NodeLibrary.KVPutNode,
+      NodeLibrary.R2GetNode,
+      NodeLibrary.R2PutNode,
       NodeLibrary.D1QueryNode,
       NodeLibrary.HttpRequestNode,
       NodeLibrary.TransformNode,

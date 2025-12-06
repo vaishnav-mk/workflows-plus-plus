@@ -404,6 +404,35 @@ class ApiClient {
       body: JSON.stringify({ title }),
     });
   }
+
+  // R2 Bucket methods
+  async getR2Buckets(page = 1, perPage = 1000): Promise<ApiResponse<any[]>> {
+    const params = new URLSearchParams();
+    params.append('page', String(page));
+    params.append('per_page', String(perPage));
+    
+    return this.fetch(`/r2?${params.toString()}`);
+  }
+
+  async getR2Bucket(bucketName: string): Promise<ApiResponse<any>> {
+    return this.fetch(`/r2/${encodeURIComponent(bucketName)}`, undefined, `r2-bucket-${bucketName}`);
+  }
+
+  async createR2Bucket(name: string, location?: string): Promise<ApiResponse<any>> {
+    return this.fetch("/r2", {
+      method: "POST",
+      body: JSON.stringify({ name, location }),
+    });
+  }
+
+  async listR2Objects(bucketName: string, prefix = "", perPage = 25, cursor?: string): Promise<ApiResponse<any>> {
+    const params = new URLSearchParams();
+    params.append('per_page', String(perPage));
+    if (prefix) params.append('prefix', prefix);
+    if (cursor) params.append('cursor', cursor);
+    
+    return this.fetch(`/r2/${encodeURIComponent(bucketName)}/objects?${params.toString()}`);
+  }
 }
 
 export const apiClient = new ApiClient();

@@ -44,13 +44,15 @@ export async function createNodeFromBackend(
   // Transform nodes: step_transform_{index}, Entry: step_entry_0, Return: step_return_{last}
   const { nodes } = await import("@/stores/workflow/nodesStore").then(m => m.useNodesStore.getState());
   const transformCount = nodes.filter(n => n.data?.type === 'transform').length;
+  // Sanitize node type to match backend generation (replace non-alphanumeric with underscore)
+  const sanitizedType = nodeType.replace(/[^a-z0-9]/g, "_");
   const nodeId = nodeType === 'entry' 
     ? 'step_entry_0'
     : nodeType === 'transform'
     ? `step_transform_${transformCount}`
     : nodeType === 'return'
     ? `step_return_${nodes.length}` // Will be updated to last index during compilation
-    : `step_${nodeType}_${nodes.length}`;
+    : `step_${sanitizedType}_${nodes.length}`;
   
   // Auto-create default cases for conditional router
   let defaultConfig = config || {};
