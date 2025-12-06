@@ -367,6 +367,8 @@ export class WorkflowCompiler {
       [NodeType.WORKERS_AI]: NodeLibrary.WorkersAINode as WorkflowNodeDefinition<unknown>,
       [NodeType.MCP_TOOL_INPUT]: NodeLibrary.MCPToolInputNode as WorkflowNodeDefinition<unknown>,
       [NodeType.MCP_TOOL_OUTPUT]: NodeLibrary.MCPToolOutputNode as WorkflowNodeDefinition<unknown>,
+      [NodeType.BROWSER_RENDER]: NodeLibrary.BrowserRenderNode as WorkflowNodeDefinition<unknown>,
+      [NodeType.BROWSER_EXTRACT]: NodeLibrary.BrowserExtractNode as WorkflowNodeDefinition<unknown>,
     };
     return nodeTypeMap[nodeType] || null;
   }

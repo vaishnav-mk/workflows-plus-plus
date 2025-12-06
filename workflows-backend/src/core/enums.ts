@@ -27,7 +27,9 @@ export enum NodeType {
   D1_QUERY = "d1-query",
   MCP_TOOL_INPUT = "mcp-tool-input",
   MCP_TOOL_OUTPUT = "mcp-tool-output",
-  WORKERS_AI = "workers-ai"
+  WORKERS_AI = "workers-ai",
+  BROWSER_RENDER = "browser-render",
+  BROWSER_EXTRACT = "browser-extract"
 }
 
 export enum BindingType {

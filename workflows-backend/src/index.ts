@@ -28,6 +28,7 @@ import setupRoutes from "./api/routes/setup.routes";
 import startersRoutes from "./api/routes/starters.routes";
 import deploymentRoutes from "./api/routes/deployment.routes";
 import d1Routes from "./api/routes/d1.routes";
+import browserRenderingRoutes from "./api/routes/browser-rendering.routes";
 import { DeploymentDurableObject } from "./services/deployment/deployment-durable-object";
 import { cors } from "hono/cors";
 
@@ -113,6 +114,9 @@ app.route("/api/deployments", deploymentRoutes);
 
 // D1 Database Routes
 app.route("/api/d1", d1Routes);
+
+// Browser Rendering Routes
+app.route("/api/browser-rendering", browserRenderingRoutes);
 
 app.onError(errorHandler);
 app.notFound(notFoundHandler);

@@ -25,6 +25,8 @@ export class NodeRegistry {
       NodeLibrary.WorkersAINode,
       NodeLibrary.MCPToolInputNode,
       NodeLibrary.MCPToolOutputNode,
+      NodeLibrary.BrowserRenderNode,
+      NodeLibrary.BrowserExtractNode,
     ];
 
     allNodes.forEach(node => {

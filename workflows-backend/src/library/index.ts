@@ -15,6 +15,8 @@ export { D1QueryNode } from "./storage/d1-query.node";
 
 // HTTP nodes
 export { HttpRequestNode } from "./http/http-request.node";
+export { BrowserRenderNode } from "./http/browser-render.node";
+export { BrowserExtractNode } from "./http/browser-extract.node";
 
 // Utils nodes
 export { SleepNode } from "./utils/sleep.node";
