@@ -24,10 +24,14 @@ export enum NodeType {
   WAIT_EVENT = "wait-event",
   KV_GET = "kv-get",
   KV_PUT = "kv-put",
+  R2_GET = "r2-get",
+  R2_PUT = "r2-put",
   D1_QUERY = "d1-query",
   MCP_TOOL_INPUT = "mcp-tool-input",
   MCP_TOOL_OUTPUT = "mcp-tool-output",
-  WORKERS_AI = "workers-ai"
+  WORKERS_AI = "workers-ai",
+  FOR_EACH = "for-each",
+  VALIDATE = "validate"
 }
 
 export enum BindingType {
