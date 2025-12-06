@@ -237,9 +237,14 @@ export class NodeExecutionService {
       throw new ExecutionError(ErrorCode.EXECUTION_ERROR, message);
     }
 
+    const responseHeaders: Record<string, string> = {};
+    response.headers.forEach((value, key) => {
+      responseHeaders[key] = value;
+    });
+
     const result = {
       status: response.status,
-      headers: Object.fromEntries(response.headers.entries()),
+      headers: responseHeaders,
       body: parsedBody,
       message: "HTTP request completed successfully"
     };

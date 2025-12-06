@@ -179,8 +179,6 @@ export class AIGatewayService {
       parsed.workflow.id = parsed.workflow.id || generateWorkflowId();
 
       // Assign standardized node IDs
-      const entryNode = parsed.workflow.nodes.find((n: any) => n.type === 'entry');
-      const returnNodes = parsed.workflow.nodes.filter((n: any) => n.type === 'return');
       const transformNodes = parsed.workflow.nodes.filter((n: any) => n.type === 'transform');
       
       parsed.workflow.nodes = parsed.workflow.nodes.map((node: any, index: number) => {

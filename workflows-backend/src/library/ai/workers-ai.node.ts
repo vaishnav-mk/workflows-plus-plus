@@ -6,7 +6,6 @@ import { z } from "zod";
 import { Effect } from "effect";
 import {
   WorkflowNodeDefinition,
-  CodeGenContext,
   CodeGenResult
 } from "../../core/types";
 import {
@@ -33,30 +32,6 @@ type WorkersAIConfig = z.infer<typeof WorkersAIConfigSchema>;
  */
 function sanitizeIdentifier(name: string): string {
   return name.replace(/[^a-zA-Z0-9_]/g, "_");
-}
-
-function resolveTemplateExpression(
-  expr: string,
-  graphContext: CodeGenContext["graphContext"]
-): string {
-  return expr.replace(TEMPLATE_PATTERNS.TEMPLATE_REGEX, (_match, innerExpr) => {
-    const trimmed = innerExpr.trim();
-    if (trimmed.startsWith(TEMPLATE_PATTERNS.STATE_PREFIX)) {
-      const path = trimmed.substring(TEMPLATE_PATTERNS.STATE_PREFIX.length);
-      const [nodeId, ...rest] = path.split(TEMPLATE_PATTERNS.PATH_SEPARATOR);
-      const tail = rest.length ? "." + rest.join(".") : ".output";
-      return `_workflowState['${nodeId}']${tail}`;
-    }
-    const [nodeRef, ...rest] = trimmed.split(TEMPLATE_PATTERNS.PATH_SEPARATOR);
-    const stepName = graphContext.stepNameMap.get(nodeRef);
-    if (stepName) {
-      const tail = rest.length ? "." + rest.join(".") : "";
-      const sanitizedStepName = sanitizeIdentifier(stepName);
-      return `_workflowResults.${sanitizedStepName}${tail}`;
-    }
-    const tail = rest.length ? "." + rest.join(".") : ".output";
-    return `_workflowState['${nodeRef}']${tail}`;
-  });
 }
 
 export const WorkersAINode: WorkflowNodeDefinition<WorkersAIConfig> = {

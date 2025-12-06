@@ -359,6 +359,8 @@ export class WorkflowCompiler {
       [NodeType.SLEEP]: NodeLibrary.SleepNode as WorkflowNodeDefinition<unknown>,
       [NodeType.KV_GET]: NodeLibrary.KVGetNode as WorkflowNodeDefinition<unknown>,
       [NodeType.KV_PUT]: NodeLibrary.KVPutNode as WorkflowNodeDefinition<unknown>,
+      [NodeType.R2_GET]: NodeLibrary.R2GetNode as WorkflowNodeDefinition<unknown>,
+      [NodeType.R2_PUT]: NodeLibrary.R2PutNode as WorkflowNodeDefinition<unknown>,
       [NodeType.D1_QUERY]: NodeLibrary.D1QueryNode as WorkflowNodeDefinition<unknown>,
       [NodeType.HTTP_REQUEST]: NodeLibrary.HttpRequestNode as WorkflowNodeDefinition<unknown>,
       [NodeType.TRANSFORM]: NodeLibrary.TransformNode as WorkflowNodeDefinition<unknown>,
@@ -409,7 +411,6 @@ export class WorkflowCompiler {
       const mcpClassName = `${finalClassName}MCP`;
       const serverName = mcpClassName; // Use MCP class name for server (e.g., "GhostCrystalSatisfiedMCP")
       const toolName = (mcpConfig.toolName as string) || `${finalClassName}MCPToolMain`;
-      const toolDescription = (mcpConfig.description as string) || "Workflow tool exposed via MCP";
       const toolParameters = (mcpConfig.parameters as Array<{ name: string; type: string; required?: boolean; description?: string }>) || [];
       
       const toolSchema: Record<string, unknown> = {

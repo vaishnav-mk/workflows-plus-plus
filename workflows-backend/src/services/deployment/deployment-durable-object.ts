@@ -352,7 +352,10 @@ export async function deployToCloudflare(
 
     progress(DeploymentStep.TRANSFORMING_BINDINGS, "Transforming bindings...", 35);
     const bindingCtx: BindingDeploymentContext = { 
-      client, 
+      client: {
+        kv: client.kv,
+        d1: undefined // D1 operations use direct fetch, not client interface
+      }, 
       accountId,
       apiToken,
       className: className,
