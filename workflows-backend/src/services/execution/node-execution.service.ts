@@ -265,13 +265,13 @@ export class NodeExecutionService {
           body: { message: "Simulated HTTP response" }
         };
 
-      case "kv-get":
+      case "kv_get":
         return {
           value: `Simulated KV value for key: ${config.key || "unknown"}`,
           metadata: {}
         };
 
-      case "kv-put":
+      case "kv_put":
         return {
           success: true,
           key: config.key || "unknown"

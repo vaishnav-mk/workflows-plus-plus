@@ -103,23 +103,12 @@ export const TransformNode: WorkflowNodeDefinition<TransformConfig> = {
       if (code.includes("{{")) {
         code = resolveTemplateExpression(code, graphContext);
       }
-      
-      if (code.startsWith("return ")) {
-        code = code.substring(7);
-      }
 
       code = code.replace(/\n/g, " ").replace(/\s+/g, " ").trim();
       
-      let validCode = code;
-      if (!code.includes("return") && !code.includes("{") && !code.includes(";")) {
-        validCode = `(${code})`;
-      } else if (!code.includes("return") && code.includes("{")) {
-        validCode = `(() => { ${code} })()`;
-      } else if (code.includes("const") && code.includes("return")) {
-        validCode = `(() => { ${code} })()`;
-      } else if (code.includes(";")) {
-        validCode = `(() => { ${code} })()`;
-      }
+      // Ensure the code has a return statement
+      const hasReturn = code.trim().startsWith("return ");
+      const codeBody = hasReturn ? code : `return ${code}`;
 
       const inputData = graphContext.edges
         .filter(e => e.target === nodeId)
@@ -128,13 +117,12 @@ export const TransformNode: WorkflowNodeDefinition<TransformConfig> = {
       const codeGen = `
     _workflowResults.${stepName} = await step.do('${stepName}', async () => {
       const inputData = ${inputData};
-      const result = ${validCode};
-      const output = { ...result, message: 'Data transformation completed successfully' };
+      const result = (() => { ${codeBody} })();
       _workflowState['${nodeId}'] = {
         input: inputData,
-        output: output
+        output: result
       };
-      return output;
+      return result;
     });`;
 
       return {
