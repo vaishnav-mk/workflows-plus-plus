@@ -13,7 +13,8 @@ export interface SettingField {
     | "text"
     | "conditional-builder"
     | "conditional-router-builder"
-    | "d1-database-selector";
+    | "d1-database-selector"
+    | "kv-namespace-selector";
   key: string;
   label?: string;
   placeholder?: string;
