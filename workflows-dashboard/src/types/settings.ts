@@ -14,7 +14,9 @@ export interface SettingField {
     | "conditional-builder"
     | "conditional-router-builder"
     | "d1-database-selector"
-    | "kv-namespace-selector";
+    | "kv-namespace-selector"
+    | "r2-bucket-selector"
+    | "transform-node-settings";
   key: string;
   label?: string;
   placeholder?: string;

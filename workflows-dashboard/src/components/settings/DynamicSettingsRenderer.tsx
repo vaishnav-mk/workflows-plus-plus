@@ -6,6 +6,7 @@ import { ConditionalBuilder } from '@/components/settings/ConditionalBuilder';
 import { ConditionalRouterBuilder } from '@/components/settings/ConditionalRouterBuilder';
 import { D1DatabaseSelector } from '@/components/settings/D1DatabaseSelector';
 import { KVNamespaceSelector } from '@/components/settings/KVNamespaceSelector';
+import { R2BucketSelector } from '@/components/settings/R2BucketSelector';
 import { TransformNodeSettings } from '@/components/settings/TransformNodeSettings';
 import { SettingCard } from '@/components/ui/SettingCard';
 import { SettingInput } from '@/components/ui/SettingInput';
@@ -456,6 +457,16 @@ export function DynamicSettingsRenderer({
       case 'kv-namespace-selector':
         return (
           <KVNamespaceSelector
+            key={key}
+            nodeData={nodeData}
+            onNodeUpdate={onNodeUpdate}
+            nodeId={nodeId}
+          />
+        );
+
+      case 'r2-bucket-selector':
+        return (
+          <R2BucketSelector
             key={key}
             nodeData={nodeData}
             onNodeUpdate={onNodeUpdate}

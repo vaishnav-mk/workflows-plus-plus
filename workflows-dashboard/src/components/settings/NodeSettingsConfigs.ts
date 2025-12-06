@@ -134,6 +134,33 @@ function generateFieldsFromSchema(schema: JSONSchema, prefix = '', requiredField
     }
   }
 
+  // Special handling for R2 nodes: use R2 bucket selector
+  if ((nodeType === 'r2-get' || nodeType === 'r2-put' || nodeType === 'r2-list') && !prefix) {
+    // Check if this schema has bucket field with binding:r2 description
+    const bucketProp = schema.properties.bucket;
+    if (bucketProp) {
+      const description = typeof bucketProp === 'object' 
+        ? (bucketProp.description || bucketProp.title || '')
+        : '';
+      if (typeof description === 'string' && description.includes('binding:r2')) {
+        fields.push({
+          type: 'r2-bucket-selector',
+          key: 'r2-bucket-config',
+        });
+        // Still generate other fields (key, value, etc.)
+        // Remove bucket from properties to avoid duplicate
+        const { bucket, ...otherProps } = schema.properties;
+        const otherFields = generateFieldsFromSchema(
+          { ...schema, properties: otherProps },
+          prefix,
+          requiredFields.filter(r => r !== 'bucket'),
+          nodeType
+        );
+        return [...fields, ...otherFields];
+      }
+    }
+  }
+
   // Process all properties
   Object.entries(schema.properties).forEach(([key, prop]: [string, any]) => {
     const fullKey = prefix ? `${prefix}.${key}` : key;
