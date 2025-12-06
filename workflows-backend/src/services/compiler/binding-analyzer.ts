@@ -77,6 +77,11 @@ export class BindingAnalyzer {
         // how it's used in the generated code (this.env["${db}"])
         // The codegen sanitizes with: .replace(/[^a-zA-Z0-9_]/g, "_")
         finalName = originalName.replace(/[^a-zA-Z0-9_]/g, "_");
+      } else if (bindingType === BindingType.KV) {
+        // For KV bindings, use the actual namespace name (title) but sanitize it to match
+        // how it's used in the generated code (this.env["${namespace}"])
+        // The codegen sanitizes with: .replace(/[^a-zA-Z0-9_]/g, "_")
+        finalName = originalName.replace(/[^a-zA-Z0-9_]/g, "_");
       } else {
         if (workflowId) {
           // Use the standardized format: binding_{name}_{workflowid}

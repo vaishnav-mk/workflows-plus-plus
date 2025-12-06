@@ -66,8 +66,8 @@ function buildCatalogContext(): string {
 Node categories:
 - Control: entry, return, conditional-router, for-each, wait-event
 - HTTP: http-request
-- Storage: kv-get, kv-put, d1-query
-- Utils: sleep, transform, validate
+- Storage: kv_get, kv_put, d1-query
+- Utils: sleep, validate
 - AI: workers-ai, mcp-tool-input, mcp-tool-output`;
   } catch (error) {
     return "Node catalog unavailable.";
