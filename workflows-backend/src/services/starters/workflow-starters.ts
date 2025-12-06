@@ -28,7 +28,6 @@ export interface WorkflowStarter {
 // Helper to generate standardized node IDs for starter workflows
 function assignStandardizedNodeIds(nodes: any[]): any[] {
   const returnNodes = nodes.filter(n => n.type === 'return');
-  const transformNodes = nodes.filter(n => n.type === 'transform');
   const lastReturnIndex = returnNodes.length > 0 ? nodes.indexOf(returnNodes[returnNodes.length - 1]) : nodes.length - 1;
   
   return nodes.map((node, index) => {
@@ -38,9 +37,6 @@ function assignStandardizedNodeIds(nodes: any[]): any[] {
         nodeId = 'step_entry_0';
       } else if (node.type === 'return' && index === lastReturnIndex) {
         nodeId = `step_return_${lastReturnIndex}`;
-      } else if (node.type === 'transform') {
-        const transformIndex = transformNodes.indexOf(node);
-        nodeId = `step_transform_${transformIndex}`;
       } else {
         const sanitizedType = node.type.replace(/[^a-z0-9]/g, '_');
         nodeId = `step_${sanitizedType}_${index}`;
@@ -93,11 +89,11 @@ export const WORKFLOW_STARTERS: WorkflowStarter[] = [
   {
     id: 'data-processing',
     name: 'Data Processing Pipeline',
-    description: 'Fetch data from an API, transform it, and store in KV',
+    description: 'Fetch data from an API and store in KV',
     category: 'Data',
     icon: 'Database',
     difficulty: 'intermediate',
-    tags: ['http', 'transform', 'storage', 'kv'],
+    tags: ['http', 'storage', 'kv'],
     workflow: (() => {
       const nodes = assignStandardizedNodeIds([
         {
@@ -113,23 +109,16 @@ export const WORKFLOW_STARTERS: WorkflowStarter[] = [
           }
         },
         {
-          type: 'transform',
+          type: 'kv_put',
           position: { x: 250, y: 280 },
           config: {
-            code: 'return { processed: input.data, timestamp: Date.now() }'
-          }
-        },
-        {
-          type: 'kv-put',
-          position: { x: 250, y: 410 },
-          config: {
             key: 'processed-data',
-            value: '{{step_transform_0.output}}'
+            value: '{{step_http_request_1.output}}'
           }
         },
         {
           type: 'return',
-          position: { x: 250, y: 540 }
+          position: { x: 250, y: 410 }
         }
       ]);
       return {
@@ -137,8 +126,7 @@ export const WORKFLOW_STARTERS: WorkflowStarter[] = [
         edges: [
           { source: nodes[0].id, target: nodes[1].id },
           { source: nodes[1].id, target: nodes[2].id },
-          { source: nodes[2].id, target: nodes[3].id },
-          { source: nodes[3].id, target: nodes[4].id }
+          { source: nodes[2].id, target: nodes[3].id }
         ]
       };
     })()
@@ -177,17 +165,19 @@ export const WORKFLOW_STARTERS: WorkflowStarter[] = [
           }
         },
         {
-          type: 'transform',
+          type: 'kv_put',
           position: { x: 100, y: 410 },
           config: {
-            code: 'return { status: "success", data: input }'
+            key: 'success-result',
+            value: '{{step_http_request_1.output}}'
           }
         },
         {
-          type: 'transform',
+          type: 'kv_put',
           position: { x: 400, y: 410 },
           config: {
-            code: 'return { status: "error", message: "Request failed" }'
+            key: 'error-result',
+            value: '{{step_http_request_1.output}}'
           }
         },
         {
@@ -200,7 +190,7 @@ export const WORKFLOW_STARTERS: WorkflowStarter[] = [
         edges: [
           { source: nodes[0].id, target: nodes[1].id },
           { source: nodes[1].id, target: nodes[2].id },
-          // Conditional branches: success -> success transform, error (default) -> error transform
+          // Conditional branches: success -> success kv, error (default) -> error kv
           { source: nodes[2].id, target: nodes[3].id, sourceHandle: "success" },
           { source: nodes[2].id, target: nodes[4].id, sourceHandle: "error" },
           { source: nodes[3].id, target: nodes[5].id },
@@ -275,7 +265,7 @@ export const WORKFLOW_STARTERS: WorkflowStarter[] = [
           }
         },
         {
-          type: 'kv-put',
+          type: 'kv_put',
           position: { x: 250, y: 310 },
           config: {
             key: 'validated-{{input.id}}',
@@ -321,23 +311,115 @@ export const WORKFLOW_STARTERS: WorkflowStarter[] = [
           }
         },
         {
-          type: 'transform',
-          position: { x: 250, y: 310 },
-          config: {
-            code: 'return { result: input.completion, metadata: { timestamp: Date.now() } }'
-          }
-        },
-        {
           type: 'return',
-          position: { x: 250, y: 440 }
+          position: { x: 250, y: 310 }
         }
       ]);
       return {
         nodes,
         edges: [
           { source: nodes[0].id, target: nodes[1].id },
-          { source: nodes[1].id, target: nodes[2].id },
-          { source: nodes[2].id, target: nodes[3].id }
+          { source: nodes[1].id, target: nodes[2].id }
+        ]
+      };
+    })()
+  },
+  {
+    id: 'browser-screenshot',
+    name: 'Browser Screenshot',
+    description: 'Take a screenshot of a webpage',
+    category: 'Browser',
+    icon: 'Monitor',
+    difficulty: 'beginner',
+    tags: ['browser', 'screenshot', 'render'],
+    workflow: (() => {
+      const nodes = assignStandardizedNodeIds([
+        {
+          type: 'entry',
+          position: { x: 250, y: 100 }
+        },
+        {
+          type: 'browser-render',
+          position: { x: 250, y: 250 },
+          config: {
+            operation: 'screenshot',
+            url: 'https://www.cloudflare.com',
+            viewport: {
+              width: 1920,
+              height: 1080
+            },
+            screenshotOptions: {
+              type: 'png',
+              fullPage: false,
+              encoding: 'base64'
+            },
+            waitForTimeout: 2000
+          }
+        },
+        {
+          type: 'return',
+          position: { x: 250, y: 400 }
+        }
+      ]);
+      return {
+        nodes,
+        edges: [
+          { source: nodes[0].id, target: nodes[1].id },
+          { source: nodes[1].id, target: nodes[2].id }
+        ]
+      };
+    })()
+  },
+  {
+    id: 'browser-extract-json',
+    name: 'Browser JSON Extraction',
+    description: 'Extract structured data from a webpage using AI',
+    category: 'Browser',
+    icon: 'FileSearch',
+    difficulty: 'intermediate',
+    tags: ['browser', 'extract', 'json', 'ai', 'scraping'],
+    workflow: (() => {
+      const nodes = assignStandardizedNodeIds([
+        {
+          type: 'entry',
+          position: { x: 250, y: 100 }
+        },
+        {
+          type: 'browser-extract',
+          position: { x: 250, y: 250 },
+          config: {
+            operation: 'json',
+            url: 'https://www.cloudflare.com',
+            prompt: 'Extract the main title, description, and key features from the page',
+            responseFormat: {
+              type: 'json_schema',
+              schema: {
+                type: 'object',
+                properties: {
+                  title: { type: 'string' },
+                  description: { type: 'string' },
+                  features: {
+                    type: 'array',
+                    items: { type: 'string' }
+                  }
+                },
+                required: ['title']
+              }
+            },
+            scrollToBottom: true,
+            waitForTimeout: 3000
+          }
+        },
+        {
+          type: 'return',
+          position: { x: 250, y: 400 }
+        }
+      ]);
+      return {
+        nodes,
+        edges: [
+          { source: nodes[0].id, target: nodes[1].id },
+          { source: nodes[1].id, target: nodes[2].id }
         ]
       };
     })()
