@@ -33,7 +33,7 @@ node categories
 
 - control: entry, return, conditional-router, for-each, wait-event
 - http: http-request
-- storage: kv-get, kv-put
+- storage: kv_get, kv_put
 - database: d1-query
 - transform: transform, validate
 - timing: sleep

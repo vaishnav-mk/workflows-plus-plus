@@ -95,22 +95,89 @@ function generateFieldsFromSchema(schema: JSONSchema, prefix = '', requiredField
     }
   }
 
+  // Special handling for transform node: use custom transform settings component
+  if (nodeType === 'transform' && !prefix) {
+    // Check if this schema has code field
+    if (schema.properties.code) {
+      fields.push({
+        type: 'transform-node-settings',
+        key: 'transform-config',
+      });
+      return fields;
+    }
+  }
+
+  // Special handling for KV nodes: use KV namespace selector
+  if ((nodeType === 'kv_get' || nodeType === 'kv_put') && !prefix) {
+    // Check if this schema has namespace field with binding:kv description
+    const namespaceProp = schema.properties.namespace;
+    if (namespaceProp) {
+      const description = typeof namespaceProp === 'object' 
+        ? (namespaceProp.description || namespaceProp.title || '')
+        : '';
+      if (typeof description === 'string' && description.includes('binding:kv')) {
+        fields.push({
+          type: 'kv-namespace-selector',
+          key: 'kv-namespace-config',
+        });
+        // Still generate other fields (key, value, etc.)
+        // Remove namespace from properties to avoid duplicate
+        const { namespace, ...otherProps } = schema.properties;
+        const otherFields = generateFieldsFromSchema(
+          { ...schema, properties: otherProps },
+          prefix,
+          requiredFields.filter(r => r !== 'namespace'),
+          nodeType
+        );
+        return [...fields, ...otherFields];
+      }
+    }
+  }
+
+  // Process all properties
   Object.entries(schema.properties).forEach(([key, prop]: [string, any]) => {
     const fullKey = prefix ? `${prefix}.${key}` : key;
     const isRequired = schemaRequired.includes(key) || requiredFields.includes(fullKey);
     
+    // CRITICAL: Handle content fields FIRST, before any other processing
+    // Content fields are always textareas - they should ALWAYS be visible
+    // We removed the conditional because the field should always be available
+    if (key === 'content' && prefix) {
+      console.log(`[NodeSettingsConfigs] Processing content field: key=${key}, prefix=${prefix}, fullKey=${fullKey}`);
+      console.log(`[NodeSettingsConfigs] Content prop:`, prop);
+      const contentField: SettingField = {
+        type: "textarea",
+        key: fullKey,
+        label: prop.title || formatLabel(key) || "Content",
+        placeholder: prop.description || "Enter JSON object or expression",
+        defaultValue: prop.default,
+        required: isRequired,
+        description: prop.description || "The content to store in KV",
+        props: {
+          className: "settings-object-input",
+          style: { height: '96px' }
+        }
+        // REMOVED conditional - field should always be visible
+      };
+      console.log(`[NodeSettingsConfigs] Created content field:`, contentField);
+      fields.push(contentField);
+      return; // Skip to next property - this prevents content from being processed as a regular field
+    }
+    
     // Handle nested objects recursively
-    if (prop.type === 'object') {
+    if (prop.type === 'object' || (!prop.type && prop.properties)) {
       if (prop.properties) {
         // Object with defined properties - create a card/section
+        // Recursively process children - this will handle content fields inside
+        const children = generateFieldsFromSchema(prop, fullKey, schemaRequired.map((r: string) => `${fullKey}.${r}`), nodeType);
         fields.push({
           type: "card",
           key: `${fullKey}-container`,
           label: prop.title || formatLabel(key),
-          children: generateFieldsFromSchema(prop, fullKey, schemaRequired.map((r: string) => `${fullKey}.${r}`), nodeType)
+          children: children
         });
       } else {
-        // Object without properties (like value.content) - treat as JSON input
+        // Object without properties - treat as JSON input
         const field: SettingField = {
           type: "textarea",
           key: fullKey,
@@ -126,7 +193,7 @@ function generateFieldsFromSchema(schema: JSONSchema, prefix = '', requiredField
         fields.push(field);
       }
     } else {
-      // Handle regular fields
+      // Handle regular fields (strings, numbers, enums, etc.)
       const field: SettingField = {
         type: getFieldType(prop),
         key: fullKey,
@@ -164,14 +231,22 @@ function generateFieldsFromSchema(schema: JSONSchema, prefix = '', requiredField
         }
       }
 
-      // Handle conditional rendering for nested fields
-      // If this field is inside a parent object that has a type field, check if we should conditionally show it
+      // CRITICAL FALLBACK: If content field wasn't caught earlier (shouldn't happen, but safety net)
+      // This handles cases where content might not have been processed correctly
       if (prefix && key === 'content') {
-        // This is a content field - show it when type is set
         field.conditional = {
           parentKey: prefix + '.type',
-          showWhen: true // Show when type is set (not empty)
+          showWhen: true
         };
+        field.type = 'textarea';
+        if (!field.props) {
+          field.props = {};
+        }
+        field.props.className = "settings-object-input";
+        field.props.style = { height: '96px' };
+        if (!field.placeholder) {
+          field.placeholder = "Enter JSON object or expression";
+        }
       }
 
       fields.push(field);
@@ -208,6 +283,12 @@ function getFieldType(prop: any): SettingField['type'] {
 
   if (prop.type === 'object') {
     return 'text';
+  }
+
+  // For fields without a type (like z.any()), default to textarea if it's a content field
+  // This will be overridden by the conditional logic if needed
+  if (!prop.type || prop.type === 'any') {
+    return 'textarea';
   }
 
   return 'input';
