@@ -24,7 +24,7 @@ export function WorkflowSidebar({ onAddNode, nodes, edges, edgeSelected = false 
   });
   const httpNodes = nodes.filter(n => n.data?.type === 'http-request');
   const transformNodes = nodes.filter(n => n.data?.type === 'transform' || n.data?.type === 'validate');
-  const storageNodes = nodes.filter(n => n.data?.type === 'kv-get' || n.data?.type === 'kv-put' || n.data?.type === 'd1-query');
+  const storageNodes = nodes.filter(n => n.data?.type === 'kv_get' || n.data?.type === 'kv_put' || n.data?.type === 'd1-query');
   const timingNodes = nodes.filter(n => n.data?.type === 'sleep' || n.data?.type === 'wait-event');
 
   return (

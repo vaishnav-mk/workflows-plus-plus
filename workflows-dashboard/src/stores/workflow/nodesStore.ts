@@ -109,13 +109,14 @@ export const useNodesStore = create<NodesState>((set, get) => ({
       });
       
       const updatedNode = updatedNodes.find(n => n.id === nodeId);
+      const config = updatedNode?.data?.config as Record<string, unknown> | undefined;
       console.log("[NodesStore] Final updated node", {
         nodeId,
         data: updatedNode?.data,
-        config: updatedNode?.data?.config,
-        query: updatedNode?.data?.config?.query,
-        database: updatedNode?.data?.config?.database,
-        database_id: updatedNode?.data?.config?.database_id
+        config: config,
+        query: config?.query,
+        database: config?.database,
+        database_id: config?.database_id
       });
       
       const selectedNode = useSelectionStore.getState().selectedNode;

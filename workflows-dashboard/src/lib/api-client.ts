@@ -382,6 +382,28 @@ class ApiClient {
       body: JSON.stringify({ sql }),
     });
   }
+
+  /**
+   * KV Namespace API
+   */
+  async getKVNamespaces(page = 1, perPage = 1000): Promise<ApiResponse<any[]>> {
+    const params = new URLSearchParams();
+    params.append('page', String(page));
+    params.append('per_page', String(perPage));
+    
+    return this.fetch(`/kv?${params.toString()}`);
+  }
+
+  async getKVNamespace(namespaceId: string): Promise<ApiResponse<any>> {
+    return this.fetch(`/kv/${namespaceId}`, undefined, `kv-ns-${namespaceId}`);
+  }
+
+  async createKVNamespace(title: string): Promise<ApiResponse<any>> {
+    return this.fetch("/kv", {
+      method: "POST",
+      body: JSON.stringify({ title }),
+    });
+  }
 }
 
 export const apiClient = new ApiClient();
