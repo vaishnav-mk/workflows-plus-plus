@@ -1,29 +1,17 @@
-/**
- * Credentials Encryption/Decryption Utility
- * Uses AES-GCM-256 with PBKDF2 key derivation
- */
-
 import { logger } from "../logging/logger";
+import { CloudflareCredentials } from "../types";
 
 const PBKDF2_ITERATIONS = 100000;
 const SALT_LENGTH = 16;
 const IV_LENGTH = 12;
 
-export interface CloudflareCredentials {
-  apiToken: string;
-  accountId: string;
-}
-
-/**
- * Derives encryption key from master password using PBKDF2
- * In production, this should use a secure master key from environment
- */
-async function deriveKey(salt: Uint8Array): Promise<CryptoKey> {
-  // Use a master key from environment or generate a default
-  // In production, this should be a strong secret stored securely
-  const masterKey = typeof process !== "undefined" && process.env?.CREDENTIALS_MASTER_KEY
-    ? process.env.CREDENTIALS_MASTER_KEY
-    : "default-master-key-change-in-production"; // Fallback for development
+async function deriveKey(
+  salt: Uint8Array,
+  masterKey: string
+): Promise<CryptoKey> {
+  if (!masterKey) {
+    throw new Error("credentials_master_key required");
+  }
 
   const encoder = new TextEncoder();
   const keyMaterial = await crypto.subtle.importKey(
@@ -34,8 +22,6 @@ async function deriveKey(salt: Uint8Array): Promise<CryptoKey> {
     ["deriveKey"]
   );
 
-  // Convert Uint8Array to ArrayBuffer for salt
-  // Create a new ArrayBuffer and copy the salt data
   const saltBuffer = new ArrayBuffer(salt.length);
   const saltView = new Uint8Array(saltBuffer);
   saltView.set(salt);
@@ -57,22 +43,16 @@ async function deriveKey(salt: Uint8Array): Promise<CryptoKey> {
   );
 }
 
-/**
- * Encrypts credentials using AES-GCM-256
- * Format: Base64-encoded [salt (16 bytes)][iv (12 bytes)][ciphertext]
- */
 export async function encryptCredentials(
-  credentials: CloudflareCredentials
+  credentials: CloudflareCredentials,
+  masterKey: string
 ): Promise<string> {
   try {
-    // Generate random salt and IV
     const salt = crypto.getRandomValues(new Uint8Array(SALT_LENGTH));
     const iv = crypto.getRandomValues(new Uint8Array(IV_LENGTH));
 
-    // Derive encryption key
-    const key = await deriveKey(salt);
+    const key = await deriveKey(salt, masterKey);
 
-    // Encrypt credentials
     const encoder = new TextEncoder();
     const plaintext = encoder.encode(JSON.stringify(credentials));
 
@@ -85,7 +65,6 @@ export async function encryptCredentials(
       plaintext
     );
 
-    // Combine salt + iv + ciphertext
     const combined = new Uint8Array(
       SALT_LENGTH + IV_LENGTH + ciphertext.byteLength
     );
@@ -93,35 +72,30 @@ export async function encryptCredentials(
     combined.set(iv, SALT_LENGTH);
     combined.set(new Uint8Array(ciphertext), SALT_LENGTH + IV_LENGTH);
 
-    // Return base64-encoded string
     return btoa(String.fromCharCode(...combined));
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    logger.error("Failed to encrypt credentials", error instanceof Error ? error : new Error(errorMessage));
-    throw new Error("Failed to encrypt credentials");
+    logger.error(
+      "failed to encrypt credentials",
+      error instanceof Error ? error : new Error(errorMessage)
+    );
+    throw new Error("failed to encrypt credentials");
   }
 }
 
-/**
- * Decrypts credentials from encrypted string
- * Format: Base64-encoded [salt (16 bytes)][iv (12 bytes)][ciphertext]
- */
 export async function decryptCredentials(
-  encrypted: string
+  encrypted: string,
+  masterKey: string
 ): Promise<CloudflareCredentials> {
   try {
-    // Decode base64
-    const combined = Uint8Array.from(atob(encrypted), (c) => c.charCodeAt(0));
+    const combined = Uint8Array.from(atob(encrypted), c => c.charCodeAt(0));
 
-    // Extract salt, IV, and ciphertext
     const salt = combined.slice(0, SALT_LENGTH);
     const iv = combined.slice(SALT_LENGTH, SALT_LENGTH + IV_LENGTH);
     const ciphertext = combined.slice(SALT_LENGTH + IV_LENGTH);
 
-    // Derive decryption key
-    const key = await deriveKey(salt);
+    const key = await deriveKey(salt, masterKey);
 
-    // Decrypt
     const plaintext = await crypto.subtle.decrypt(
       {
         name: "AES-GCM",
@@ -131,19 +105,22 @@ export async function decryptCredentials(
       ciphertext
     );
 
-    // Parse JSON
     const decoder = new TextDecoder();
-    const credentials = JSON.parse(decoder.decode(plaintext)) as CloudflareCredentials;
+    const credentials = JSON.parse(
+      decoder.decode(plaintext)
+    ) as CloudflareCredentials;
 
     if (!credentials.apiToken || !credentials.accountId) {
-      throw new Error("Invalid credentials format");
+      throw new Error("invalid credentials format");
     }
 
     return credentials;
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    logger.error("Failed to decrypt credentials", error instanceof Error ? error : new Error(errorMessage));
-    throw new Error("Failed to decrypt credentials");
+    logger.error(
+      "failed to decrypt credentials",
+      error instanceof Error ? error : new Error(errorMessage)
+    );
+    throw new Error("failed to decrypt credentials");
   }
 }
-

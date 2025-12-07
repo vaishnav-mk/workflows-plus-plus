@@ -44,6 +44,10 @@ export const CategoryQuerySchema = z.object({
   category: z.string().min(1, "Category is required")
 });
 
+export const DatabaseIdParamSchema = z.object({
+  id: z.string().min(1, "Database ID is required")
+});
+
 // Setup routes
 export const SetupRequestSchema = z.object({
   apiToken: z.string().min(1, "API token is required"),
@@ -98,6 +102,7 @@ export const WorkflowDeploySchema = z.object({
   scriptName: z.string().min(1).max(100).optional(),
   className: z.string().min(1).max(100).optional(),
   subdomain: z.string().optional(),
+  mcpEnabled: z.boolean().optional(),
   nodes: z.array(WorkflowNodeSchema).optional(),
   edges: z.array(WorkflowEdgeSchema).optional(),
   bindings: z
