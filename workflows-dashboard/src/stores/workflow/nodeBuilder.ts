@@ -1,12 +1,5 @@
-/**
- * Node Builder
- * Builds ReactFlow nodes from backend node definitions
- * NO hardcoded values - everything comes from backend
- */
-
 import type { Node, Edge } from "reactflow";
 import { apiClient } from "@/lib/api-client";
-import { generateWorkflowId } from "@/utils/id-generator";
 
 const LOG_PREFIX = '[NodeBuilder]';
 
@@ -19,16 +12,12 @@ interface NodeDefinition {
   };
 }
 
-/**
- * Create a ReactFlow node from backend node definition
- */
 export async function createNodeFromBackend(
   nodeType: string,
   position: { x: number; y: number },
   config?: Record<string, unknown>
 ): Promise<Node> {
   
-  // Fetch node definition from backend
   const result = await apiClient.getNodeDefinition(nodeType);
   
   if (!result.success || !result.data) {
@@ -39,22 +28,17 @@ export async function createNodeFromBackend(
   const nodeDef = result.data as NodeDefinition;
   const metadata = nodeDef.metadata;
   
-  // Generate standardized ID based on node type
-  // For now, use a temporary ID that will be standardized during compilation
-  // Transform nodes: step_transform_{index}, Entry: step_entry_0, Return: step_return_{last}
   const { nodes } = await import("@/stores/workflow/nodesStore").then(m => m.useNodesStore.getState());
   const transformCount = nodes.filter(n => n.data?.type === 'transform').length;
-  // Sanitize node type to match backend generation (replace non-alphanumeric with underscore)
   const sanitizedType = nodeType.replace(/[^a-z0-9]/g, "_");
   const nodeId = nodeType === 'entry' 
     ? 'step_entry_0'
     : nodeType === 'transform'
     ? `step_transform_${transformCount}`
     : nodeType === 'return'
-    ? `step_return_${nodes.length}` // Will be updated to last index during compilation
+    ? `step_return_${nodes.length}`
     : `step_${sanitizedType}_${nodes.length}`;
   
-  // Auto-create default cases for conditional router
   let defaultConfig = config || {};
   if (nodeType === 'conditional-router' && !config?.cases) {
     defaultConfig = {
@@ -68,7 +52,7 @@ export async function createNodeFromBackend(
 
   return {
     id: nodeId,
-    type: "default", // Use default ReactFlow node type
+    type: "default",
     position,
     data: {
       label: metadata.name,
@@ -80,16 +64,12 @@ export async function createNodeFromBackend(
   };
 }
 
-/**
- * Create entry and return nodes from backend
- */
 export async function createDefaultWorkflowNodes(): Promise<{
   nodes: Node[];
   edges: Edge[];
 }> {
   
   try {
-    // Fetch entry and return node definitions from backend
     const [entryResult, returnResult] = await Promise.all([
       apiClient.getNodeDefinition("entry"),
       apiClient.getNodeDefinition("return"),
@@ -106,20 +86,17 @@ export async function createDefaultWorkflowNodes(): Promise<{
     const entryDef = entryResult.data as NodeDefinition;
     const returnDef = returnResult.data as NodeDefinition;
     
-    // Calculate centered positions - use a large canvas width for centering
-    // ReactFlow will handle viewport centering via fitView
     const nodeWidth = 200;
-    const canvasWidth = 2000; // Use a fixed large canvas width for consistent centering
+    const canvasWidth = 2000;
     const centerX = (canvasWidth / 2) - (nodeWidth / 2);
     
-    // Create nodes with standardized IDs
     const entryNode: Node = {
       id: 'step_entry_0',
-      type: "default", // Use default ReactFlow node type
+      type: "default",
       position: { x: centerX, y: 100 },
       data: {
         label: entryDef.metadata.name,
-        type: "entry", // This is the node type (entry/return/etc)
+        type: "entry",
         icon: entryDef.metadata.icon,
         status: "idle",
         config: {},
@@ -127,12 +104,12 @@ export async function createDefaultWorkflowNodes(): Promise<{
     };
     
     const returnNode: Node = {
-      id: 'step_return_1', // Will be updated to correct last index during compilation
-      type: "default", // Use default ReactFlow node type
+      id: 'step_return_1',
+      type: "default",
       position: { x: centerX, y: 300 },
       data: {
         label: returnDef.metadata.name,
-        type: "return", // This is the node type (entry/return/etc)
+        type: "return",
         icon: returnDef.metadata.icon,
         status: "idle",
         config: {},
@@ -143,7 +120,7 @@ export async function createDefaultWorkflowNodes(): Promise<{
       id: `${entryNode.id}-${returnNode.id}`,
       source: entryNode.id,
       target: returnNode.id,
-      type: "step", // Use step edges for straight horizontal/vertical lines
+      type: "step",
       animated: true,
     };
     
@@ -156,4 +133,3 @@ export async function createDefaultWorkflowNodes(): Promise<{
     throw error;
   }
 }
-

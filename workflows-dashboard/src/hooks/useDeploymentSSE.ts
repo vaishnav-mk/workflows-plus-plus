@@ -58,14 +58,11 @@ export function useDeploymentSSE({
       return;
     }
 
-    // Close existing connection if any
     if (eventSourceRef.current) {
       eventSourceRef.current.close();
     }
 
     try {
-      // Use the same API base as the main client so everything goes through the Worker
-      // NOTE: API_BASE already includes `/api`, so we don't repeat it here
       const apiBase =
         process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8787/api";
       const base = apiBase.replace(/\/$/, "");
@@ -80,12 +77,9 @@ export function useDeploymentSSE({
         reconnectAttempts.current = 0;
       };
 
-      // Default message handler (keepalive etc.)
       eventSource.onmessage = () => {
-        // no-op
       };
 
-      // Handle custom events
       eventSource.addEventListener('progress', (event) => {
         try {
           const progress: DeploymentProgress = JSON.parse(event.data);
@@ -112,11 +106,10 @@ export function useDeploymentSSE({
         }
       });
 
-      eventSource.onerror = (err) => {
+      eventSource.onerror = () => {
         setIsConnected(false);
         
         if (eventSource.readyState === EventSource.CLOSED) {
-          // Connection closed - try to reconnect
           if (reconnectAttempts.current < maxReconnectAttempts) {
             reconnectAttempts.current++;
             const delay = Math.min(1000 * Math.pow(2, reconnectAttempts.current), 30000);
@@ -167,4 +160,3 @@ export function useDeploymentSSE({
     disconnect,
   };
 }
-
