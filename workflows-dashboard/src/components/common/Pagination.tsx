@@ -15,8 +15,6 @@ import type { PaginationProps } from "@/types/components";
 export function Pagination({
   currentPage,
   totalPages,
-  totalItems,
-  itemsPerPage,
   onPageChange,
   hasNext,
   hasPrevious,

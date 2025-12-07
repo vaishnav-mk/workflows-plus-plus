@@ -1,8 +1,3 @@
-/**
- * Settings-related types
- * Centralized types for node settings configuration
- */
-
 export interface SettingField {
   type:
     | "input"
@@ -35,17 +30,3 @@ export interface SettingField {
 export interface NodeSettingsConfig {
   [nodeType: string]: SettingField[];
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-

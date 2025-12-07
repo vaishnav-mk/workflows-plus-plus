@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import { Button, Dropdown, Input, StringIcon, NumberIcon, BooleanIcon } from "@/components/ui";
 import { cn } from "@/lib/utils";
 
@@ -98,7 +98,6 @@ export function FilterBuilder({ filter, onChange, className }: FilterBuilderProp
 
   const parseValue = (value: string, operator: FilterOperator, valueType?: FilterValueType): string | number | boolean | null | (string | number | boolean | null)[] => {
     if (operator === "$in" || operator === "$nin") {
-      
       const values = value
         .split(",")
         .map((v) => v.trim())
@@ -117,7 +116,6 @@ export function FilterBuilder({ filter, onChange, className }: FilterBuilderProp
       });
     }
     
-    
     if (value === "null" || value === "") return null;
     if (valueType === "boolean") {
       return value.toLowerCase() === "true";
@@ -127,71 +125,6 @@ export function FilterBuilder({ filter, onChange, className }: FilterBuilderProp
       return isNaN(num) ? 0 : num;
     }
     return value;
-  };
-
-  const convertToCloudflareFilter = (group: FilterGroup | null): Record<string, unknown> | undefined => {
-    if (!group || group.conditions.length === 0) return undefined;
-
-    const filterObj: Record<string, unknown> = {};
-
-    if (group.logic === "AND") {
-      group.conditions.forEach((condition) => {
-        if (condition.key.includes(".")) {
-          
-          const keys = condition.key.split(".");
-          let current = filterObj;
-          for (let i = 0; i < keys.length - 1; i++) {
-            if (!current[keys[i]]) {
-              current[keys[i]] = {};
-            }
-            current = current[keys[i]] as Record<string, unknown>;
-          }
-          
-          if (condition.operator === "$eq") {
-            current[keys[keys.length - 1]] = condition.value;
-          } else {
-            current[keys[keys.length - 1]] = { [condition.operator]: condition.value };
-          }
-        } else {
-          if (condition.operator === "$eq") {
-            filterObj[condition.key] = condition.value;
-          } else {
-            filterObj[condition.key] = { [condition.operator]: condition.value };
-          }
-        }
-      });
-    } else {
-      
-      
-      
-      
-      group.conditions.forEach((condition) => {
-        if (condition.key.includes(".")) {
-          const keys = condition.key.split(".");
-          let current = filterObj;
-          for (let i = 0; i < keys.length - 1; i++) {
-            if (!current[keys[i]]) {
-              current[keys[i]] = {};
-            }
-            current = current[keys[i]] as Record<string, unknown>;
-          }
-          
-          if (condition.operator === "$eq") {
-            current[keys[keys.length - 1]] = condition.value;
-          } else {
-            current[keys[keys.length - 1]] = { [condition.operator]: condition.value };
-          }
-        } else {
-          if (condition.operator === "$eq") {
-            filterObj[condition.key] = condition.value;
-          } else {
-            filterObj[condition.key] = { [condition.operator]: condition.value };
-          }
-        }
-      });
-    }
-
-    return filterObj;
   };
 
   if (!filter) {
@@ -238,7 +171,6 @@ export function FilterBuilder({ filter, onChange, className }: FilterBuilderProp
                 if (newOperator === "$in" || newOperator === "$nin") {
                   const currentValue = condition.value;
                   if (!Array.isArray(currentValue)) {
-                    
                     const arrayValue = currentValue !== undefined && currentValue !== null && currentValue !== ""
                       ? [currentValue]
                       : [];
@@ -247,7 +179,6 @@ export function FilterBuilder({ filter, onChange, className }: FilterBuilderProp
                     updateCondition(index, { operator: newOperator });
                   }
                 } else {
-                  
                   const singleValue = Array.isArray(condition.value)
                     ? condition.value[0] ?? ""
                     : condition.value;
@@ -340,7 +271,6 @@ export function FilterBuilder({ filter, onChange, className }: FilterBuilderProp
   );
 }
 
-
 export function filterGroupToCloudflareFilter(
   group: FilterGroup | null
 ): Record<string, unknown> | undefined {
@@ -349,16 +279,13 @@ export function filterGroupToCloudflareFilter(
   const filterObj: Record<string, unknown> = {};
 
   group.conditions.forEach((condition) => {
-    
     if (!condition.key || condition.key.trim() === "") {
       return;
     }
 
-    
     let filterValue = condition.value;
     if (condition.operator === "$in" || condition.operator === "$nin") {
       if (!Array.isArray(filterValue)) {
-        
         filterValue = filterValue !== undefined && filterValue !== null && filterValue !== ""
           ? [filterValue]
           : [];
@@ -369,13 +296,10 @@ export function filterGroupToCloudflareFilter(
       }
     }
 
-    
     if (filterValue === "" || (filterValue === null && condition.operator !== "$eq" && condition.operator !== "$ne")) {
       return;
     }
 
-    
-    
     const rangeOps = ["$lt", "$lte", "$gt", "$gte"];
     const isRangeOp = rangeOps.includes(condition.operator);
     
@@ -384,17 +308,14 @@ export function filterGroupToCloudflareFilter(
       const existingIsRange = Object.keys(existing).every(k => rangeOps.includes(k));
       
       if (isRangeOp && existingIsRange) {
-        
         existing[condition.operator] = filterValue;
         return;
       }
-      
       
       if (Object.keys(existing).some(k => k.startsWith("$"))) {
         return; 
       }
     }
-    
     
     if (condition.operator === "$eq") {
       filterObj[condition.key] = filterValue;
@@ -403,8 +324,5 @@ export function filterGroupToCloudflareFilter(
     }
   });
 
-  
   return Object.keys(filterObj).length > 0 ? filterObj : undefined;
 }
-
-

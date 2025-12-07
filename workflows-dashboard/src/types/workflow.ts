@@ -7,6 +7,7 @@ export type NodeCategory =
   | "timing"
   | "ai"
   | "messaging";
+
 export type DataType =
   | "string"
   | "number"
@@ -14,8 +15,7 @@ export type DataType =
   | "object"
   | "array"
   | "any";
-// NodeType is now dynamically defined from backend registry
-// This type is kept for backward compatibility and type safety
+
 export type NodeType = string;
 
 export type ComparisonOperator =

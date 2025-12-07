@@ -97,7 +97,6 @@ export default function SetupPage() {
   const [activeTab, setActiveTab] = useState(0);
 
   const updateStep = (id: string, status: StepStatus, message?: string) => {
-    console.log(`[Setup Step] ${id}: ${status}`, message ? `- ${message}` : "");
     setSteps((prev) =>
       prev.map((step) => (step.id === id ? { ...step, status, message } : step))
     );
@@ -195,10 +194,8 @@ export default function SetupPage() {
 
               if (eventType === "progress" && data.step) {
                 // Progress update
-                console.log(`[Setup Progress] ${data.step}:`, data);
                 updateStep(data.step, data.status, data.message);
               } else if (eventType === "complete") {
-                console.log("[Setup Complete]", data);
                 // Completion - save credentials
                 if (data.success) {
                   const saveResponse = await fetch(`${API_BASE}/setup`, {

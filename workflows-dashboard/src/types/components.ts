@@ -1,9 +1,8 @@
 import { type ColumnDef } from "@tanstack/react-table";
-import { type DetailItem } from "@/components/ui/DetailsList";
 import type { Node, Edge, Connection } from "reactflow";
 import type { WorkflowDefinition } from './workflow';
+import type { Toast } from './ui';
 
-// Page components
 export interface PageHeaderProps {
   title: string;
   description?: string;
@@ -90,8 +89,6 @@ export interface PaginationProps {
   showItemsPerPage?: boolean;
 }
 
-
-// Workflow components
 export interface WorkflowCanvasProps {
   nodes: Node[];
   edges: Edge[];
@@ -152,7 +149,6 @@ export interface WorkflowTailBottomSheetProps {
   workflowId?: string;
 }
 
-// Settings components
 export interface DynamicSettingsRendererProps {
   fields: any[];
   values: Record<string, any>;
@@ -169,7 +165,6 @@ export interface RetryConfigSectionProps {
   onChange: (value: any) => void;
 }
 
-// UI components
 export interface SettingInputProps {
   field: any;
   value: any;
@@ -221,7 +216,6 @@ export interface JsonViewerProps {
   title?: string;
 }
 
-// Code Preview
 export interface NodeUsage {
   nodeId: string;
   nodeLabel: string;
@@ -280,8 +274,6 @@ export interface CodePreviewProps {
   onNodeSelect?: (nodeId: string) => void;
 }
 
-
-// Log components
 export interface LogEntry {
   timestamp: number;
   level: string;
@@ -290,7 +282,6 @@ export interface LogEntry {
   data?: any;
 }
 
-// State view
 export interface StateTreeNode {
   id: string;
   label: string;
@@ -298,13 +289,12 @@ export interface StateTreeNode {
   children?: StateTreeNode[];
 }
 
-// Toast components
 export interface ToastProps {
-  toast: import('./ui').Toast;
+  toast: Toast;
   onRemove: (id: string) => void;
 }
 
 export interface ToastContainerProps {
-  toasts: import('./ui').Toast[];
+  toasts: Toast[];
   onRemove: (id: string) => void;
 }

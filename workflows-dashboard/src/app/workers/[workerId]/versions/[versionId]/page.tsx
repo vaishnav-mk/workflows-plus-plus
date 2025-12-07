@@ -84,7 +84,6 @@ function FileTreeItem({
   const [open, setOpen] = useState(false);
 
   if (node.type === "folder") {
-
     return (
       <div className="mb-0.5">
         <button
