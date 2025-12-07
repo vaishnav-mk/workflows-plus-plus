@@ -1,7 +1,3 @@
-/**
- * Validate Node - Validate data against rules
- */
-
 import { z } from "zod";
 import { Effect } from "effect";
 import { WorkflowNodeDefinition, CodeGenResult } from "../../core/types";
@@ -136,4 +132,3 @@ export const ValidateNode: WorkflowNodeDefinition<ValidateConfig> = {
     });
   },
 };
-

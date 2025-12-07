@@ -1,7 +1,3 @@
-/**
- * Deployment Service Errors
- */
-
 import { ErrorCode } from "../../core/enums";
 
 export class DeploymentError extends Error {
@@ -14,4 +10,3 @@ export class DeploymentError extends Error {
     this.name = "DeploymentError";
   }
 }
-

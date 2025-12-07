@@ -1,7 +1,3 @@
-/**
- * Entry Node - Workflow entry point
- */
-
 import { z } from "zod";
 import { Effect } from "effect";
 import { WorkflowNodeDefinition, CodeGenResult } from "../../core/types";
@@ -88,7 +84,6 @@ export const EntryNode: WorkflowNodeDefinition<EntryConfig> = {
       if (paramNames.length > 0) {
         const paramList = paramNames.join(", ");
         code = `
-    // Workflow entry point
     const { ${paramList} } = event.payload || {};
     _workflowState['${nodeId}'] = {
       input: event.payload,
@@ -96,7 +91,6 @@ export const EntryNode: WorkflowNodeDefinition<EntryConfig> = {
     };`;
       } else {
         code = `
-    // Workflow entry point
     _workflowState['${nodeId}'] = {
       input: event.payload,
       output: event.payload
@@ -110,4 +104,3 @@ export const EntryNode: WorkflowNodeDefinition<EntryConfig> = {
     });
   },
 };
-

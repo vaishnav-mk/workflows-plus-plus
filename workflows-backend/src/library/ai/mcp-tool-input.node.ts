@@ -1,7 +1,3 @@
-/**
- * MCP Tool Input Node - Define tool parameters exposed via MCP
- */
-
 import { z } from "zod";
 import { Effect } from "effect";
 import { WorkflowNodeDefinition, CodeGenResult } from "../../core/types";
@@ -97,6 +93,3 @@ export const MCPToolInputNode: WorkflowNodeDefinition<MCPToolInputConfig> = {
     });
   },
 };
-
-
-
