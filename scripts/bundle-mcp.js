@@ -12,7 +12,17 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 const path = require("node:path");
 const fs = require("node:fs");
-const esbuild = require("esbuild");
+// Try to load esbuild from workflows-backend node_modules first, then fallback to local
+let esbuild;
+try {
+  esbuild = require(path.join(__dirname, "..", "workflows-backend", "node_modules", "esbuild"));
+} catch {
+  try {
+    esbuild = require("esbuild");
+  } catch {
+    throw new Error("esbuild not found. Please run 'npm install' in workflows-backend directory.");
+  }
+}
 
 async function ensureDir(p) {
   fs.mkdirSync(p, { recursive: true });

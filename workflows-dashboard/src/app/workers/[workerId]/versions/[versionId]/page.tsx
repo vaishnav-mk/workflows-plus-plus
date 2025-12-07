@@ -81,9 +81,9 @@ function FileTreeItem({
   onSelect
 }: FileTreeItemProps) {
   const paddingLeft = 10 + level * 12;
+  const [open, setOpen] = useState(false);
 
   if (node.type === "folder") {
-    const [open, setOpen] = useState(false);
 
     return (
       <div className="mb-0.5">
