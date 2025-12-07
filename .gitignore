@@ -110,4 +110,7 @@ Thumbs.db
 # Backend specific
 backend/logs/
 backend/uploads/
+
+# Tests (moved to feature/tests branch)
+tests/workflows-backend/
 .cursor
