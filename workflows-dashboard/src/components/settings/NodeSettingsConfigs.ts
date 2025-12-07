@@ -16,7 +16,6 @@ interface JSONSchema {
   required?: string[];
 }
 
-// Convert JSON Schema to SettingField array
 function generateSettingsFromSchema(
   schema: any,
   nodeType: string,
@@ -24,13 +23,10 @@ function generateSettingsFromSchema(
 ): SettingField[] {
   const fields: SettingField[] = [];
 
-  // Validate schema structure
   if (!schema || typeof schema !== 'object') {
-    console.warn(`[NodeSettingsConfigs] Invalid schema for ${nodeType}:`, schema);
     return DEFAULT_CONFIG;
   }
 
-  // Add card wrapper
   fields.push({
       type: "card",
     key: `${nodeType}-card`,
@@ -48,7 +44,6 @@ function generateSettingsFromSchema(
             className: "text-sm text-gray-500 mb-4"
           }
         },
-      // Generate fields from schema properties
       ...generateFieldsFromSchema(schema, '', [], nodeType)
     ]
   });
@@ -62,9 +57,7 @@ function generateFieldsFromSchema(schema: JSONSchema, prefix = '', requiredField
   const fields: SettingField[] = [];
   const schemaRequired = (schema.required as string[]) || [];
 
-  // Special handling for conditional-router: use custom builder
   if (nodeType === 'conditional-router' && !prefix) {
-    // Check if this schema has conditionPath and cases
     if (schema.properties.conditionPath && schema.properties.cases) {
       fields.push({
         type: 'conditional-router-builder',
@@ -74,16 +67,12 @@ function generateFieldsFromSchema(schema: JSONSchema, prefix = '', requiredField
     }
   }
 
-  // Special handling for d1-query: use D1 database selector
   if (nodeType === 'd1-query' && !prefix) {
-    // Check if this schema has database field
     if (schema.properties.database) {
       fields.push({
         type: 'd1-database-selector',
         key: 'd1-database-config',
       });
-      // Still generate other fields (query, params, etc.)
-      // Remove database from properties to avoid duplicate
       const { database, ...otherProps } = schema.properties;
       const otherFields = generateFieldsFromSchema(
         { ...schema, properties: otherProps },
@@ -95,9 +84,7 @@ function generateFieldsFromSchema(schema: JSONSchema, prefix = '', requiredField
     }
   }
 
-  // Special handling for transform node: use custom transform settings component
   if (nodeType === 'transform' && !prefix) {
-    // Check if this schema has code field
     if (schema.properties.code) {
       fields.push({
         type: 'transform-node-settings',
@@ -107,9 +94,7 @@ function generateFieldsFromSchema(schema: JSONSchema, prefix = '', requiredField
     }
   }
 
-  // Special handling for KV nodes: use KV namespace selector
   if ((nodeType === 'kv_get' || nodeType === 'kv_put') && !prefix) {
-    // Check if this schema has namespace field with binding:kv description
     const namespaceProp = schema.properties.namespace;
     if (namespaceProp) {
       const description = typeof namespaceProp === 'object' 
@@ -120,8 +105,6 @@ function generateFieldsFromSchema(schema: JSONSchema, prefix = '', requiredField
           type: 'kv-namespace-selector',
           key: 'kv-namespace-config',
         });
-        // Still generate other fields (key, value, etc.)
-        // Remove namespace from properties to avoid duplicate
         const { namespace, ...otherProps } = schema.properties;
         const otherFields = generateFieldsFromSchema(
           { ...schema, properties: otherProps },
@@ -134,9 +117,7 @@ function generateFieldsFromSchema(schema: JSONSchema, prefix = '', requiredField
     }
   }
 
-  // Special handling for R2 nodes: use R2 bucket selector
   if ((nodeType === 'r2-get' || nodeType === 'r2-put' || nodeType === 'r2-list') && !prefix) {
-    // Check if this schema has bucket field with binding:r2 description
     const bucketProp = schema.properties.bucket;
     if (bucketProp) {
       const description = typeof bucketProp === 'object' 
@@ -147,8 +128,6 @@ function generateFieldsFromSchema(schema: JSONSchema, prefix = '', requiredField
           type: 'r2-bucket-selector',
           key: 'r2-bucket-config',
         });
-        // Still generate other fields (key, value, etc.)
-        // Remove bucket from properties to avoid duplicate
         const { bucket, ...otherProps } = schema.properties;
         const otherFields = generateFieldsFromSchema(
           { ...schema, properties: otherProps },
@@ -161,17 +140,11 @@ function generateFieldsFromSchema(schema: JSONSchema, prefix = '', requiredField
     }
   }
 
-  // Process all properties
   Object.entries(schema.properties).forEach(([key, prop]: [string, any]) => {
     const fullKey = prefix ? `${prefix}.${key}` : key;
     const isRequired = schemaRequired.includes(key) || requiredFields.includes(fullKey);
     
-    // CRITICAL: Handle content fields FIRST, before any other processing
-    // Content fields are always textareas - they should ALWAYS be visible
-    // We removed the conditional because the field should always be available
     if (key === 'content' && prefix) {
-      console.log(`[NodeSettingsConfigs] Processing content field: key=${key}, prefix=${prefix}, fullKey=${fullKey}`);
-      console.log(`[NodeSettingsConfigs] Content prop:`, prop);
       const contentField: SettingField = {
         type: "textarea",
         key: fullKey,
@@ -184,18 +157,13 @@ function generateFieldsFromSchema(schema: JSONSchema, prefix = '', requiredField
           className: "settings-object-input",
           style: { height: '96px' }
         }
-        // REMOVED conditional - field should always be visible
       };
-      console.log(`[NodeSettingsConfigs] Created content field:`, contentField);
       fields.push(contentField);
-      return; // Skip to next property - this prevents content from being processed as a regular field
+      return;
     }
     
-    // Handle nested objects recursively
     if (prop.type === 'object' || (!prop.type && prop.properties)) {
       if (prop.properties) {
-        // Object with defined properties - create a card/section
-        // Recursively process children - this will handle content fields inside
         const children = generateFieldsFromSchema(prop, fullKey, schemaRequired.map((r: string) => `${fullKey}.${r}`), nodeType);
         fields.push({
           type: "card",
@@ -204,7 +172,6 @@ function generateFieldsFromSchema(schema: JSONSchema, prefix = '', requiredField
           children: children
         });
       } else {
-        // Object without properties - treat as JSON input
         const field: SettingField = {
           type: "textarea",
           key: fullKey,
@@ -220,7 +187,6 @@ function generateFieldsFromSchema(schema: JSONSchema, prefix = '', requiredField
         fields.push(field);
       }
     } else {
-      // Handle regular fields (strings, numbers, enums, etc.)
       const field: SettingField = {
         type: getFieldType(prop),
         key: fullKey,
@@ -231,7 +197,6 @@ function generateFieldsFromSchema(schema: JSONSchema, prefix = '', requiredField
         description: prop.description,
       };
 
-      // Add options for enum types
       if (prop.enum) {
         field.options = prop.enum.map((val: any) => ({
           value: String(val),
@@ -239,14 +204,12 @@ function generateFieldsFromSchema(schema: JSONSchema, prefix = '', requiredField
         }));
       }
 
-      // Add type-specific props
       if (prop.type === 'number') {
         field.props = { type: 'number' };
         if (prop.min !== undefined) field.props.min = prop.min;
         if (prop.max !== undefined) field.props.max = prop.max;
       }
 
-      // Add textarea props for long strings
       if (prop.type === 'string' && (key.includes('code') || key.includes('query') || key.includes('body'))) {
         field.props = {
           className: "w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono"
@@ -258,8 +221,6 @@ function generateFieldsFromSchema(schema: JSONSchema, prefix = '', requiredField
         }
       }
 
-      // CRITICAL FALLBACK: If content field wasn't caught earlier (shouldn't happen, but safety net)
-      // This handles cases where content might not have been processed correctly
       if (prefix && key === 'content') {
         field.conditional = {
           parentKey: prefix + '.type',
@@ -285,7 +246,7 @@ function generateFieldsFromSchema(schema: JSONSchema, prefix = '', requiredField
 
 function getFieldType(prop: any): SettingField['type'] {
   if (prop.type === 'array' && prop.items?.type === 'object') {
-    return 'text'; // Special handling for complex arrays
+    return 'text';
   }
 
   if (prop.enum) {
@@ -301,7 +262,6 @@ function getFieldType(prop: any): SettingField['type'] {
   }
 
   if (prop.type === 'string') {
-    // Determine if it should be textarea based on key name or length expectations
     if (prop.maxLength && prop.maxLength > 100) {
       return 'textarea';
     }
@@ -312,8 +272,6 @@ function getFieldType(prop: any): SettingField['type'] {
     return 'text';
   }
 
-  // For fields without a type (like z.any()), default to textarea if it's a content field
-  // This will be overridden by the conditional logic if needed
   if (!prop.type || prop.type === 'any') {
     return 'textarea';
   }
@@ -330,7 +288,6 @@ function formatLabel(key: string): string {
     .join(' ');
 }
 
-// Fallback default config
 const DEFAULT_CONFIG: SettingField[] = [
     {
       type: "card",
@@ -353,41 +310,25 @@ const DEFAULT_CONFIG: SettingField[] = [
     }
 ];
 
-// Hook to get node settings configs dynamically from backend
 export function useNodeSettingsConfigs(): NodeSettingsConfig {
   const { catalog, getNodeByType } = useNodeRegistry();
   const [configs, setConfigs] = useState<NodeSettingsConfig>({});
 
   useEffect(() => {
     const catalogLength = catalog.length;
-    console.log(`[NodeSettingsConfigs] Effect triggered. Catalog length: ${catalogLength}`);
     
     if (catalogLength === 0) {
-      console.log(`[NodeSettingsConfigs] Catalog is empty, skipping load`);
       return;
     }
 
     const loadConfigs = async () => {
-      console.log(`[NodeSettingsConfigs] Loading configs for ${catalogLength} node types`);
-      const nodeTypes = catalog.map(item => item.type);
-      console.log(`[NodeSettingsConfigs] Catalog items:`, nodeTypes);
-      
       const settingsConfig: NodeSettingsConfig = {};
 
-      // Load node definitions for all catalog items
       for (const catalogItem of catalog) {
         try {
-          console.log(`[NodeSettingsConfigs] Fetching: ${catalogItem.type}`);
           const nodeDef = await getNodeByType(catalogItem.type);
           if (nodeDef) {
-            console.log(`[NodeSettingsConfigs] Loaded: ${catalogItem.type}`, {
-              hasSchema: !!nodeDef.configSchema,
-              schemaType: typeof nodeDef.configSchema,
-              schemaKeys: nodeDef.configSchema ? Object.keys(nodeDef.configSchema) : []
-            });
-            
             if (!nodeDef.configSchema) {
-              console.warn(`[NodeSettingsConfigs] No configSchema for ${catalogItem.type}`);
               continue;
             }
             
@@ -396,19 +337,13 @@ export function useNodeSettingsConfigs(): NodeSettingsConfig {
               nodeDef.metadata.type,
               nodeDef.metadata
             );
-            console.log(`[NodeSettingsConfigs] Generated ${fields.length} fields for ${catalogItem.type}`);
             settingsConfig[nodeDef.metadata.type] = fields;
-          } else {
-            console.warn(`[NodeSettingsConfigs] No definition: ${catalogItem.type}`);
           }
         } catch (error) {
-          const errorMsg = error instanceof Error ? error.message : 'Unknown error';
-          console.error(`[NodeSettingsConfigs] Failed: ${catalogItem.type} - ${errorMsg}`);
+          console.error(`[NodeSettingsConfigs] Failed: ${catalogItem.type}`);
         }
       }
       
-      const configCount = Object.keys(settingsConfig).length;
-      console.log(`[NodeSettingsConfigs] Loaded ${configCount} configs`);
       setConfigs(settingsConfig);
     };
 
@@ -418,6 +353,5 @@ export function useNodeSettingsConfigs(): NodeSettingsConfig {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [catalog]);
 
-  // Always add fallback default config
   return { ...configs, default: DEFAULT_CONFIG };
 }

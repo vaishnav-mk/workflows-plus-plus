@@ -12,9 +12,6 @@ import { useWorkflowStore } from '@/stores/workflowStore';
 import { useNodeRegistry } from '@/hooks/useNodeRegistry';
 import { WORKFLOW_DEFAULT_MAX_RETRIES, WORKFLOW_DEFAULT_TIMEOUT_MS } from '@/config/workflowDefaults';
 
-interface WorkflowNodeProps extends NodeProps {
-}
-
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Play,
   CheckCircle,
@@ -62,7 +59,6 @@ function getConfigEntries(config: any): Array<{ key: string; value: string }> {
   const entries: Array<{ key: string; value: string }> = [];
 
   Object.entries(config)
-    // Skip retry here because it's rendered separately in the sidebar
     .filter(([key]) => key !== 'retry')
     .slice(0, 6)
     .forEach(([key, value]) => {
@@ -93,7 +89,7 @@ function getConfigEntries(config: any): Array<{ key: string; value: string }> {
   return entries;
 }
 
-export function WorkflowNode({ id, data, selected, style }: WorkflowNodeProps) {
+export function WorkflowNode({ id, data, selected }: NodeProps) {
   const { removeNode } = useWorkflowStore();
   const { catalog } = useNodeRegistry();
 
@@ -386,7 +382,6 @@ export function WorkflowNode({ id, data, selected, style }: WorkflowNodeProps) {
       {data.type !== 'return' && (
         <>
           {isConditionalRouter ? (
-            // Multiple handles - one per case, positioned horizontally
             (() => {
               const config = (data as any)?.config || {};
               const cases = config.cases || [];
@@ -407,14 +402,12 @@ export function WorkflowNode({ id, data, selected, style }: WorkflowNodeProps) {
                 );
               }
               
-              // Create handles for each case, spread horizontally
               return cases.map((caseConfig: any, index: number) => {
                 const caseName = caseConfig.case || `case${index + 1}`;
                 const totalCases = cases.length;
-                // Position handles: first at left, last at right, others spread evenly
                 const positionPercent = totalCases === 1 
                   ? 50 
-                  : (index / (totalCases - 1)) * 80 + 10; // Spread from 10% to 90%
+                  : (index / (totalCases - 1)) * 80 + 10;
                 
                 return (
                   <Handle
