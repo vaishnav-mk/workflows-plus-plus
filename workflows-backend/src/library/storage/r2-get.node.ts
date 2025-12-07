@@ -1,7 +1,3 @@
-/**
- * R2 Get Node - Get object from R2 and return signed URL
- */
-
 import { z } from "zod";
 import { Effect } from "effect";
 import {
@@ -43,7 +39,6 @@ function resolveKeyExpression(
     return "";
   }
   if (key.includes("{{")) {
-    // Return template literal expression for dynamic keys (without backticks, will be used in template literal)
     return key.replace(
       TEMPLATE_PATTERNS.TEMPLATE_REGEX,
       (_match, innerExpr) => {
@@ -69,7 +64,6 @@ function resolveKeyExpression(
       }
     );
   }
-  // Return key directly (will be used in template literal, so no quotes needed)
   return key;
 }
 
@@ -174,13 +168,10 @@ export const R2GetNode: WorkflowNodeDefinition<R2GetConfig> = {
             e => `_workflowState['${e.source}']?.output || event.payload`
           )[0] || "event.payload";
 
-      // Generate signed URL using R2's public URL or custom publicUrl
-      // R2 signed URLs can be generated using the R2 API or public URLs if configured
       const publicUrlBase = config.publicUrl
         ? JSON.stringify(config.publicUrl)
         : "null";
 
-      // Sanitize stepName for use as JavaScript identifier (replace hyphens with underscores)
       const sanitizedStepName = stepName.replace(/-/g, "_");
 
       const code = `
@@ -191,7 +182,6 @@ export const R2GetNode: WorkflowNodeDefinition<R2GetConfig> = {
         : JSON.stringify(config.key || "")};
       const bucket = this.env["${bucket}"];
       
-      // Get object metadata using head() - this is faster than get() as it doesn't download the body
       const object = await bucket.head(key);
       
       if (!object) {
@@ -207,25 +197,14 @@ export const R2GetNode: WorkflowNodeDefinition<R2GetConfig> = {
         return result;
       }
       
-      // Generate signed URL
-      // If publicUrl is configured (from R2 custom domain or public URL), use it
-      // Otherwise, generate a presigned URL using the R2 API
       let signedUrl = null;
       const publicUrl = ${publicUrlBase};
       const expiresAt = Math.floor(Date.now() / 1000) + ${expiresIn};
       
       if (publicUrl) {
-        // Use provided public URL (from R2 custom domain or public URL configuration)
-        // Append expiration timestamp as query parameter
         const urlKey = encodeURIComponent(key).replace(/%2F/g, '/');
         signedUrl = \`\${publicUrl.replace(/\\/$/, '')}/\${urlKey}?expires=\${expiresAt}\`;
       } else {
-        // Generate presigned URL using R2 API
-        // This requires making an authenticated request to Cloudflare R2 API
-        // For now, we'll construct a URL that can be used with R2's public endpoint
-        // In production, you would call the R2 API to generate a proper presigned URL
-        // Note: R2 doesn't have built-in presigned URL generation in Workers runtime
-        // You need to use the R2 API or configure a public URL for the bucket
         signedUrl = \`r2://\${key}?expires=\${expiresAt}&bucket=\${bucket}\`;
       }
       

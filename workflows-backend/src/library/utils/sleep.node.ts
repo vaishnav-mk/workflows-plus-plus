@@ -1,7 +1,3 @@
-/**
- * Sleep Node - Pause workflow execution
- */
-
 import { z } from "zod";
 import { Effect } from "effect";
 import { WorkflowNodeDefinition, CodeGenResult } from "../../core/types";
@@ -105,4 +101,3 @@ export const SleepNode: WorkflowNodeDefinition<SleepConfig> = {
     });
   },
 };
-

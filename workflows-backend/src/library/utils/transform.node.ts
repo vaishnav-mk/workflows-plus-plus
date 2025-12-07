@@ -1,7 +1,3 @@
-/**
- * Transform Node - Execute JavaScript to transform data
- */
-
 import { z } from "zod";
 import { Effect } from "effect";
 import { WorkflowNodeDefinition, CodeGenContext, CodeGenResult } from "../../core/types";
@@ -106,7 +102,6 @@ export const TransformNode: WorkflowNodeDefinition<TransformConfig> = {
 
       code = code.replace(/\n/g, " ").replace(/\s+/g, " ").trim();
       
-      // Ensure the code has a return statement
       const hasReturn = code.trim().startsWith("return ");
       const codeBody = hasReturn ? code : `return ${code}`;
 
@@ -132,6 +127,3 @@ export const TransformNode: WorkflowNodeDefinition<TransformConfig> = {
     });
   },
 };
-
-
-

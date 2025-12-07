@@ -1,8 +1,3 @@
-/**
- * AI Gateway Prompts
- * Templates for workflow generation
- */
-
 import { NodeRegistry } from "../../catalog/registry";
 
 export function buildWorkflowGenerationPrompt(
@@ -60,7 +55,7 @@ Return a JSON object with this structure:
 function buildCatalogContext(): string {
   try {
     const catalog = NodeRegistry.getCatalog();
-    const nodeTypes = catalog.map((node) => node.type).join(", ");
+    const nodeTypes = catalog.map(node => node.type).join(", ");
     return `Available node types: ${nodeTypes}
 
 Node categories:
@@ -73,5 +68,3 @@ Node categories:
     return "Node catalog unavailable.";
   }
 }
-
-

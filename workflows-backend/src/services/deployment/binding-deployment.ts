@@ -1,7 +1,7 @@
-import type {
+import {
   BindingConfiguration,
   BindingDeploymentContext
-} from "./types";
+} from "../../core/types";
 import { BindingType, ErrorCode } from "../../core/enums";
 import { DeploymentError } from "./errors";
 import { logger } from "../../core/logging/logger";
@@ -18,8 +18,6 @@ export async function transformBindingsForAPI(
 
       switch (internalType) {
         case BindingType.KV: {
-          // For KV bindings, bindingName is now the actual namespace name (title)
-          // Use it directly to find/create the namespace
           const namespaceId =
             binding.id ||
             (await findOrCreateKVNamespace(ctx, bindingName));
@@ -32,7 +30,6 @@ export async function transformBindingsForAPI(
         }
 
         case BindingType.D1: {
-          // Use the database name from the binding if available, otherwise use binding name
           const databaseName = binding.databaseName || bindingName;
           
           const databaseId =
@@ -50,11 +47,8 @@ export async function transformBindingsForAPI(
             return null as Record<string, unknown> | null;
           }
 
-          // Sanitize the binding name to match how it's used in generated code
-          // The codegen uses: (config.database || BINDING_NAMES.DEFAULT_D1).replace(/[^a-zA-Z0-9_]/g, "_")
           const sanitizedBindingName = databaseName.replace(/[^a-zA-Z0-9_]/g, "_");
           
-          // Use the sanitized database name as the binding name to match the code
           return {
             type: "d1",
             name: sanitizedBindingName,
@@ -115,9 +109,6 @@ export async function transformBindingsForAPI(
         }
 
         case BindingType.WORKFLOW: {
-          // Expose workflow bindings as real Cloudflare "workflow" bindings so
-          // they appear alongside other bindings. These bindings allow Workers
-          // to target specific Workflows.
           const workflowName = ctx.workflowName || bindingName;
           const result: Record<string, unknown> = {
             type: "workflow",
@@ -197,7 +188,6 @@ async function findOrCreateD1Database(
   databaseName: string
 ): Promise<string | null> {
   try {
-    // Use direct fetch to Cloudflare API instead of client interface
     const params = new URLSearchParams({
       page: "1",
       per_page: "1000",
@@ -206,7 +196,6 @@ async function findOrCreateD1Database(
       params.append("name", databaseName);
     }
 
-    // List D1 databases
     const listResponse = await fetch(
       `${CLOUDFLARE.API_BASE}/accounts/${ctx.accountId}/d1/database?${params.toString()}`,
       {
@@ -244,7 +233,6 @@ async function findOrCreateD1Database(
       };
     };
 
-    // Check if database already exists
     const existing = listData.result?.find(
       (db: { name: string; uuid: string }) => db.name === databaseName
     );
@@ -256,7 +244,6 @@ async function findOrCreateD1Database(
       return existing.uuid;
     }
 
-    // Create new D1 database if it doesn't exist
     const createResponse = await fetch(
       `${CLOUDFLARE.API_BASE}/accounts/${ctx.accountId}/d1/database`,
       {
@@ -311,5 +298,3 @@ async function findOrCreateD1Database(
     );
   }
 }
-
-
