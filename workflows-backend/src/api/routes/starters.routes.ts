@@ -1,126 +1,48 @@
-/**
- * Workflow Starters Routes
- * API endpoints for workflow templates/starters
- */
-
 import { Hono } from "hono";
 import { 
   getWorkflowStarters, 
   getWorkflowStarterById, 
   getStarterCategories 
-} from "../../services/starters/workflow-starters";
-import { ApiResponse } from "../../core/api-contracts";
+} from "../../services/starters";
 import { HTTP_STATUS_CODES } from "../../core/constants";
-import { logger } from "../../core/logging/logger";
+import { createSuccessResponse, createErrorResponse, safe } from "../../core/utils/route-helpers";
+import { z } from "zod";
+import { zValidator } from "../../api/middleware/validation.middleware";
 
 const app = new Hono();
 
-/**
- * GET /starters
- * Get all workflow starters with optional filters
- */
-app.get("/", async (c) => {
-  try {
-    const category = c.req.query("category");
-    const difficulty = c.req.query("difficulty");
-    const tagsParam = c.req.query("tags");
-    const tags = tagsParam ? tagsParam.split(",") : undefined;
-    
-    const starters = getWorkflowStarters({
-      category,
-      difficulty,
-      tags
-    });
-    
-    const response: ApiResponse<typeof starters> = {
-      success: true,
-      data: starters,
-      message: "Workflow starters retrieved successfully"
-    };
-    
-    return c.json(response, HTTP_STATUS_CODES.OK);
-  } catch (error) {
-    logger.error(`Failed to get workflow starters: ${error instanceof Error ? error.message : "Unknown error"}`);
-    
-    const response: ApiResponse<null> = {
-      success: false,
-      data: null,
-      message: "Failed to retrieve workflow starters",
-      error: error instanceof Error ? error.message : "Unknown error"
-    };
-    
-    return c.json(response, HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR);
-  }
+const StarterQuerySchema = z.object({
+  category: z.string().optional(),
+  difficulty: z.string().optional(),
+  tags: z.string().optional()
 });
 
-/**
- * GET /starters/categories
- * Get all available starter categories
- */
-app.get("/categories", async (c) => {
-  try {
-    const categories = getStarterCategories();
-    
-    const response: ApiResponse<typeof categories> = {
-      success: true,
-      data: categories,
-      message: "Starter categories retrieved successfully"
-    };
-    
-    return c.json(response, HTTP_STATUS_CODES.OK);
-  } catch (error) {
-    logger.error(`Failed to get starter categories: ${error instanceof Error ? error.message : "Unknown error"}`);
-    
-    const response: ApiResponse<null> = {
-      success: false,
-      data: null,
-      message: "Failed to retrieve starter categories",
-      error: error instanceof Error ? error.message : "Unknown error"
-    };
-    
-    return c.json(response, HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR);
-  }
+const StarterIdParamSchema = z.object({
+  id: z.string().min(1)
 });
 
-/**
- * GET /starters/:id
- * Get a specific workflow starter by ID
- */
-app.get("/:id", async (c) => {
-  try {
-    const id = c.req.param("id");
-    const starter = getWorkflowStarterById(id);
-    
-    if (!starter) {
-      const response: ApiResponse<null> = {
-        success: false,
-        data: null,
-        message: `Workflow starter '${id}' not found`
-      };
-      
-      return c.json(response, HTTP_STATUS_CODES.NOT_FOUND);
-    }
-    
-    const response: ApiResponse<typeof starter> = {
-      success: true,
-      data: starter,
-      message: "Workflow starter retrieved successfully"
-    };
-    
-    return c.json(response, HTTP_STATUS_CODES.OK);
-  } catch (error) {
-    logger.error(`Failed to get workflow starter ${c.req.param("id")}: ${error instanceof Error ? error.message : "Unknown error"}`);
-    
-    const response: ApiResponse<null> = {
-      success: false,
-      data: null,
-      message: "Failed to retrieve workflow starter",
-      error: error instanceof Error ? error.message : "Unknown error"
-    };
-    
-    return c.json(response, HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR);
+app.get("/", zValidator('query', StarterQuerySchema), safe(async (c) => {
+  const { category, difficulty, tags: tagsParam } = c.req.valid('query') as z.infer<typeof StarterQuerySchema>;
+  const tags = tagsParam ? tagsParam.split(",") : undefined;
+  
+  const starters = getWorkflowStarters({ category, difficulty, tags });
+  return c.json(createSuccessResponse(starters, "Workflow starters retrieved successfully"));
+}));
+
+app.get("/categories", safe(async (c) => {
+  const categories = getStarterCategories();
+  return c.json(createSuccessResponse(categories, "Starter categories retrieved successfully"));
+}));
+
+app.get("/:id", zValidator('param', StarterIdParamSchema), safe(async (c) => {
+  const { id } = c.req.valid('param') as z.infer<typeof StarterIdParamSchema>;
+  const starter = getWorkflowStarterById(id);
+  
+  if (!starter) {
+    return c.json(createErrorResponse(`Workflow starter '${id}' not found`, "Not Found"), HTTP_STATUS_CODES.NOT_FOUND);
   }
-});
+  
+  return c.json(createSuccessResponse(starter, "Workflow starter retrieved successfully"));
+}));
 
 export default app;
-

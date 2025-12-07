@@ -1,71 +1,55 @@
-/**
- * Setup Routes
- * Handles credential setup and logout
- */
-
 import { Hono } from "hono";
+import { z } from "zod";
 import { setCookie, deleteCookie } from "hono/cookie";
 import { HTTP_STATUS_CODES, CLOUDFLARE } from "../../core/constants";
 import { ErrorCode } from "../../core/enums";
 import { ApiResponse } from "../../core/api-contracts";
 import { logger } from "../../core/logging/logger";
 import { encryptCredentials } from "../../core/utils/credentials";
-import {
-  validateBody,
-  validationErrorResponse
-} from "../../core/validation/validator";
 import { SetupRequestSchema } from "../../core/validation/schemas";
+import { getSSECorsHeaders } from "../../core/cors.config";
+import { zValidator } from "../../api/middleware/validation.middleware";
+import { safe } from "../../core/utils/route-helpers";
 
 const CREDENTIALS_COOKIE_NAME = "cf_credentials";
-const COOKIE_MAX_AGE = 30 * 24 * 60 * 60; // 30 days in seconds
+const COOKIE_MAX_AGE = 30 * 24 * 60 * 60;
 
-interface Env {
+interface SetupEnv {
   ENVIRONMENT?: string;
+  CREDENTIALS_MASTER_KEY?: string;
   [key: string]: unknown;
 }
 
-/**
- * Verify Cloudflare API token by calling the verify endpoint
- */
-async function verifyCloudflareToken(
-  apiToken: string,
-  accountId: string
-): Promise<boolean> {
+async function verifyCloudflareToken(apiToken: string, accountId: string): Promise<boolean> {
   try {
-    const verifyUrl = `${CLOUDFLARE.API_BASE}/accounts/${accountId}/tokens/verify`;
-
-    const response = await fetch(verifyUrl, {
+    const response = await fetch(`${CLOUDFLARE.API_BASE}/accounts/${accountId}/tokens/verify`, {
       method: "GET",
       headers: {
         Authorization: `Bearer ${apiToken}`,
         "Content-Type": "application/json"
       }
     });
-
     return response.ok;
   } catch (error) {
-    logger.error(
-      "Failed to verify Cloudflare token",
-      error instanceof Error ? error : new Error(String(error))
-    );
+    logger.error("failed to verify cloudflare token", error instanceof Error ? error : new Error(String(error)));
     return false;
   }
 }
 
 /**
- * Send SSE message
+ * send sse message
  */
 function sendSSEMessage(controller: ReadableStreamDefaultController, event: string, data: unknown): void {
   try {
     const message = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
     controller.enqueue(new TextEncoder().encode(message));
   } catch (e) {
-    // Connection closed
+    // connection closed
   }
 }
 
 /**
- * Stream setup progress via SSE
+ * stream setup progress via sse
  */
 async function streamSetupProgress(
   controller: ReadableStreamDefaultController,
@@ -73,9 +57,8 @@ async function streamSetupProgress(
   accountId: string
 ): Promise<void> {
   try {
-    // Step 1: Validate token
-    logger.info("[Setup] Step 1: Validating token");
-    console.log("[Setup] Step 1: Validating token");
+    // step 1: validate token
+    logger.info("[setup] step 1: validating token");
     sendSSEMessage(controller, "progress", {
       step: "validate-token",
       status: "loading",
@@ -91,8 +74,7 @@ async function streamSetupProgress(
     });
 
     if (!verifyResponse.ok) {
-      logger.warn("[Setup] Token validation failed");
-      console.log("[Setup] Token validation failed");
+      logger.warn("[setup] token validation failed");
       sendSSEMessage(controller, "progress", {
         step: "validate-token",
         status: "error",
@@ -106,8 +88,7 @@ async function streamSetupProgress(
       return;
     }
 
-    logger.info("[Setup] Token validated successfully");
-    console.log("[Setup] Token validated successfully");
+    logger.info("[setup] token validated successfully");
     sendSSEMessage(controller, "progress", {
       step: "validate-token",
       status: "success",
@@ -115,9 +96,8 @@ async function streamSetupProgress(
       message: "Token validated successfully"
     });
 
-    // Step 2: Get databases
-    logger.info("[Setup] Step 2: Getting list of databases");
-    console.log("[Setup] Step 2: Getting list of databases");
+    // step 2: get databases
+    logger.info("[setup] step 2: getting list of databases");
     sendSSEMessage(controller, "progress", {
       step: "databases",
       status: "loading",
@@ -136,8 +116,7 @@ async function streamSetupProgress(
     );
 
     if (!databasesResponse.ok) {
-      logger.warn("[Setup] Failed to fetch databases");
-      console.log("[Setup] Failed to fetch databases");
+      logger.warn("[setup] failed to fetch databases");
       sendSSEMessage(controller, "progress", {
         step: "databases",
         status: "error",
@@ -149,8 +128,7 @@ async function streamSetupProgress(
         result?: Array<unknown>;
       };
       const dbCount = databasesData.result?.length || 0;
-      logger.info(`[Setup] Found ${dbCount} database(s)`);
-      console.log(`[Setup] Found ${dbCount} database(s)`);
+      logger.info(`[setup] found ${dbCount} database(s)`);
       sendSSEMessage(controller, "progress", {
         step: "databases",
         status: "success",
@@ -159,9 +137,8 @@ async function streamSetupProgress(
       });
     }
 
-    // Step 3: List KV namespaces
-    logger.info("[Setup] Step 3: Listing KV namespaces");
-    console.log("[Setup] Step 3: Listing KV namespaces");
+    // step 3: list kv namespaces
+    logger.info("[setup] step 3: listing kv namespaces");
     sendSSEMessage(controller, "progress", {
       step: "kv-namespaces",
       status: "loading",
@@ -180,8 +157,7 @@ async function streamSetupProgress(
     );
 
     if (!kvResponse.ok) {
-      logger.warn("[Setup] Failed to fetch KV namespaces");
-      console.log("[Setup] Failed to fetch KV namespaces");
+      logger.warn("[setup] failed to fetch kv namespaces");
       sendSSEMessage(controller, "progress", {
         step: "kv-namespaces",
         status: "error",
@@ -193,8 +169,7 @@ async function streamSetupProgress(
         result?: Array<unknown>;
       };
       const kvCount = kvData.result?.length || 0;
-      logger.info(`[Setup] Found ${kvCount} KV namespace(s)`);
-      console.log(`[Setup] Found ${kvCount} KV namespace(s)`);
+      logger.info(`[setup] found ${kvCount} kv namespace(s)`);
       sendSSEMessage(controller, "progress", {
         step: "kv-namespaces",
         status: "success",
@@ -203,9 +178,8 @@ async function streamSetupProgress(
       });
     }
 
-    // Step 4: List workflows
-    logger.info("[Setup] Step 4: Listing workflows");
-    console.log("[Setup] Step 4: Listing workflows");
+    // step 4: list workflows
+    logger.info("[setup] step 4: listing workflows");
     sendSSEMessage(controller, "progress", {
       step: "workflows",
       status: "loading",
@@ -224,8 +198,7 @@ async function streamSetupProgress(
     );
 
     if (!workflowsResponse.ok) {
-      logger.warn("[Setup] Failed to fetch workflows");
-      console.log("[Setup] Failed to fetch workflows");
+      logger.warn("[setup] failed to fetch workflows");
       sendSSEMessage(controller, "progress", {
         step: "workflows",
         status: "error",
@@ -238,8 +211,7 @@ async function streamSetupProgress(
         result_info?: { total_count?: number };
       };
       const workflowsCount = workflowsData.result_info?.total_count || workflowsData.result?.length || 0;
-      logger.info(`[Setup] Found ${workflowsCount} workflow(s)`);
-      console.log(`[Setup] Found ${workflowsCount} workflow(s)`);
+      logger.info(`[setup] found ${workflowsCount} workflow(s)`);
       sendSSEMessage(controller, "progress", {
         step: "workflows",
         status: "success",
@@ -248,9 +220,8 @@ async function streamSetupProgress(
       });
     }
 
-    // Step 5: List workers
-    logger.info("[Setup] Step 5: Listing workers");
-    console.log("[Setup] Step 5: Listing workers");
+    // step 5: list workers
+    logger.info("[setup] step 5: listing workers");
     sendSSEMessage(controller, "progress", {
       step: "workers",
       status: "loading",
@@ -269,8 +240,7 @@ async function streamSetupProgress(
     );
 
     if (!workersResponse.ok) {
-      logger.warn("[Setup] Failed to fetch workers");
-      console.log("[Setup] Failed to fetch workers");
+      logger.warn("[setup] failed to fetch workers");
       sendSSEMessage(controller, "progress", {
         step: "workers",
         status: "error",
@@ -283,8 +253,7 @@ async function streamSetupProgress(
         result_info?: { total_count?: number };
       };
       const workersCount = workersData.result_info?.total_count || workersData.result?.length || 0;
-      logger.info(`[Setup] Found ${workersCount} worker(s)`);
-      console.log(`[Setup] Found ${workersCount} worker(s)`);
+      logger.info(`[setup] found ${workersCount} worker(s)`);
       sendSSEMessage(controller, "progress", {
         step: "workers",
         status: "success",
@@ -293,9 +262,8 @@ async function streamSetupProgress(
       });
     }
 
-    // Final step: Send completion
-    logger.info("[Setup] All checks completed successfully");
-    console.log("[Setup] All checks completed successfully");
+    // final step: send completion
+    logger.info("[setup] all checks completed successfully");
     sendSSEMessage(controller, "complete", {
       success: true,
       message: "All checks completed successfully"
@@ -304,7 +272,7 @@ async function streamSetupProgress(
     controller.close();
   } catch (error) {
     logger.error(
-      "Failed to stream setup progress",
+      "failed to stream setup progress",
       error instanceof Error ? error : new Error(String(error))
     );
     sendSSEMessage(controller, "error", {
@@ -314,92 +282,78 @@ async function streamSetupProgress(
   }
 }
 
-const app = new Hono<{ Bindings: Env }>();
+const app = new Hono<{ Bindings: SetupEnv }>();
 
-// Setup credentials with SSE streaming
-app.post("/stream", async c => {
+// setup credentials with sse streaming
+app.post("/stream", zValidator('json', SetupRequestSchema), safe(async c => {
   try {
-    logger.info("Setting up Cloudflare credentials with SSE streaming");
+    logger.info("setting up cloudflare credentials with sse streaming");
 
-    // Validate request body
-    const bodyValidation = await validateBody(c, SetupRequestSchema);
-    if (!bodyValidation.success) {
-      return validationErrorResponse(bodyValidation);
-    }
+    const { apiToken, accountId } = c.req.valid('json' as never) as z.infer<typeof SetupRequestSchema>;
 
-    const { apiToken, accountId } = bodyValidation.data;
-
-    // Create SSE stream
+    // create sse stream
     const stream = new ReadableStream({
       async start(controller) {
         await streamSetupProgress(controller, apiToken, accountId);
       }
     });
 
-    return new Response(stream, {
-      headers: {
-        "Content-Type": "text/event-stream",
-        "Cache-Control": "no-cache",
-        Connection: "keep-alive",
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "POST",
-        "Access-Control-Allow-Headers": "Content-Type"
-      }
-    });
+    const origin = c.req.header("Origin");
+    const headers: HeadersInit = {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+      ...getSSECorsHeaders(origin, "POST")
+    };
+    return new Response(stream, { headers });
   } catch (error) {
     logger.error(
-      "Failed to setup SSE stream",
+      "failed to setup sse stream",
       error instanceof Error ? error : new Error(String(error))
     );
     return c.json(
       {
         success: false,
-        error: "Failed to setup SSE stream",
+        error: "failed to setup sse stream",
         message: error instanceof Error ? error.message : "Unknown error",
         code: ErrorCode.INTERNAL_ERROR
       },
       HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR
     );
   }
-});
+}));
 
-// Setup credentials (legacy endpoint, kept for backward compatibility)
-app.post("/", async c => {
+// setup credentials (legacy endpoint, kept for backward compatibility)
+app.post("/", zValidator('json', SetupRequestSchema), safe(async c => {
   try {
-    logger.info("Setting up Cloudflare credentials");
+    logger.info("setting up cloudflare credentials");
 
-    // Validate request body
-    const bodyValidation = await validateBody(c, SetupRequestSchema);
-    if (!bodyValidation.success) {
-      return validationErrorResponse(bodyValidation);
-    }
+    const { apiToken, accountId } = c.req.valid('json' as never) as z.infer<typeof SetupRequestSchema>;
 
-    const { apiToken, accountId } = bodyValidation.data;
-
-    // Verify credentials with Cloudflare
-    logger.info("Verifying Cloudflare credentials");
+    // verify credentials with cloudflare
+    logger.info("verifying cloudflare credentials");
     const isValid = await verifyCloudflareToken(apiToken, accountId);
 
     if (!isValid) {
-      logger.warn("Invalid Cloudflare credentials provided");
+      logger.warn("invalid cloudflare credentials provided");
       return c.json(
         {
           success: false,
-          error: "Invalid credentials",
-          message: "The provided API token or Account ID is invalid",
+          error: "invalid credentials",
+          message: "the provided api token or account id is invalid",
           code: ErrorCode.AUTHENTICATION_ERROR
         },
         401
       );
     }
 
-    // Encrypt credentials
-    const encrypted = await encryptCredentials({ apiToken, accountId });
+    // encrypt credentials
+    const encrypted = await encryptCredentials({ apiToken, accountId }, c.env.CREDENTIALS_MASTER_KEY!);
 
-    // Determine if we're in production
+    // determine if we're in production
     const isProduction = c.env.ENVIRONMENT === "production";
 
-    // Set cookie with encrypted credentials using Hono cookie helper
+    // set cookie with encrypted credentials using hono cookie helper
     setCookie(c, CREDENTIALS_COOKIE_NAME, encrypted, {
       path: "/",
       maxAge: COOKIE_MAX_AGE,
@@ -408,31 +362,31 @@ app.post("/", async c => {
       secure: isProduction
     });
 
-    logger.info("Cloudflare credentials configured successfully");
+    logger.info("cloudflare credentials configured successfully");
 
     const response: ApiResponse = {
       success: true,
       data: { configured: true },
-      message: "Credentials configured successfully"
+      message: "credentials configured successfully"
     };
 
     return c.json(response, HTTP_STATUS_CODES.OK);
   } catch (error) {
     logger.error(
-      "Failed to setup credentials",
+      "failed to setup credentials",
       error instanceof Error ? error : new Error(String(error))
     );
     return c.json(
       {
         success: false,
-        error: "Failed to setup credentials",
+        error: "failed to setup credentials",
         message: error instanceof Error ? error.message : "Unknown error",
         code: ErrorCode.INTERNAL_ERROR
       },
       HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR
     );
   }
-});
+}));
 
 // Logout
 app.post("/logout", async c => {
