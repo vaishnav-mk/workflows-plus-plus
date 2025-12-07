@@ -4,13 +4,13 @@
 	"description": "Backend API for Cloudflare Workflows Dashboard using Hono",
 	"private": true,
 	"scripts": {
-		"deploy": "node scripts/bundle-mcp.js && wrangler deploy",
-		"dev": "node scripts/bundle-mcp.js && wrangler dev",
-		"start": "node scripts/bundle-mcp.js && wrangler dev",
+		"deploy": "node ../scripts/bundle-mcp.js && wrangler deploy",
+		"dev": "node ../scripts/bundle-mcp.js && wrangler dev",
+		"start": "node ../scripts/bundle-mcp.js && wrangler dev",
 		"cf-typegen": "wrangler types",
 		"build": "tsc",
 		"type-check": "tsc --noEmit",
-		"bundle-mcp": "node scripts/bundle-mcp.js"
+		"bundle-mcp": "node ../scripts/bundle-mcp.js"
 	},
 	"dependencies": {
 		"@ai-sdk/google": "^2.0.42",
