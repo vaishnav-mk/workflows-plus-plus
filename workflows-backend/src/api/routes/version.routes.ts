@@ -3,48 +3,36 @@
  */
 
 import { Hono } from "hono";
-import Cloudflare from "cloudflare";
 import { HTTP_STATUS_CODES, MESSAGES } from "../../core/constants";
-import { ErrorCode } from "../../core/enums";
 import { ApiResponse } from "../../core/api-contracts";
 import { createPaginationResponse } from "../../core/utils/pagination";
-import { CredentialsContext } from "../../api/middleware/credentials.middleware";
+import { CredentialsContext } from "../../core/types";
 import { z } from "zod";
-import { validateQuery, validateParams, validationErrorResponse } from "../../core/validation/validator";
 import { PaginationQuerySchema, WorkerVersionParamsSchema } from "../../core/validation/schemas";
+import { safe } from "../../core/utils/route-helpers";
+import { zValidator } from "../../api/middleware/validation.middleware";
+import { CloudflareContext } from "../../core/types";
 
 interface ContextWithCredentials {
   Variables: {
     credentials: CredentialsContext;
-  };
+  } & CloudflareContext;
 }
 
 const app = new Hono<ContextWithCredentials>();
 
+const WorkerIdParamSchema = z.object({ workerId: z.string().min(1, "Worker ID is required") });
+
 // List worker versions
-app.get("/:workerId/versions", async (c) => {
-  try {
-    // Validate query parameters
-    const queryValidation = validateQuery(c, PaginationQuerySchema);
-    if (!queryValidation.success) {
-      return validationErrorResponse(queryValidation);
-    }
-    
-    // Validate path parameters
-    const paramsValidation = validateParams(c, z.object({ workerId: z.string().min(1, "Worker ID is required") }));
-    if (!paramsValidation.success) {
-      return validationErrorResponse(paramsValidation);
-    }
-    
+app.get("/:workerId/versions", 
+  zValidator('param', WorkerIdParamSchema), 
+  zValidator('query', PaginationQuerySchema), 
+  safe(async (c) => {
     const credentials = c.var.credentials;
-    const { workerId } = paramsValidation.data;
+    const { workerId } = c.req.valid('param') as z.infer<typeof WorkerIdParamSchema>;
+    const client = c.var.cloudflare;
 
-    const client = new Cloudflare({
-      apiToken: credentials.apiToken,
-    });
-
-    const page = queryValidation.data.page || 1;
-    const perPage = queryValidation.data.per_page || 10;
+    const { page = 1, per_page: perPage = 10 } = c.req.valid('query') as z.infer<typeof PaginationQuerySchema>;
 
     const versions = await client.workers.beta.workers.versions.list(workerId, {
       account_id: credentials.accountId,
@@ -60,34 +48,16 @@ app.get("/:workerId/versions", async (c) => {
     response.message = MESSAGES.VERSIONS_RETRIEVED;
 
     return c.json(response, HTTP_STATUS_CODES.OK);
-  } catch (error) {
-    return c.json(
-      {
-        success: false,
-        error: "Failed to fetch versions",
-        message: error instanceof Error ? error.message : "Unknown error",
-        code: ErrorCode.INTERNAL_ERROR,
-      },
-      HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR
-    );
-  }
-});
+  })
+);
 
 // Get worker version details
-app.get("/:workerId/versions/:versionId", async (c) => {
-  try {
-    // Validate path parameters
-    const paramsValidation = validateParams(c, WorkerVersionParamsSchema);
-    if (!paramsValidation.success) {
-      return validationErrorResponse(paramsValidation);
-    }
-    
+app.get("/:workerId/versions/:versionId", 
+  zValidator('param', WorkerVersionParamsSchema), 
+  safe(async (c) => {
     const credentials = c.var.credentials;
-    const { workerId, versionId } = paramsValidation.data;
-
-    const client = new Cloudflare({
-      apiToken: credentials.apiToken,
-    });
+    const { workerId, versionId } = c.req.valid('param') as z.infer<typeof WorkerVersionParamsSchema>;
+    const client = c.var.cloudflare;
 
     const include = c.req.query("include");
     // Cloudflare API expects "modules" or undefined
@@ -109,17 +79,7 @@ app.get("/:workerId/versions/:versionId", async (c) => {
     };
 
     return c.json(response, HTTP_STATUS_CODES.OK);
-  } catch (error) {
-    return c.json(
-      {
-        success: false,
-        error: "Failed to get version",
-        message: error instanceof Error ? error.message : "Unknown error",
-        code: ErrorCode.INTERNAL_ERROR,
-      },
-      HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR
-    );
-  }
-});
+  })
+);
 
 export default app;

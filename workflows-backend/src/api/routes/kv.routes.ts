@@ -1,18 +1,16 @@
 /**
- * KV Namespace Routes
+ * kv namespace routes
  */
 
 import { Hono } from "hono";
-import { HTTP_STATUS_CODES } from "../../core/constants";
-import { ErrorCode } from "../../core/enums";
+import { HTTP_STATUS_CODES, CLOUDFLARE } from "../../core/constants";
 import { ApiResponse } from "../../core/api-contracts";
 import { createPaginationResponse } from "../../core/utils/pagination";
-import { CredentialsContext } from "../../api/middleware/credentials.middleware";
-import { validateQuery, validateParams, validationErrorResponse } from "../../core/validation/validator";
+import { CredentialsContext } from "../../core/types";
 import { PaginationQuerySchema } from "../../core/validation/schemas";
 import { z } from "zod";
-import { CLOUDFLARE } from "../../core/constants";
-import { logger } from "../../core/logging/logger";
+import { safe } from "../../core/utils/route-helpers";
+import { zValidator } from "../../api/middleware/validation.middleware";
 
 interface ContextWithCredentials {
   Variables: {
@@ -30,206 +28,107 @@ const CreateNamespaceSchema = z.object({
 
 const app = new Hono<ContextWithCredentials>();
 
-// List KV namespaces
-app.get("/", async (c) => {
-  try {
-    const queryValidation = validateQuery(c, PaginationQuerySchema);
-    if (!queryValidation.success) {
-      return validationErrorResponse(queryValidation);
+async function fetchCloudflare(url: string, options: RequestInit) {
+  const response = await fetch(url, options);
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    let errorData: { message?: string; errors?: Array<{ message?: string }> } = {};
+    try {
+      errorData = JSON.parse(errorText);
+    } catch {
+      errorData = { message: errorText || `HTTP ${response.status}` };
     }
     
-    const credentials = c.var.credentials;
-    const page = queryValidation.data.page || 1;
-    const perPage = queryValidation.data.per_page || 1000;
-
-    const params = new URLSearchParams({
-      page: String(page),
-      per_page: String(perPage),
-    });
-
-    const response = await fetch(
-      `${CLOUDFLARE.API_BASE}/accounts/${credentials.accountId}/storage/kv/namespaces?${params.toString()}`,
-      {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${credentials.apiToken}`,
-          "Content-Type": "application/json",
-        },
-      }
-    );
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      let errorData: { message?: string; errors?: Array<{ message?: string }> } = {};
-      try {
-        errorData = JSON.parse(errorText) as { message?: string; errors?: Array<{ message?: string }> };
-      } catch {
-        errorData = { message: errorText || `HTTP ${response.status}` };
-      }
-      
-      logger.error("Cloudflare API error", new Error(errorData.message || `HTTP ${response.status}`), {
-        status: response.status,
-        statusText: response.statusText,
-        error: errorData
-      });
-      
-      throw new Error(errorData.message || errorData.errors?.[0]?.message || `HTTP ${response.status}`);
-    }
-
-    const data = await response.json() as { result?: Array<{ id: string; title: string }>; result_info?: { total_count?: number } };
-    const totalCount = data.result_info?.total_count;
-    const apiResponse = createPaginationResponse(
-      data.result || [],
-      page,
-      perPage,
-      totalCount
-    );
-    apiResponse.message = "KV namespaces retrieved successfully";
-
-    return c.json(apiResponse, HTTP_STATUS_CODES.OK);
-  } catch (error) {
-    return c.json(
-      {
-        success: false,
-        error: "Failed to fetch KV namespaces",
-        message: error instanceof Error ? error.message : "Unknown error",
-        code: ErrorCode.INTERNAL_ERROR,
-      },
-      HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR
-    );
+    // Throw error in format "STATUS_CODE JSON_STRING" for parseCloudflareError to handle
+    throw new Error(`${response.status} ${JSON.stringify(errorData)}`);
   }
-});
 
-// Get KV namespace by ID
-app.get("/:id", async (c) => {
-  try {
-    const paramsValidation = validateParams(c, NamespaceIdParamSchema);
-    if (!paramsValidation.success) {
-      return validationErrorResponse(paramsValidation);
-    }
-    
-    const credentials = c.var.credentials;
-    const { id: namespaceId } = paramsValidation.data;
+  return response.json();
+}
 
-    const response = await fetch(
-      `${CLOUDFLARE.API_BASE}/accounts/${credentials.accountId}/storage/kv/namespaces/${namespaceId}`,
-      {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${credentials.apiToken}`,
-          "Content-Type": "application/json",
-        },
-      }
-    );
+// list kv namespaces
+app.get("/", zValidator('query', PaginationQuerySchema), safe(async (c) => {
+  const credentials = c.var.credentials;
+  const { page = 1, per_page: perPage = 1000 } = c.req.valid('query') as z.infer<typeof PaginationQuerySchema>;
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      let errorData: { message?: string; errors?: Array<{ message?: string }> } = {};
-      try {
-        errorData = JSON.parse(errorText) as { message?: string; errors?: Array<{ message?: string }> };
-      } catch {
-        errorData = { message: errorText || `HTTP ${response.status}` };
-      }
-      
-      logger.error("Cloudflare API error", new Error(errorData.message || `HTTP ${response.status}`), {
-        status: response.status,
-        statusText: response.statusText,
-        error: errorData
-      });
-      
-      throw new Error(errorData.message || errorData.errors?.[0]?.message || `HTTP ${response.status}`);
-    }
+  const params = new URLSearchParams({
+    page: String(page),
+    per_page: String(perPage),
+  });
 
-    const data = await response.json() as { result?: { id: string; title: string } };
-    const apiResponse: ApiResponse = {
-      success: true,
-      data: data.result,
-      message: "KV namespace retrieved successfully",
-    };
-
-    return c.json(apiResponse, HTTP_STATUS_CODES.OK);
-  } catch (error) {
-    return c.json(
-      {
-        success: false,
-        error: "Failed to get KV namespace",
-        message: error instanceof Error ? error.message : "Unknown error",
-        code: ErrorCode.INTERNAL_ERROR,
+  const data = await fetchCloudflare(
+    `${CLOUDFLARE.API_BASE}/accounts/${credentials.accountId}/storage/kv/namespaces?${params.toString()}`,
+    {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${credentials.apiToken}`,
+        "Content-Type": "application/json",
       },
-      HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR
-    );
-  }
-});
-
-// Create KV namespace
-app.post("/", async (c) => {
-  try {
-    const body = await c.req.json();
-    const validation = CreateNamespaceSchema.safeParse(body);
-    
-    if (!validation.success) {
-      return c.json(
-        {
-          success: false,
-          error: "Validation failed",
-          message: validation.error.errors[0]?.message || "Invalid request body",
-          code: ErrorCode.VALIDATION_ERROR,
-        },
-        HTTP_STATUS_CODES.BAD_REQUEST
-      );
     }
+  ) as { result?: Array<{ id: string; title: string }>; result_info?: { total_count?: number } };
 
-    const credentials = c.var.credentials;
-    const response = await fetch(
-      `${CLOUDFLARE.API_BASE}/accounts/${credentials.accountId}/storage/kv/namespaces`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${credentials.apiToken}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ title: validation.data.title }),
-      }
-    );
+  const totalCount = data.result_info?.total_count;
+  const apiResponse = createPaginationResponse(
+    data.result || [],
+    page,
+    perPage,
+    totalCount
+  );
+  apiResponse.message = "KV namespaces retrieved successfully";
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      let errorData: { message?: string; errors?: Array<{ message?: string }> } = {};
-      try {
-        errorData = JSON.parse(errorText) as { message?: string; errors?: Array<{ message?: string }> };
-      } catch {
-        errorData = { message: errorText || `HTTP ${response.status}` };
-      }
-      
-      logger.error("Cloudflare API error", new Error(errorData.message || `HTTP ${response.status}`), {
-        status: response.status,
-        statusText: response.statusText,
-        error: errorData
-      });
-      
-      throw new Error(errorData.message || errorData.errors?.[0]?.message || `HTTP ${response.status}`);
-    }
+  return c.json(apiResponse, HTTP_STATUS_CODES.OK);
+}));
 
-    const data = await response.json() as { result?: { id: string; title: string } };
-    const apiResponse: ApiResponse = {
-      success: true,
-      data: data.result,
-      message: "KV namespace created successfully",
-    };
+// get kv namespace by id
+app.get("/:id", zValidator('param', NamespaceIdParamSchema), safe(async (c) => {
+  const credentials = c.var.credentials;
+  const { id: namespaceId } = c.req.valid('param') as z.infer<typeof NamespaceIdParamSchema>;
 
-    return c.json(apiResponse, HTTP_STATUS_CODES.CREATED);
-  } catch (error) {
-    return c.json(
-      {
-        success: false,
-        error: "Failed to create KV namespace",
-        message: error instanceof Error ? error.message : "Unknown error",
-        code: ErrorCode.INTERNAL_ERROR,
+  const data = await fetchCloudflare(
+    `${CLOUDFLARE.API_BASE}/accounts/${credentials.accountId}/storage/kv/namespaces/${namespaceId}`,
+    {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${credentials.apiToken}`,
+        "Content-Type": "application/json",
       },
-      HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR
-    );
-  }
-});
+    }
+  ) as { result?: { id: string; title: string } };
+
+  const apiResponse: ApiResponse = {
+    success: true,
+    data: data.result,
+    message: "KV namespace retrieved successfully",
+  };
+
+  return c.json(apiResponse, HTTP_STATUS_CODES.OK);
+}));
+
+// create kv namespace
+app.post("/", zValidator('json', CreateNamespaceSchema), safe(async (c) => {
+  const { title } = c.req.valid('json') as z.infer<typeof CreateNamespaceSchema>;
+  const credentials = c.var.credentials;
+
+  const data = await fetchCloudflare(
+    `${CLOUDFLARE.API_BASE}/accounts/${credentials.accountId}/storage/kv/namespaces`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${credentials.apiToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ title }),
+    }
+  ) as { result?: { id: string; title: string } };
+
+  const apiResponse: ApiResponse = {
+    success: true,
+    data: data.result,
+    message: "KV namespace created successfully",
+  };
+
+  return c.json(apiResponse, HTTP_STATUS_CODES.CREATED);
+}));
 
 export default app;
-

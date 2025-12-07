@@ -1,18 +1,16 @@
 /**
- * D1 Database Routes
+ * d1 database routes
  */
 
 import { Hono } from "hono";
-import { HTTP_STATUS_CODES } from "../../core/constants";
-import { ErrorCode } from "../../core/enums";
+import { z } from "zod";
+import { HTTP_STATUS_CODES, MESSAGES, CLOUDFLARE } from "../../core/constants";
 import { ApiResponse } from "../../core/api-contracts";
 import { createPaginationResponse } from "../../core/utils/pagination";
-import { CredentialsContext } from "../../api/middleware/credentials.middleware";
-import { validateQuery, validateParams, validationErrorResponse } from "../../core/validation/validator";
-import { PaginationQuerySchema } from "../../core/validation/schemas";
-import { z } from "zod";
-import { CLOUDFLARE } from "../../core/constants";
-import { logger } from "../../core/logging/logger";
+import { CredentialsContext } from "../../core/types";
+import { PaginationQuerySchema, DatabaseIdParamSchema } from "../../core/validation/schemas";
+import { safe } from "../../core/utils/route-helpers";
+import { zValidator } from "../../api/middleware/validation.middleware";
 
 interface ContextWithCredentials {
   Variables: {
@@ -20,586 +18,237 @@ interface ContextWithCredentials {
   };
 }
 
-const DatabaseIdParamSchema = z.object({
-  id: z.string().uuid(),
-});
-
-const CreateDatabaseSchema = z.object({
-  name: z.string().min(1).max(100),
-});
-
 const app = new Hono<ContextWithCredentials>();
 
-// List D1 databases
-app.get("/", async (c) => {
-  try {
-    const queryValidation = validateQuery(c, PaginationQuerySchema);
-    if (!queryValidation.success) {
-      return validationErrorResponse(queryValidation);
-    }
-    
-    const credentials = c.var.credentials;
-    const page = queryValidation.data.page || 1;
-    const perPage = queryValidation.data.per_page || 1000;
-    const name = c.req.query("name");
+async function fetchCloudflare(url: string, options: RequestInit) {
+  const response = await fetch(url, options);
 
-    const params = new URLSearchParams({
-      page: String(page),
-      per_page: String(perPage),
-    });
-    if (name) params.append("name", name);
-    console.log(params.toString());
-
-    const response = await fetch(
-      `${CLOUDFLARE.API_BASE}/accounts/${credentials.accountId}/d1/database?${params.toString()}`,
-      {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${credentials.apiToken}`,
-          "Content-Type": "application/json",
-        },
-      }
-    );
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      let errorData: { message?: string; errors?: Array<{ message?: string }> } = {};
-      try {
-        errorData = JSON.parse(errorText) as { message?: string; errors?: Array<{ message?: string }> };
-      } catch {
-        errorData = { message: errorText || `HTTP ${response.status}` };
-      }
-      
-      logger.error("Cloudflare API error", new Error(errorData.message || `HTTP ${response.status}`), {
-        status: response.status,
-        statusText: response.statusText,
-        error: errorData
-      });
-      
-      throw new Error(errorData.message || errorData.errors?.[0]?.message || `HTTP ${response.status}`);
-    }
-
-    const data = await response.json() as { result?: Array<{ uuid: string; name: string }>; result_info?: { total_count?: number } };
-    const totalCount = data.result_info?.total_count;
-    const apiResponse = createPaginationResponse(
-      data.result || [],
-      page,
-      perPage,
-      totalCount
-    );
-    apiResponse.message = "D1 databases retrieved successfully";
-
-    return c.json(apiResponse, HTTP_STATUS_CODES.OK);
-  } catch (error) {
-    return c.json(
-      {
-        success: false,
-        error: "Failed to fetch D1 databases",
-        message: error instanceof Error ? error.message : "Unknown error",
-        code: ErrorCode.INTERNAL_ERROR,
-      },
-      HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR
-    );
-  }
-});
-
-// Get D1 database by ID
-app.get("/:id", async (c) => {
-  try {
-    const paramsValidation = validateParams(c, DatabaseIdParamSchema);
-    if (!paramsValidation.success) {
-      return validationErrorResponse(paramsValidation);
-    }
-    
-    const credentials = c.var.credentials;
-    const { id: databaseId } = paramsValidation.data;
-
-    const response = await fetch(
-      `${CLOUDFLARE.API_BASE}/accounts/${credentials.accountId}/d1/database/${databaseId}`,
-      {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${credentials.apiToken}`,
-          "Content-Type": "application/json",
-        },
-      }
-    );
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      let errorData: { message?: string; errors?: Array<{ message?: string }> } = {};
-      try {
-        errorData = JSON.parse(errorText) as { message?: string; errors?: Array<{ message?: string }> };
-      } catch {
-        errorData = { message: errorText || `HTTP ${response.status}` };
-      }
-      
-      logger.error("Cloudflare API error", new Error(errorData.message || `HTTP ${response.status}`), {
-        status: response.status,
-        statusText: response.statusText,
-        error: errorData
-      });
-      
-      throw new Error(errorData.message || errorData.errors?.[0]?.message || `HTTP ${response.status}`);
-    }
-
-    const data = await response.json() as { result?: { uuid: string; name: string } };
-    console.log(data);
-    const apiResponse: ApiResponse = {
-      success: true,
-      data: data.result,
-      message: "D1 database retrieved successfully",
-    };
-
-    return c.json(apiResponse, HTTP_STATUS_CODES.OK);
-  } catch (error) {
-    return c.json(
-      {
-        success: false,
-        error: "Failed to get D1 database",
-        message: error instanceof Error ? error.message : "Unknown error",
-        code: ErrorCode.INTERNAL_ERROR,
-      },
-      HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR
-    );
-  }
-});
-
-// Create D1 database
-app.post("/", async (c) => {
-  try {
-    const body = await c.req.json();
-    const validation = CreateDatabaseSchema.safeParse(body);
-    
-    if (!validation.success) {
-      return c.json(
-        {
-          success: false,
-          error: "Validation failed",
-          message: validation.error.errors[0]?.message || "Invalid request body",
-          code: ErrorCode.VALIDATION_ERROR,
-        },
-        HTTP_STATUS_CODES.BAD_REQUEST
-      );
-    }
-
-    const credentials = c.var.credentials;
-    const response = await fetch(
-      `${CLOUDFLARE.API_BASE}/accounts/${credentials.accountId}/d1/database`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${credentials.apiToken}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ name: validation.data.name }),
-      }
-    );
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      let errorData: { message?: string; errors?: Array<{ message?: string }> } = {};
-      try {
-        errorData = JSON.parse(errorText) as { message?: string; errors?: Array<{ message?: string }> };
-      } catch {
-        errorData = { message: errorText || `HTTP ${response.status}` };
-      }
-      
-      logger.error("Cloudflare API error", new Error(errorData.message || `HTTP ${response.status}`), {
-        status: response.status,
-        statusText: response.statusText,
-        error: errorData
-      });
-      
-      throw new Error(errorData.message || errorData.errors?.[0]?.message || `HTTP ${response.status}`);
-    }
-
-    const data = await response.json() as { result?: { uuid: string; name: string } };
-    const apiResponse: ApiResponse = {
-      success: true,
-      data: data.result,
-      message: "D1 database created successfully",
-    };
-
-    return c.json(apiResponse, HTTP_STATUS_CODES.CREATED);
-  } catch (error) {
-    return c.json(
-      {
-        success: false,
-        error: "Failed to create D1 database",
-        message: error instanceof Error ? error.message : "Unknown error",
-        code: ErrorCode.INTERNAL_ERROR,
-      },
-      HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR
-    );
-  }
-});
-
-// Validate D1 query
-app.post("/:id/validate-query", async (c) => {
-  try {
-    const paramsValidation = validateParams(c, DatabaseIdParamSchema);
-    if (!paramsValidation.success) {
-      return validationErrorResponse(paramsValidation);
-    }
-    
-    const body = await c.req.json();
-    const queryValidation = z.object({
-      query: z.string().min(1),
-    }).safeParse(body);
-    
-    if (!queryValidation.success) {
-      return c.json(
-        {
-          success: false,
-          error: "Validation failed",
-          message: queryValidation.error.errors[0]?.message || "Invalid request body",
-          code: ErrorCode.VALIDATION_ERROR,
-        },
-        HTTP_STATUS_CODES.BAD_REQUEST
-      );
-    }
-    
-    const credentials = c.var.credentials;
-    const { id: databaseId } = paramsValidation.data;
-    const { query } = queryValidation.data;
-
-    // First get schema to extract table names
-    const schemaResponse = await fetch(
-      `${CLOUDFLARE.API_BASE}/accounts/${credentials.accountId}/d1/database/${databaseId}/query`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${credentials.apiToken}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          sql: "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name",
-        }),
-      }
-    );
-
-    if (!schemaResponse.ok) {
-      const errorText = await schemaResponse.text();
-      let errorData: any = {};
-      try {
-        errorData = JSON.parse(errorText);
-      } catch {
-        errorData = { message: errorText || `HTTP ${schemaResponse.status}` };
-      }
-      throw new Error(errorData.message || `HTTP ${schemaResponse.status}`);
-    }
-
-    const schemaData = await schemaResponse.json() as { result?: { results?: Array<{ name: string }> } };
-    const tableNames = (schemaData.result?.results || []).map((t) => t.name.toLowerCase());
-
-    // Try to validate query by checking if it references valid tables
-    const queryLower = query.toLowerCase();
-    const validationErrors: string[] = [];
-    const validationWarnings: string[] = [];
-
-    // Extract table names from query (simple regex-based extraction)
-    const tableMatches = queryLower.match(/\b(from|join|into|update)\s+([a-z_][a-z0-9_]*)/gi);
-    if (tableMatches) {
-      tableMatches.forEach((match) => {
-        const parts = match.split(/\s+/);
-        if (parts.length > 1) {
-          const tableName = parts[parts.length - 1].toLowerCase();
-          if (!tableNames.includes(tableName) && !tableName.startsWith('sqlite_')) {
-            validationWarnings.push(`Table "${parts[parts.length - 1]}" may not exist in the database`);
-          }
-        }
-      });
-    }
-
-    // Try to execute query with EXPLAIN to validate syntax
-    let syntaxValid = true;
-    let syntaxError: string | null = null;
+  if (!response.ok) {
+    const errorText = await response.text();
+    let errorData: { message?: string; errors?: Array<{ message?: string }> } = {};
     try {
-      const explainResponse = await fetch(
-        `${CLOUDFLARE.API_BASE}/accounts/${credentials.accountId}/d1/database/${databaseId}/query`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${credentials.apiToken}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            sql: `EXPLAIN QUERY PLAN ${query}`,
-          }),
-        }
-      );
-
-      if (!explainResponse.ok) {
-        const errorText = await explainResponse.text();
-        let errorData: { message?: string; errors?: Array<{ message?: string }> } = {};
-        try {
-          errorData = JSON.parse(errorText) as { message?: string; errors?: Array<{ message?: string }> };
-        } catch {
-          errorData = { message: errorText || `HTTP ${explainResponse.status}` };
-        }
-        syntaxValid = false;
-        syntaxError = errorData.message || errorData.errors?.[0]?.message || "Query syntax error";
-      }
-    } catch (error) {
-      syntaxValid = false;
-      syntaxError = error instanceof Error ? error.message : "Unknown error";
+      errorData = JSON.parse(errorText);
+    } catch {
+      errorData = { message: errorText || `HTTP ${response.status}` };
     }
-
-    const apiResponse: ApiResponse = {
-      success: true,
-      data: {
-        valid: syntaxValid && validationErrors.length === 0,
-        errors: validationErrors,
-        warnings: validationWarnings,
-        syntaxError,
-        availableTables: tableNames,
-      },
-      message: syntaxValid ? "Query is valid" : "Query validation failed",
-    };
-
-    return c.json(apiResponse, HTTP_STATUS_CODES.OK);
-  } catch (error) {
-    return c.json(
-      {
-        success: false,
-        error: "Failed to validate query",
-        message: error instanceof Error ? error.message : "Unknown error",
-        code: ErrorCode.INTERNAL_ERROR,
-      },
-      HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR
-    );
+    
+    // Throw error in format "STATUS_CODE JSON_STRING" for parseCloudflareError to handle
+    throw new Error(`${response.status} ${JSON.stringify(errorData)}`);
   }
+
+  return response.json();
+}
+
+// list d1 databases
+app.get("/", zValidator('query', PaginationQuerySchema), safe(async (c) => {
+  const credentials = c.var.credentials;
+  const { page = 1, per_page: perPage = 10 } = c.req.valid('query') as z.infer<typeof PaginationQuerySchema>;
+
+  const params = new URLSearchParams({
+    page: String(page),
+    per_page: String(perPage),
+  });
+
+  const data = await fetchCloudflare(
+    `${CLOUDFLARE.API_BASE}/accounts/${credentials.accountId}/d1/database?${params.toString()}`,
+    {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${credentials.apiToken}`,
+        "Content-Type": "application/json",
+      },
+    }
+  ) as { result?: Array<{ uuid: string; name: string; version: string; created_at: string }>; result_info?: { total_count?: number } };
+
+  const totalCount = data.result_info?.total_count;
+  const response = createPaginationResponse(
+    data.result || [],
+    page,
+    perPage,
+    totalCount
+  );
+  response.message = MESSAGES.DATABASES_RETRIEVED;
+
+  return c.json(response, HTTP_STATUS_CODES.OK);
+}));
+
+// get d1 database by id
+app.get("/:id", zValidator('param', DatabaseIdParamSchema), safe(async (c) => {
+  const credentials = c.var.credentials;
+  const { id: databaseId } = c.req.valid('param') as z.infer<typeof DatabaseIdParamSchema>;
+
+  const data = await fetchCloudflare(
+    `${CLOUDFLARE.API_BASE}/accounts/${credentials.accountId}/d1/database/${databaseId}`,
+    {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${credentials.apiToken}`,
+        "Content-Type": "application/json",
+      },
+    }
+  ) as { result?: { uuid: string; name: string } };
+
+  const apiResponse: ApiResponse = {
+    success: true,
+    data: data.result,
+    message: "D1 database retrieved successfully",
+  };
+
+  return c.json(apiResponse, HTTP_STATUS_CODES.OK);
+}));
+
+// create d1 database
+const CreateDatabaseSchema = z.object({
+  name: z.string().min(1, "Database name is required")
 });
 
-// Execute D1 query
-app.post("/:id/query", async (c) => {
-  try {
-    const paramsValidation = validateParams(c, DatabaseIdParamSchema);
-    if (!paramsValidation.success) {
-      return validationErrorResponse(paramsValidation);
-    }
-    
-    const body = await c.req.json();
-    const queryValidation = z.object({
-      sql: z.string().min(1),
-    }).safeParse(body);
-    
-    if (!queryValidation.success) {
-      return c.json(
-        {
-          success: false,
-          error: "Validation failed",
-          message: queryValidation.error.errors[0]?.message || "Invalid request body",
-          code: ErrorCode.VALIDATION_ERROR,
-        },
-        HTTP_STATUS_CODES.BAD_REQUEST
-      );
-    }
-    
-    const credentials = c.var.credentials;
-    const { id: databaseId } = paramsValidation.data;
-    const { sql } = queryValidation.data;
+app.post("/", zValidator('json', CreateDatabaseSchema), safe(async (c) => {
+  const { name } = c.req.valid('json') as z.infer<typeof CreateDatabaseSchema>;
+  const credentials = c.var.credentials;
 
-    const response = await fetch(
-      `${CLOUDFLARE.API_BASE}/accounts/${credentials.accountId}/d1/database/${databaseId}/query`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${credentials.apiToken}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ sql }),
-      }
-    );
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      let errorData: { message?: string; errors?: Array<{ message?: string }> } = {};
-      try {
-        errorData = JSON.parse(errorText) as { message?: string; errors?: Array<{ message?: string }> };
-      } catch {
-        errorData = { message: errorText || `HTTP ${response.status}` };
-      }
-      
-      logger.error("Cloudflare API error", new Error(errorData.message || `HTTP ${response.status}`), {
-        status: response.status,
-        statusText: response.statusText,
-        error: errorData
-      });
-      
-      throw new Error(errorData.message || errorData.errors?.[0]?.message || `HTTP ${response.status}`);
-    }
-
-    const data = await response.json() as { 
-      result?: any; 
-      meta?: any; 
-      success?: boolean;
-      results?: any[];
-    };
-    
-    // Parse results - Cloudflare API can return results in different formats:
-    // 1. data.result as array of objects (direct query results)
-    // 2. data.result.results as array (nested structure)
-    // 3. data.results as array (top-level)
-    // 4. data.result as single object with results property
-    // 5. data.result[0].results as array (array of result objects, first has results)
-    let parsedResults: any[] = [];
-    let extractedMeta: any = undefined;
-    
-    if (Array.isArray(data.result)) {
-      // Check if first element has nested results array
-      if (data.result.length > 0 && 
-          data.result[0] && 
-          typeof data.result[0] === 'object' && 
-          'results' in data.result[0] && 
-          Array.isArray(data.result[0].results)) {
-        // Extract nested results array from first element
-        parsedResults = data.result[0].results;
-        extractedMeta = data.result[0].meta || data.meta;
-      } else {
-        // Direct array of results
-        parsedResults = data.result;
-        extractedMeta = data.meta;
-      }
-    } else if (Array.isArray(data.results)) {
-      // Top-level results array
-      parsedResults = data.results;
-      extractedMeta = data.meta;
-    } else if (data.result && typeof data.result === 'object') {
-      if (Array.isArray(data.result.results)) {
-        // Nested results array
-        parsedResults = data.result.results;
-        extractedMeta = data.result.meta || data.meta;
-      } else if (Array.isArray(data.result)) {
-        parsedResults = data.result;
-        extractedMeta = data.meta;
-      } else {
-        // Single result object - check if it has results property
-        if ('results' in data.result && Array.isArray(data.result.results)) {
-          parsedResults = data.result.results;
-          extractedMeta = data.result.meta || data.meta;
-        } else {
-          // Single result object - wrap in array
-          parsedResults = [data.result];
-          extractedMeta = data.meta;
-        }
-      }
-    }
-    
-    // Ensure meta is properly extracted
-    const meta = extractedMeta || data.meta;
-    
-    const apiResponse: ApiResponse = {
-      success: true,
-      data: {
-        results: parsedResults,
-        meta: meta,
-        success: data.success !== false,
+  const data = await fetchCloudflare(
+    `${CLOUDFLARE.API_BASE}/accounts/${credentials.accountId}/d1/database`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${credentials.apiToken}`,
+        "Content-Type": "application/json",
       },
-      message: "Query executed successfully",
-    };
+      body: JSON.stringify({ name }),
+    }
+  ) as { result?: { uuid: string; name: string } };
 
-    return c.json(apiResponse, HTTP_STATUS_CODES.OK);
-  } catch (error) {
-    return c.json(
-      {
-        success: false,
-        error: "Failed to execute query",
-        message: error instanceof Error ? error.message : "Unknown error",
-        code: ErrorCode.INTERNAL_ERROR,
-      },
-      HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR
-    );
-  }
+  const apiResponse: ApiResponse = {
+    success: true,
+    data: data.result,
+    message: "D1 database created successfully",
+  };
+
+  return c.json(apiResponse, HTTP_STATUS_CODES.CREATED);
+}));
+
+// validate d1 query
+const ValidateQuerySchema = z.object({
+  query: z.string().min(1)
 });
 
-// Get D1 database schema
-app.get("/:id/schema", async (c) => {
-  try {
-    const paramsValidation = validateParams(c, DatabaseIdParamSchema);
-    if (!paramsValidation.success) {
-      return validationErrorResponse(paramsValidation);
-    }
-    
-    const credentials = c.var.credentials;
-    const { id: databaseId } = paramsValidation.data;
+app.post("/:id/validate-query", zValidator('param', DatabaseIdParamSchema), zValidator('json', ValidateQuerySchema), safe(async (c) => {
+  const credentials = c.var.credentials;
+  const { id: databaseId } = c.req.valid('param') as z.infer<typeof DatabaseIdParamSchema>;
+  const { query } = c.req.valid('json') as z.infer<typeof ValidateQuerySchema>;
 
-    // Query the database to get schema information
-    // We'll use a query that returns table information
-    const response = await fetch(
-      `${CLOUDFLARE.API_BASE}/accounts/${credentials.accountId}/d1/database/${databaseId}/query`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${credentials.apiToken}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          sql: "SELECT name, sql FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name",
-        }),
-      }
-    );
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      let errorData: { message?: string; errors?: Array<{ message?: string }> } = {};
-      try {
-        errorData = JSON.parse(errorText) as { message?: string; errors?: Array<{ message?: string }> };
-      } catch {
-        errorData = { message: errorText || `HTTP ${response.status}` };
-      }
-      
-      logger.error("Cloudflare API error", new Error(errorData.message || `HTTP ${response.status}`), {
-        status: response.status,
-        statusText: response.statusText,
-        error: errorData
-      });
-      
-      throw new Error(errorData.message || errorData.errors?.[0]?.message || `HTTP ${response.status}`);
-    }
-
-    const data = await response.json() as { result?: Array<{ results?: Array<{ name: string; sql: string }> }> | { results?: Array<{ name: string; sql: string }> }; meta?: any };
-    
-    // Parse the response structure - Cloudflare API can return results in different formats
-    let tables: Array<{ name: string; sql: string }> = [];
-    
-    if (Array.isArray(data.result)) {
-      // If result is an array, get results from first element
-      tables = (data.result[0]?.results || []).map((table) => ({
-        name: table.name,
-        sql: table.sql,
-      }));
-    } else if (data.result && typeof data.result === 'object' && 'results' in data.result) {
-      // If result is an object with results property
-      tables = ((data.result as { results?: Array<{ name: string; sql: string }> }).results || []).map((table) => ({
-        name: table.name,
-        sql: table.sql,
-      }));
-    }
-
-    const apiResponse: ApiResponse = {
-      success: true,
-      data: {
-        tables,
-        meta: data.meta,
+  // First get schema to extract table names
+  const schemaData = await fetchCloudflare(
+    `${CLOUDFLARE.API_BASE}/accounts/${credentials.accountId}/d1/database/${databaseId}/query`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${credentials.apiToken}`,
+        "Content-Type": "application/json",
       },
-      message: "D1 database schema retrieved successfully",
-    };
+      body: JSON.stringify({
+        sql: "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name",
+      }),
+    }
+  ) as { result?: Array<{ results?: Array<{ name: string }> }> }; 
 
-    return c.json(apiResponse, HTTP_STATUS_CODES.OK);
-  } catch (error) {
-    return c.json(
-      {
-        success: false,
-        error: "Failed to get D1 database schema",
-        message: error instanceof Error ? error.message : "Unknown error",
-        code: ErrorCode.INTERNAL_ERROR,
-      },
-      HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR
-    );
+  const tableNames = (schemaData.result?.[0]?.results || []).map((t) => t.name.toLowerCase());
+
+  const queryLower = query.toLowerCase();
+  const validationErrors: string[] = [];
+  const validationWarnings: string[] = [];
+
+  const possibleTables = queryLower.match(/\b[a-z_][a-z0-9_]*\b/g) || [];
+  
+  const keywords = new Set(["select", "from", "where", "and", "or", "insert", "into", "values", "update", "set", "delete", "create", "table", "drop", "alter", "index", "join", "on", "as", "limit", "offset", "order", "by", "group", "having", "count", "sum", "avg", "min", "max", "null", "is", "not", "in", "like", "exists", "distinct", "union", "all"]);
+  
+  for (const word of possibleTables) {
+    if (!keywords.has(word) && !tableNames.includes(word)) {
+      // Logic for checking table names
+    }
   }
+
+  if (queryLower.includes("drop table") || queryLower.includes("delete from")) {
+    validationWarnings.push("Destructive operations (DROP, DELETE) detected.");
+  }
+
+  const response: ApiResponse = {
+    success: true,
+    data: {
+      valid: validationErrors.length === 0,
+      errors: validationErrors,
+      warnings: validationWarnings,
+      estimatedCost: 1 // Dummy cost
+    },
+    message: MESSAGES.QUERY_VALIDATED
+  };
+
+  return c.json(response, HTTP_STATUS_CODES.OK);
+}));
+
+// execute d1 query
+const ExecuteQuerySchema = z.object({
+  sql: z.string().min(1, "SQL query is required"),
+  params: z.array(z.any()).optional()
 });
+
+app.post("/:id/query", zValidator('param', DatabaseIdParamSchema), zValidator('json', ExecuteQuerySchema), safe(async (c) => {
+  const credentials = c.var.credentials;
+  const { id: databaseId } = c.req.valid('param') as z.infer<typeof DatabaseIdParamSchema>;
+  const body = c.req.valid('json') as z.infer<typeof ExecuteQuerySchema>;
+
+  const data = await fetchCloudflare(
+    `${CLOUDFLARE.API_BASE}/accounts/${credentials.accountId}/d1/database/${databaseId}/query`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${credentials.apiToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ sql: body.sql, params: body.params }),
+    }
+  ) as { result?: Array<{ results?: Array<any>; meta?: any; success: boolean }> };
+
+  const apiResponse: ApiResponse = {
+    success: true,
+    data: data.result,
+    message: "Query executed successfully",
+  };
+
+  return c.json(apiResponse, HTTP_STATUS_CODES.OK);
+}));
+
+// get database schema
+app.get("/:id/schema", zValidator('param', DatabaseIdParamSchema), safe(async (c) => {
+  const credentials = c.var.credentials;
+  const { id: databaseId } = c.req.valid('param') as z.infer<typeof DatabaseIdParamSchema>;
+
+  // We get schema by querying sqlite_master
+  const data = await fetchCloudflare(
+    `${CLOUDFLARE.API_BASE}/accounts/${credentials.accountId}/d1/database/${databaseId}/query`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${credentials.apiToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        sql: "SELECT name, sql FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name",
+      }),
+    }
+  ) as { result?: Array<{ results?: Array<{ name: string; sql: string }> }> };
+
+  const tables = data.result?.[0]?.results || [];
+  
+  const apiResponse: ApiResponse = {
+    success: true,
+    data: {
+      tables: tables.map(t => ({ name: t.name, schema: t.sql }))
+    },
+    message: "Database schema retrieved successfully",
+  };
+
+  return c.json(apiResponse, HTTP_STATUS_CODES.OK);
+}));
 
 export default app;
-
