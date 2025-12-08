@@ -1,3 +1,5 @@
+import { tokenStorage } from "./token-storage";
+
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8787/api";
 
@@ -32,16 +34,23 @@ class ApiClient {
     const fetchPromise = (async () => {
       try {
         const url = `${API_BASE}${endpoint}`;
+        const token = tokenStorage.getToken();
+        const headers: HeadersInit = {
+          "Content-Type": "application/json",
+          ...options?.headers,
+        };
+
+        if (token) {
+          (headers as Record<string, string>)["Authorization"] = `Bearer ${token}`;
+        }
+
         const response = await fetch(url, {
           ...options,
-          credentials: "include",
-          headers: {
-            "Content-Type": "application/json",
-            ...options?.headers,
-          },
+          headers,
         });
 
         if (response.status === 401) {
+          tokenStorage.removeToken();
           if (typeof window !== "undefined" && !window.location.pathname.startsWith("/setup")) {
             window.location.href = "/setup";
           }
@@ -252,6 +261,7 @@ class ApiClient {
   }
 
   async logout(): Promise<ApiResponse<any>> {
+    tokenStorage.removeToken();
     return this.fetch("/setup/logout", {
       method: "POST",
     });
