@@ -34,12 +34,11 @@ export function TemplateInput({
   nodeId
 }: TemplateInputProps) {
   const { nodes } = useWorkflowStore();
-  const { catalog, getNodeByType } = useNodeRegistry();
+  const { getNodeByType } = useNodeRegistry();
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [suggestions, setSuggestions] = useState<Array<{ value: string; display: string }>>([]);
   const [cursorPosition, setCursorPosition] = useState(0);
   const [isEditing, setIsEditing] = useState(false);
-  const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [nodeDefCache, setNodeDefCache] = useState<Map<string, any>>(new Map());
   const inputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
@@ -366,7 +365,6 @@ export function TemplateInput({
 
   const editTemplate = (index: number) => {
     setIsEditing(true);
-    setEditingIndex(index);
     // Focus on the input and position cursor at the template location
     setTimeout(() => {
       if (inputRef.current) {

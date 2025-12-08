@@ -37,7 +37,7 @@ export {
 } from "./Icons";
 export { EmptyState, EmptyStateContainer, SearchEmptyState, type EmptyStateProps, type EmptyStateContainerProps, type SearchEmptyStateProps } from "./EmptyState";
 export { Checkbox, type CheckboxProps } from "./Checkbox";
-export { Badge, CheckIcon, type BadgeProps } from "./Badge";
+export { Badge, type BadgeProps } from "./Badge";
 export { Tabs, Tab, type TabsProps, type TabProps } from "./Tabs";
 export { Alert, AlertTitle, type AlertProps, type AlertTitleProps } from "./Alert";
 export { Dropdown, type DropdownProps, type DropdownOption } from "./Dropdown";

@@ -75,7 +75,6 @@ export function Dropdown({
         type="button"
         aria-haspopup="listbox"
         aria-expanded={isOpen}
-        aria-invalid={false}
         disabled={disabled}
         onClick={() => !disabled && setIsOpen(!isOpen)}
         className={cn(
