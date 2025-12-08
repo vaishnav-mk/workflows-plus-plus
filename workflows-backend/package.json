@@ -5,8 +5,8 @@
 	"private": true,
 	"scripts": {
 		"deploy": "node ../scripts/bundle-mcp.js && wrangler deploy",
-		"dev": "node ../scripts/bundle-mcp.js && wrangler dev",
-		"start": "node ../scripts/bundle-mcp.js && wrangler dev",
+		"dev": "wrangler dev --port 8787",
+		"start": "wrangler dev --port 8787",
 		"cf-typegen": "wrangler types",
 		"build": "tsc",
 		"type-check": "tsc --noEmit",
