@@ -53,16 +53,22 @@ export function D1DatabaseSelector({
     if (selectedDatabaseId && selectedDatabaseName) {
       const db = databases.find((d) => d.uuid === selectedDatabaseId);
       if (db) {
-        onNodeUpdate(nodeId, {
-          config: {
-            ...nodeData?.config,
-            database_id: selectedDatabaseId,
-            database: db.name
-          }
-        });
+        // Only update if values are different to avoid infinite loops
+        if (
+          nodeData?.config?.database_id !== selectedDatabaseId ||
+          nodeData?.config?.database !== db.name
+        ) {
+          onNodeUpdate(nodeId, {
+            config: {
+              ...nodeData?.config,
+              database_id: selectedDatabaseId,
+              database: db.name
+            }
+          });
+        }
       }
     }
-  }, [selectedDatabaseId, selectedDatabaseName, databases]);
+  }, [selectedDatabaseId, selectedDatabaseName, databases, nodeId, onNodeUpdate, nodeData?.config]);
 
   const loadDatabases = async () => {
     setLoading(true);

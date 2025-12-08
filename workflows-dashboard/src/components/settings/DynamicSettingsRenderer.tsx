@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import { SettingField } from '@/components/settings/NodeSettingsConfigs';
 import { ConditionalBuilder } from '@/components/settings/ConditionalBuilder';
 import { ConditionalRouterBuilder } from '@/components/settings/ConditionalRouterBuilder';
@@ -8,7 +8,6 @@ import { D1DatabaseSelector } from '@/components/settings/D1DatabaseSelector';
 import { KVNamespaceSelector } from '@/components/settings/KVNamespaceSelector';
 import { R2BucketSelector } from '@/components/settings/R2BucketSelector';
 import { TransformNodeSettings } from '@/components/settings/TransformNodeSettings';
-import { SettingCard } from '@/components/ui/SettingCard';
 import { SettingInput } from '@/components/ui/SettingInput';
 import { TemplateInput } from '@/components/ui/TemplateInput';
 import { SettingSelect } from '@/components/ui/SettingSelect';
@@ -30,11 +29,6 @@ export function DynamicSettingsRenderer({
   onNodeUpdate, 
   nodeId 
 }: DynamicSettingsRendererProps) {
-  // Debug: Log when nodeData changes
-  useEffect(() => {
-    // nodeData effect
-  }, [nodeData?.config?.value?.type]);
-
   const handleFieldChange = (key: string, value: any) => {
     // Handle number inputs properly
     let processedValue = value;

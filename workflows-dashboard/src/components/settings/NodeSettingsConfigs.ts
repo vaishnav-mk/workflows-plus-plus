@@ -73,7 +73,8 @@ function generateFieldsFromSchema(schema: JSONSchema, prefix = '', requiredField
         type: 'd1-database-selector',
         key: 'd1-database-config',
       });
-      const { database, ...otherProps } = schema.properties;
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { database: _database, ...otherProps } = schema.properties;
       const otherFields = generateFieldsFromSchema(
         { ...schema, properties: otherProps },
         prefix,
@@ -105,7 +106,8 @@ function generateFieldsFromSchema(schema: JSONSchema, prefix = '', requiredField
           type: 'kv-namespace-selector',
           key: 'kv-namespace-config',
         });
-        const { namespace, ...otherProps } = schema.properties;
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { namespace: _namespace, ...otherProps } = schema.properties;
         const otherFields = generateFieldsFromSchema(
           { ...schema, properties: otherProps },
           prefix,
@@ -128,7 +130,8 @@ function generateFieldsFromSchema(schema: JSONSchema, prefix = '', requiredField
           type: 'r2-bucket-selector',
           key: 'r2-bucket-config',
         });
-        const { bucket, ...otherProps } = schema.properties;
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { bucket: _bucket, ...otherProps } = schema.properties;
         const otherFields = generateFieldsFromSchema(
           { ...schema, properties: otherProps },
           prefix,
@@ -339,7 +342,7 @@ export function useNodeSettingsConfigs(): NodeSettingsConfig {
             );
             settingsConfig[nodeDef.metadata.type] = fields;
           }
-        } catch (error) {
+        } catch {
           console.error(`[NodeSettingsConfigs] Failed: ${catalogItem.type}`);
         }
       }
