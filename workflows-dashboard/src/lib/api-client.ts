@@ -83,21 +83,7 @@ class ApiClient {
   }
 
   async getCatalog(): Promise<ApiResponse<any[]>> {
-    const rawResponse = await fetch(`${API_BASE}/catalog`, {
-      headers: { "Content-Type": "application/json" },
-    });
-    
-    const data = await rawResponse.json();
-    
-    if (Array.isArray(data)) {
-      return { success: true, data };
-    }
-    
-    if (data.success && Array.isArray(data.data)) {
-      return { success: true, data: data.data };
-    }
-    
-    return { success: false, error: "Failed to parse catalog response" };
+    return this.fetch<any[]>("/catalog", undefined, "catalog");
   }
 
   async getNodeDefinition(nodeType: string): Promise<ApiResponse<any>> {
