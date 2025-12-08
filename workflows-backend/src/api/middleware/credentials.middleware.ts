@@ -1,11 +1,8 @@
 import { createMiddleware } from "hono/factory";
-import { getCookie } from "hono/cookie";
 import { ErrorCode } from "../../core/enums";
 import { logger } from "../../core/logging/logger";
-import { decryptCredentials } from "../../core/utils/credentials";
+import { extractCredentialsFromToken } from "../../core/utils/jwt";
 import { AppContext, CloudflareCredentials } from "../../core/types";
-
-const CREDENTIALS_COOKIE_NAME = "cf_credentials";
 
 export const credentialsMiddleware = createMiddleware<
   AppContext
@@ -14,17 +11,18 @@ export const credentialsMiddleware = createMiddleware<
   const env = c.env;
   let credentials: CloudflareCredentials | null = null;
 
-  const encryptedCookie = getCookie(c, CREDENTIALS_COOKIE_NAME);
+  const authHeader = c.req.header("Authorization");
+  const token = authHeader?.startsWith("Bearer ") ? authHeader.substring(7) : null;
 
-  if (encryptedCookie && env.CREDENTIALS_MASTER_KEY) {
+  if (token && env.CREDENTIALS_MASTER_KEY) {
     try {
-      credentials = await decryptCredentials(
-        encryptedCookie,
+      credentials = await extractCredentialsFromToken(
+        token,
         env.CREDENTIALS_MASTER_KEY
       );
-      logger.debug("credentials loaded from cookie");
+      logger.debug("credentials loaded from jwt token");
     } catch (error) {
-      logger.error("failed to decrypt credentials", error as Error);
+      logger.error("failed to extract credentials from token", error as Error);
     }
   }
 

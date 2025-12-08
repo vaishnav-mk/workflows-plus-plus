@@ -1,11 +1,8 @@
 import { Context, Next } from "hono";
-import { getCookie } from "hono/cookie";
 import { ErrorCode } from "../../core/enums";
 import { logger } from "../../core/logging/logger";
 import { PUBLIC_ROUTES, PUBLIC_ROUTE_PREFIXES } from "../../core/constants";
 import { AppContext } from "../../core/types";
-
-const CREDENTIALS_COOKIE_NAME = "cf_credentials";
 
 export async function authMiddleware(
   c: Context<AppContext>,
@@ -20,10 +17,11 @@ export async function authMiddleware(
     return next();
   }
 
-  const cookie = getCookie(c, CREDENTIALS_COOKIE_NAME);
+  const authHeader = c.req.header("Authorization");
+  const token = authHeader?.startsWith("Bearer ") ? authHeader.substring(7) : null;
 
-  if (!cookie) {
-    logger.warn("authentication failed: no cookie", {
+  if (!token) {
+    logger.warn("authentication failed: no bearer token", {
       path,
       method: c.req.method
     });
