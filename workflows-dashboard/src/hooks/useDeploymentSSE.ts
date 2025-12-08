@@ -53,7 +53,7 @@ export function useDeploymentSSE({
   const reconnectAttempts = useRef(0);
   const maxReconnectAttempts = 5;
 
-  const connect = useCallback(() => {
+  const connect = useCallback(async () => {
     if (!enabled || !deploymentId) {
       return;
     }
@@ -66,9 +66,12 @@ export function useDeploymentSSE({
       const apiBase =
         process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8787/api";
       const base = apiBase.replace(/\/$/, "");
-      const streamUrl = `${base}/deployments/${deploymentId}/stream`;
+      
+      const { tokenStorage } = await import("@/lib/token-storage");
+      const token = tokenStorage.getToken();
+      const streamUrl = `${base}/deployments/${deploymentId}/stream${token ? `?token=${encodeURIComponent(token)}` : ''}`;
 
-      const eventSource = new EventSource(streamUrl, { withCredentials: true });
+      const eventSource = new EventSource(streamUrl);
       eventSourceRef.current = eventSource;
 
       eventSource.onopen = () => {

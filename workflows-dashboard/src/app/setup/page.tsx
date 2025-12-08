@@ -141,7 +141,6 @@ export default function SetupPage() {
         headers: {
           "Content-Type": "application/json"
         },
-        credentials: "include",
         body: JSON.stringify({
           apiToken: apiToken.trim(),
           accountId: accountId.trim()
@@ -201,7 +200,6 @@ export default function SetupPage() {
                     headers: {
                       "Content-Type": "application/json"
                     },
-                    credentials: "include",
                     body: JSON.stringify({
                       apiToken: apiToken.trim(),
                       accountId: accountId.trim()
@@ -210,7 +208,15 @@ export default function SetupPage() {
 
                   const saveData = await saveResponse.json();
 
-                  if (saveResponse.ok && saveData.success) {
+                  if (
+                    saveResponse.ok &&
+                    saveData.success &&
+                    saveData.data?.token
+                  ) {
+                    const { tokenStorage } = await import(
+                      "@/lib/token-storage"
+                    );
+                    tokenStorage.setToken(saveData.data.token);
                     toast.success("Credentials configured successfully");
                     await new Promise((resolve) => setTimeout(resolve, 500));
                     router.push("/builder");

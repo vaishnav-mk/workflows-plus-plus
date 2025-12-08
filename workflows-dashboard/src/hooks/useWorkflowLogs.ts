@@ -93,9 +93,14 @@ export function useWorkflowLogs({
       try {
         const tailUrl = `http://localhost:8787/api/workflows/${workflowNameRef.current}/instances/${instanceIdRef.current}/logs/tail-url`;
         
-        const response = await fetch(tailUrl, {
-          credentials: "include"
-        });
+        const { tokenStorage } = await import("@/lib/token-storage");
+        const token = tokenStorage.getToken();
+        const headers: HeadersInit = {};
+        if (token) {
+          headers["Authorization"] = `Bearer ${token}`;
+        }
+        
+        const response = await fetch(tailUrl, { headers });
         const data = await response.json();
 
         if (!data.success) {
