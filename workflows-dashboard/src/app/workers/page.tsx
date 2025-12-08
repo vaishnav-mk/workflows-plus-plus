@@ -8,7 +8,6 @@ import { useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../../lib/api-client';
 import { PageHeader, SearchBar, DataTable, UsageStatsPanel, Card, Pagination, Alert, AlertTitle } from '@/components';
 import { type ColumnDef } from '@tanstack/react-table';
-import { MoreVerticalIcon } from '@/components/ui';
 import Link from 'next/link';
 
 interface Worker {
@@ -31,7 +30,7 @@ export default function WorkersPage() {
 
   const { data: workersResult, isLoading: loading, isFetching, error: queryError } = useWorkersQuery(pagination.page, pagination.per_page);
   
-  const workers = workersResult?.data || [];
+  const workers = useMemo(() => workersResult?.data || [], [workersResult?.data]);
   const error = queryError instanceof Error ? queryError.message : (queryError ? String(queryError) : null);
   
   // Update pagination when data changes

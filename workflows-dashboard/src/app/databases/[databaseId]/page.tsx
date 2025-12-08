@@ -6,7 +6,7 @@ import Link from "next/link";
 import { apiClient } from "@/lib/api-client";
 import { Card, CardContent, PageHeader, Button } from "@/components";
 import { InlineLoader } from "@/components/ui/Loader";
-import { Database, Table, Play, Check } from "lucide-react";
+import { Table, Play } from "lucide-react";
 import { QueryResultTable } from "@/components/database/QueryResultTable";
 import { SchemaViewer } from "@/components/database/SchemaViewer";
 
@@ -29,7 +29,6 @@ function DatabaseDetailContent() {
 
   const [database, setDatabase] = useState<any>(null);
   const [tables, setTables] = useState<TableInfo[]>([]);
-  const [loading, setLoading] = useState(true);
   const [loadingSchema, setLoadingSchema] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
@@ -66,6 +65,7 @@ function DatabaseDetailContent() {
       loadDatabase();
       loadSchema();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [databaseId]);
 
   const loadDatabase = async () => {
@@ -93,7 +93,6 @@ function DatabaseDetailContent() {
       setError(err instanceof Error ? err.message : "Unknown error");
     } finally {
       setLoadingSchema(false);
-      setLoading(false);
     }
   };
 
@@ -290,7 +289,7 @@ function DatabaseDetailContent() {
                   {returnToBuilder && returnNodeId && returnToBuilderUrl && (
                     <Link
                       href={returnToBuilderUrl}
-                      onClick={(e) => {
+                      onClick={(_e) => {
                         console.log(
                           "[DatabaseDetailPage] Return to Builder link clicked",
                           {

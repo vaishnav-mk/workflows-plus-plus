@@ -20,91 +20,91 @@ export default function NotFound() {
   const colorGrid = useRef<Map<string, string>>(new Map());
   const lastTextureUpdate = useRef<number>(0);
 
-  function pickColor() {
-    const r = Math.random();
+  useEffect(() => {
+    function pickColor() {
+      const r = Math.random();
 
-    if (r < 0.75) {
-      const grays = ['#F2F2F2', '#EAEAEA', '#E0E0E0', '#D7D7D7'];
-      return grays[Math.floor(Math.random() * grays.length)];
+      if (r < 0.75) {
+        const grays = ['#F2F2F2', '#EAEAEA', '#E0E0E0', '#D7D7D7'];
+        return grays[Math.floor(Math.random() * grays.length)];
+      }
+
+      if (r < 0.9) return '#FFFFFF';
+      return '#1447E6';
     }
 
-    if (r < 0.9) return '#FFFFFF';
-    return '#1447E6';
-  }
-
-  function getCellColor(x: number, y: number) {
-    const key = `${x},${y}`;
-    if (!colorGrid.current.has(key)) {
-      colorGrid.current.set(key, pickColor());
+    function getCellColor(x: number, y: number) {
+      const key = `${x},${y}`;
+      if (!colorGrid.current.has(key)) {
+        colorGrid.current.set(key, pickColor());
+      }
+      return colorGrid.current.get(key)!;
     }
-    return colorGrid.current.get(key)!;
-  }
 
-  function drawGrid(
-    ctx: CanvasRenderingContext2D,
-    width: number,
-    height: number,
-    offsetX: number,
-    offsetY: number
-  ) {
-    ctx.clearRect(0, 0, width, height);
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, width, height);
+    function drawGrid(
+      ctx: CanvasRenderingContext2D,
+      width: number,
+      height: number,
+      offsetX: number,
+      offsetY: number
+    ) {
+      ctx.clearRect(0, 0, width, height);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, width, height);
 
-    ctx.lineWidth = borderPx;
-    ctx.strokeStyle = '#d1d5db';
-    ctx.font = '10px monospace';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
+      ctx.lineWidth = borderPx;
+      ctx.strokeStyle = '#d1d5db';
+      ctx.font = '10px monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
 
-    const baseX = Math.floor(offsetX / cellSize) * cellSize;
-    const baseY = Math.floor(offsetY / cellSize) * cellSize;
+      const baseX = Math.floor(offsetX / cellSize) * cellSize;
+      const baseY = Math.floor(offsetY / cellSize) * cellSize;
 
-    for (let y = -cellSize; y < height + cellSize; y += cellSize) {
-      for (let x = -cellSize; x < width + cellSize; x += cellSize) {
-        const worldX = baseX + x;
-        const worldY = baseY + y;
+      for (let y = -cellSize; y < height + cellSize; y += cellSize) {
+        for (let x = -cellSize; x < width + cellSize; x += cellSize) {
+          const worldX = baseX + x;
+          const worldY = baseY + y;
 
-        const screenX = x - (offsetX % cellSize);
-        const screenY = y - (offsetY % cellSize);
+          const screenX = x - (offsetX % cellSize);
+          const screenY = y - (offsetY % cellSize);
 
-        const color = getCellColor(worldX, worldY);
+          const color = getCellColor(worldX, worldY);
 
-        const padding = borderPx / 2;
-        const size = cellSize - borderPx;
+          const padding = borderPx / 2;
+          const size = cellSize - borderPx;
 
-        ctx.fillStyle = color;
-        ctx.fillRect(
-          screenX + padding,
-          screenY + padding,
-          size,
-          size
-        );
-
-        ctx.strokeRect(
-          screenX + padding,
-          screenY + padding,
-          size,
-          size
-        );
-
-        // Add "4" to grey boxes and "0" to white boxes
-        const isGrey = color !== '#FFFFFF' && color !== '#1447E6';
-        const isWhite = color === '#FFFFFF';
-        
-        if (isGrey || isWhite) {
-          ctx.fillStyle = '#000000';
-          ctx.fillText(
-            isGrey ? '4' : '0',
-            screenX + padding + size / 2,
-            screenY + padding + size / 2
+          ctx.fillStyle = color;
+          ctx.fillRect(
+            screenX + padding,
+            screenY + padding,
+            size,
+            size
           );
+
+          ctx.strokeRect(
+            screenX + padding,
+            screenY + padding,
+            size,
+            size
+          );
+
+          // Add "4" to grey boxes and "0" to white boxes
+          const isGrey = color !== '#FFFFFF' && color !== '#1447E6';
+          const isWhite = color === '#FFFFFF';
+          
+          if (isGrey || isWhite) {
+            ctx.fillStyle = '#000000';
+            ctx.fillText(
+              isGrey ? '4' : '0',
+              screenX + padding + size / 2,
+              screenY + padding + size / 2
+            );
+          }
         }
       }
     }
-  }
 
-  useEffect(() => {
     let raf = 0;
     let lastTime = performance.now();
 

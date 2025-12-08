@@ -1,15 +1,23 @@
-'use client';
+"use client";
 
-import { useState, useMemo, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useWorkflowsQuery } from '../../hooks/useWorkflowsQuery';
-import { InlineLoader } from '../../components/ui/Loader';
-import { useQueryClient } from '@tanstack/react-query';
-import { apiClient } from '../../lib/api-client';
-import { PageHeader, SearchBar, DataTable, UsageStatsPanel, Card, Pagination, Alert, AlertTitle } from '@/components';
-import { type ColumnDef } from '@tanstack/react-table';
-import { MoreVerticalIcon } from '@/components/ui';
-import Link from 'next/link';
+import { useState, useMemo, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useWorkflowsQuery } from "../../hooks/useWorkflowsQuery";
+import { InlineLoader } from "../../components/ui/Loader";
+import { useQueryClient } from "@tanstack/react-query";
+import { apiClient } from "../../lib/api-client";
+import {
+  PageHeader,
+  SearchBar,
+  DataTable,
+  UsageStatsPanel,
+  Card,
+  Pagination,
+  Alert,
+  AlertTitle
+} from "@/components";
+import { type ColumnDef } from "@tanstack/react-table";
+import Link from "next/link";
 
 interface Workflow {
   id: string;
@@ -24,25 +32,37 @@ interface Workflow {
 export default function WorkflowsPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [pagination, setPagination] = useState({
     page: 1,
     per_page: 10,
     total: 0,
     total_pages: 0
   });
-  
+
   // Use React Query for caching - data is cached and won't refetch on page changes
-  const { data: workflowsResult, isLoading: loading, isFetching, error: queryError } = useWorkflowsQuery(pagination.page, pagination.per_page);
-  
-  const workflows = workflowsResult?.data || [];
-  const error = queryError ? (queryError instanceof Error ? queryError.message : 'Failed to fetch workflows') : null;
-  
+  const {
+    data: workflowsResult,
+    isLoading: loading,
+    isFetching,
+    error: queryError
+  } = useWorkflowsQuery(pagination.page, pagination.per_page);
+
+  const workflows = useMemo(
+    () => workflowsResult?.data || [],
+    [workflowsResult?.data]
+  );
+  const error = queryError
+    ? queryError instanceof Error
+      ? queryError.message
+      : "Failed to fetch workflows"
+    : null;
+
   // Update pagination when data changes
   useEffect(() => {
     if (workflowsResult?.pagination) {
       const newPagination = workflowsResult.pagination;
-      setPagination(prev => {
+      setPagination((prev) => {
         // Only update if values actually changed to avoid unnecessary re-renders
         if (
           prev.page !== newPagination.page ||
@@ -60,7 +80,7 @@ export default function WorkflowsPage() {
   // Prefetch next page when data is available
   useEffect(() => {
     if (!workflowsResult?.pagination) return;
-    
+
     const currentPage = workflowsResult.pagination.page;
     const totalPages = workflowsResult.pagination.total_pages;
     const perPage = workflowsResult.pagination.per_page;
@@ -69,37 +89,37 @@ export default function WorkflowsPage() {
     if (currentPage < totalPages) {
       const nextPage = currentPage + 1;
       queryClient.prefetchQuery({
-        queryKey: ['workflows', nextPage, perPage],
+        queryKey: ["workflows", nextPage, perPage],
         queryFn: async () => {
           const result = await apiClient.getWorkflows(nextPage, perPage);
           if (!result.success) {
-            throw new Error(result.error || 'Failed to fetch workflows');
+            throw new Error(result.error || "Failed to fetch workflows");
           }
           return {
             data: result.data || [],
-            pagination: result.pagination,
+            pagination: result.pagination
           };
         },
-        staleTime: 5 * 60 * 1000,
+        staleTime: 5 * 60 * 1000
       });
     }
-    
+
     // Also prefetch previous page if not on first page
     if (currentPage > 1) {
       const prevPage = currentPage - 1;
       queryClient.prefetchQuery({
-        queryKey: ['workflows', prevPage, perPage],
+        queryKey: ["workflows", prevPage, perPage],
         queryFn: async () => {
           const result = await apiClient.getWorkflows(prevPage, perPage);
           if (!result.success) {
-            throw new Error(result.error || 'Failed to fetch workflows');
+            throw new Error(result.error || "Failed to fetch workflows");
           }
           return {
             data: result.data || [],
-            pagination: result.pagination,
+            pagination: result.pagination
           };
         },
-        staleTime: 5 * 60 * 1000,
+        staleTime: 5 * 60 * 1000
       });
     }
   }, [workflowsResult, queryClient]);
@@ -107,55 +127,71 @@ export default function WorkflowsPage() {
   const filteredWorkflows = useMemo(() => {
     if (!searchQuery) return workflows;
     const query = searchQuery.toLowerCase();
-    return workflows.filter((w: Workflow) => 
-      w.name.toLowerCase().includes(query) ||
-      w.description?.toLowerCase().includes(query)
+    return workflows.filter(
+      (w: Workflow) =>
+        w.name.toLowerCase().includes(query) ||
+        w.description?.toLowerCase().includes(query)
     );
   }, [workflows, searchQuery]);
 
-  const columns: ColumnDef<Workflow>[] = useMemo(() => [
-    {
-      accessorKey: 'name',
-      header: 'Workflow',
-      cell: ({ row }) => (
-        <Link 
-          href={`/workflows/${row.original.name}/instances`}
-          className="text-sm font-medium text-blue-600 hover:text-blue-500"
-        >
-          {row.original.name}
-        </Link>
-      ),
-    },
-    {
-      id: 'inactive',
-      header: () => <div>Inactive</div>,
-      cell: () => <div className="text-sm text-gray-500">0 instances</div>,
-      meta: { align: 'center' },
-    },
-    {
-      id: 'running',
-      header: () => <div>Running</div>,
-      cell: () => <div className="text-sm text-gray-500">0 instances</div>,
-      meta: { align: 'center' },
-    },
-    {
-      id: 'ended',
-      header: () => <div>Ended</div>,
-      cell: () => <div className="text-sm text-gray-500">1 instances</div>,
-      meta: { align: 'center' },
-    },
-    {
-      id: 'errored',
-      header: () => <div>Errored</div>,
-      cell: () => <div className="text-sm text-gray-500">1 instances</div>,
-      meta: { align: 'center' },
-    },
-  ], []);
+  const columns: ColumnDef<Workflow>[] = useMemo(
+    () => [
+      {
+        accessorKey: "name",
+        header: "Workflow",
+        cell: ({ row }) => (
+          <Link
+            href={`/workflows/${row.original.name}/instances`}
+            className="text-sm font-medium text-blue-600 hover:text-blue-500"
+          >
+            {row.original.name}
+          </Link>
+        )
+      },
+      {
+        id: "inactive",
+        header: () => <div>Inactive</div>,
+        cell: () => <div className="text-sm text-gray-500">0 instances</div>,
+        meta: { align: "center" }
+      },
+      {
+        id: "running",
+        header: () => <div>Running</div>,
+        cell: () => <div className="text-sm text-gray-500">0 instances</div>,
+        meta: { align: "center" }
+      },
+      {
+        id: "ended",
+        header: () => <div>Ended</div>,
+        cell: () => <div className="text-sm text-gray-500">1 instances</div>,
+        meta: { align: "center" }
+      },
+      {
+        id: "errored",
+        header: () => <div>Errored</div>,
+        cell: () => <div className="text-sm text-gray-500">1 instances</div>,
+        meta: { align: "center" }
+      }
+    ],
+    []
+  );
 
   const usageStats = [
-    { title: 'Total CPU time', value: '~ 14 ms', infoTooltip: 'Total CPU time used by workflows' },
-    { title: 'Total Wall time', value: '~ 997 ms', infoTooltip: 'Total wall clock time' },
-    { title: 'Total Retries', value: '12', infoTooltip: 'Total number of retries' },
+    {
+      title: "Total CPU time",
+      value: "~ 14 ms",
+      infoTooltip: "Total CPU time used by workflows"
+    },
+    {
+      title: "Total Wall time",
+      value: "~ 997 ms",
+      infoTooltip: "Total wall clock time"
+    },
+    {
+      title: "Total Retries",
+      value: "12",
+      infoTooltip: "Total number of retries"
+    }
   ];
 
   if (error) {
@@ -217,7 +253,9 @@ export default function WorkflowsPage() {
                       totalPages={pagination.total_pages}
                       totalItems={pagination.total}
                       itemsPerPage={pagination.per_page}
-                      onPageChange={(page) => setPagination(prev => ({ ...prev, page }))}
+                      onPageChange={(page) =>
+                        setPagination((prev) => ({ ...prev, page }))
+                      }
                     />
                   )}
                 </>
