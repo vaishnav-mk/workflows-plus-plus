@@ -1,5 +1,10 @@
 import { describe, it, expect, beforeAll } from "vitest";
-import { authenticatedFetch, unauthenticatedFetch, parseJsonResponse, createTestCredentials } from "../helpers/test-helpers";
+import {
+  authenticatedFetch,
+  unauthenticatedFetch,
+  parseJsonResponse,
+  createTestCredentials
+} from "../helpers/test-helpers";
 
 describe("Setup Routes", () => {
   const testCredentials = createTestCredentials();
@@ -19,22 +24,19 @@ describe("Setup Routes", () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           apiToken: testCredentials.apiToken,
-          accountId: testCredentials.accountId,
-        }),
+          accountId: testCredentials.accountId
+        })
       });
 
       // Should return 200 if token is valid, or 401/500/503 if invalid/error/service unavailable
       expect([200, 401, 503]).toContain(response.status);
-      const data = await parseJsonResponse(response);
-      
+      const data = (await parseJsonResponse(response)) as any;
+
       if (response.status === 200) {
         expect(data.success).toBe(true);
         expect(data.data.configured).toBe(true);
-        
-        // Check that cookie was set
-        const setCookieHeader = response.headers.get("Set-Cookie");
-        expect(setCookieHeader).toBeDefined();
-        expect(setCookieHeader).toContain("cf_credentials");
+        expect(data.data.token).toBeDefined();
+        expect(typeof data.data.token).toBe("string");
       } else {
         expect(data.success).toBe(false);
       }
@@ -48,14 +50,14 @@ describe("Setup Routes", () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           apiToken: "invalid-token",
-          accountId: testCredentials.accountId,
-        }),
+          accountId: testCredentials.accountId
+        })
       });
 
       // Should return 401 for invalid token
       expect([200, 401]).toContain(response.status);
       if (response.status === 401) {
-        const data = await parseJsonResponse(response);
+        const data = (await parseJsonResponse(response)) as any;
         expect(data.success).toBe(false);
         expect(data.error).toBeDefined();
       }
@@ -66,13 +68,13 @@ describe("Setup Routes", () => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          apiToken: testCredentials.apiToken,
+          apiToken: testCredentials.apiToken
           // Missing accountId
-        }),
+        })
       });
 
       expect(response.status).toBe(400);
-      const data = await parseJsonResponse(response);
+      const data = (await parseJsonResponse(response)) as any;
       expect(data.success).toBe(false);
     });
   });
@@ -87,13 +89,15 @@ describe("Setup Routes", () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           apiToken: testCredentials.apiToken,
-          accountId: testCredentials.accountId,
-        }),
+          accountId: testCredentials.accountId
+        })
       });
 
       // Should return 200 with SSE stream
       expect(response.status).toBe(200);
-      expect(response.headers.get("Content-Type")).toContain("text/event-stream");
+      expect(response.headers.get("Content-Type")).toContain(
+        "text/event-stream"
+      );
     });
 
     it("should fail with invalid token in stream", async () => {
@@ -104,27 +108,28 @@ describe("Setup Routes", () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           apiToken: "invalid-token",
-          accountId: testCredentials.accountId,
-        }),
+          accountId: testCredentials.accountId
+        })
       });
 
       // SSE streams return 200 even on error
       expect(response.status).toBe(200);
-      expect(response.headers.get("Content-Type")).toContain("text/event-stream");
+      expect(response.headers.get("Content-Type")).toContain(
+        "text/event-stream"
+      );
     });
   });
 
   describe("POST /api/setup/logout", () => {
     it("should successfully logout", async () => {
       const response = await authenticatedFetch("/api/setup/logout", {
-        method: "POST",
+        method: "POST"
       });
 
       expect(response.status).toBe(200);
-      const data = await parseJsonResponse(response);
+      const data = (await parseJsonResponse(response)) as any;
       expect(data.success).toBe(true);
       expect(data.data.loggedOut).toBe(true);
     });
   });
 });
-

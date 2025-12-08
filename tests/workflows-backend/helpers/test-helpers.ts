@@ -21,15 +21,11 @@ export function createTestCredentials(): CredentialsContext {
   };
 }
 
-// Cache for authenticated cookie
-let cachedAuthCookie: string | null = null;
+let cachedAuthToken: string | null = null;
 
-/**
- * Get or create authenticated cookie by calling setup endpoint
- */
-async function getAuthenticatedCookie(): Promise<string> {
-  if (cachedAuthCookie) {
-    return cachedAuthCookie;
+async function getAuthToken(): Promise<string> {
+  if (cachedAuthToken) {
+    return cachedAuthToken;
   }
 
   const credentials = createTestCredentials();
@@ -44,54 +40,39 @@ async function getAuthenticatedCookie(): Promise<string> {
     });
 
     if (setupResponse.ok) {
-      // Extract cookie from Set-Cookie header
-      const setCookieHeader = setupResponse.headers.get("Set-Cookie");
-      if (setCookieHeader) {
-        // Extract the cookie value - it's URL-encoded in the Set-Cookie header
-        const match = setCookieHeader.match(/cf_credentials=([^;]+)/);
-        if (match && match[1]) {
-          // The cookie value is URL-encoded in Set-Cookie header
-          // We need to decode it to get the actual encrypted value
-          // Then when we send it in Cookie header, it will be automatically encoded by fetch
-          cachedAuthCookie = decodeURIComponent(match[1]);
-          console.log("[TEST] Successfully obtained authenticated cookie");
-          return cachedAuthCookie;
-        }
+      const data = await setupResponse.json();
+      if (data.success && data.data?.token) {
+        cachedAuthToken = data.data.token;
+        console.log("[TEST] Successfully obtained auth token");
+        return cachedAuthToken as string;
       }
     } else {
       const errorText = await setupResponse.text();
-      console.warn("[TEST] Failed to get authenticated cookie from setup endpoint:", setupResponse.status, errorText.substring(0, 200));
+      console.warn("[TEST] Failed to get auth token from setup endpoint:", setupResponse.status, errorText.substring(0, 200));
     }
   } catch (error) {
-    console.warn("[TEST] Error getting authenticated cookie:", error);
+    console.warn("[TEST] Error getting auth token:", error);
   }
 
-  // Fallback: return dummy cookie (will rely on env vars in backend)
   console.warn("[TEST] Using fallback authentication (relying on backend env vars)");
-  return "dummy-cookie-for-auth-check";
+  return "dummy-token-for-auth-check";
 }
 
-/**
- * Helper to make authenticated requests to the actual API
- * Uses the real API endpoint at http://localhost:8787
- * Gets a real cookie from the setup endpoint or uses env vars fallback
- */
 export async function authenticatedFetch(
   path: string,
   options: RequestInit = {}
 ): Promise<Response> {
   const url = new URL(path, API_BASE_URL);
-  const cookie = await getAuthenticatedCookie();
+  const token = await getAuthToken();
   
   const response = await fetch(url.toString(), {
     ...options,
     headers: {
       ...options.headers,
-      Cookie: `cf_credentials=${cookie}`,
+      Authorization: `Bearer ${token}`,
     },
   });
 
-  // Log errors for debugging
   if (response.status >= 500) {
     await logErrorResponse(response, `${options.method || 'GET'} ${path}`);
   }
