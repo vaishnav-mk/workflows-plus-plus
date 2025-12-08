@@ -2,9 +2,8 @@
 
 import { useState, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { InstanceLoader } from '../../../../components/ui/Loader';
 import { Spinner } from '@/components';
-import { PageHeader, DataTable, Card, StatCard, Tabs, Tab, Button, Dropdown, Alert, AlertTitle, Pagination } from '@/components';
+import { PageHeader, DataTable, Card, StatCard, Tabs, Tab, Dropdown, Alert, AlertTitle, Pagination } from '@/components';
 import { type ColumnDef } from '@tanstack/react-table';
 import { Badge } from '@/components/ui';
 import Link from 'next/link';

@@ -1,13 +1,6 @@
-/**
- * API Contract Types for Request/Response
- */
-
 import { TemplateResolutionStatus, ErrorCode } from "./enums";
 import { CompilationResult } from "./types";
 
-/**
- * Lightweight node catalog response (<5KB)
- */
 export interface CatalogResponse {
   success: boolean;
   data: Array<{
@@ -21,9 +14,6 @@ export interface CatalogResponse {
   message?: string;
 }
 
-/**
- * Full node schema response for property panel
- */
 export interface NodeSchemaResponse {
   success: boolean;
   data: {
@@ -35,7 +25,7 @@ export interface NodeSchemaResponse {
       category: string;
       version: string;
     };
-    configSchema: Record<string, unknown>; // JSON Schema
+    configSchema: Record<string, unknown>;
     inputPorts: Array<Record<string, unknown>>;
     outputPorts: Array<Record<string, unknown>>;
     bindings: Array<Record<string, unknown>>;
@@ -46,9 +36,6 @@ export interface NodeSchemaResponse {
   message?: string;
 }
 
-/**
- * Compilation response
- */
 export interface CompilationResponse {
   success: boolean;
   data: CompilationResult;
@@ -60,9 +47,6 @@ export interface CompilationResponse {
   }>;
 }
 
-/**
- * Binding validation response
- */
 export interface BindingValidationResponse {
   success: boolean;
   data: {
@@ -88,9 +72,6 @@ export interface BindingValidationResponse {
   message?: string;
 }
 
-/**
- * Template resolution response
- */
 export interface TemplateResolutionResponse {
   success: boolean;
   data: {
@@ -111,14 +92,12 @@ export interface TemplateResolutionResponse {
   message?: string;
 }
 
-/**
- * Standard API response wrapper
- */
 export interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;
   error?: string;
   message?: string;
+  code?: ErrorCode;
   pagination?: {
     page: number;
     per_page: number;
@@ -127,9 +106,6 @@ export interface ApiResponse<T = unknown> {
   };
 }
 
-/**
- * Error response
- */
 export interface ErrorResponse {
   success: false;
   error: string;
@@ -141,4 +117,3 @@ export interface ErrorResponse {
     message: string;
   }>;
 }
-

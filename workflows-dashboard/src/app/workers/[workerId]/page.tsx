@@ -1,32 +1,10 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import { WorkflowLoader } from '../../../components/ui/Loader';
-import { Spinner } from '@/components';
-import { useWorkerQuery } from '../../../hooks/useWorkflowsQuery';
-import { PageHeader, Card, CardHeader, CardContent, Button, Badge, DetailsList, StatCard } from '@/components';
+import { PageHeader, Card, CardHeader, CardContent, Badge, DetailsList, StatCard, Spinner } from '@/components';
 import { Alert, AlertTitle } from '@/components';
+import { useWorkerQuery } from '@/hooks/useWorkflowsQuery';
 import Link from 'next/link';
-
-interface Worker {
-  id: string;
-  name: string;
-  created_on: string;
-  updated_on?: string;
-  subdomain?: {
-    enabled: boolean;
-    previews_enabled: boolean;
-  };
-  observability?: {
-    enabled: boolean;
-    logs?: {
-      enabled: boolean;
-    };
-    traces?: {
-      enabled: boolean;
-    };
-  };
-}
 
 export default function WorkerDetailPage() {
   const params = useParams();

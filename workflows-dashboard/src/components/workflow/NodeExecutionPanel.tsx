@@ -36,15 +36,8 @@ export function NodeExecutionPanel({ node }: NodeExecutionPanelProps) {
       ? node.type
       : node.id;
 
-  // Only HTTP Request nodes are truly locally executable right now
   const supportsLocalExecution = nodeType === 'http-request';
 
-  // If node cannot be locally tested, hide the panel entirely
-  if (!supportsLocalExecution) {
-    return null;
-  }
-
-  // Compute simple diagram of upstream data dependencies
   const incomingConnections = useMemo(() => {
     const incoming = edges.filter((e) => e.target === node.id);
     return incoming.map((edge) => {
@@ -61,6 +54,10 @@ export function NodeExecutionPanel({ node }: NodeExecutionPanelProps) {
       };
     });
   }, [edges, nodes, node.id]);
+
+  if (!supportsLocalExecution) {
+    return null;
+  }
 
   const handleExecute = async () => {
     setExecutionResult(null);
@@ -139,7 +136,6 @@ export function NodeExecutionPanel({ node }: NodeExecutionPanelProps) {
           )}
         </div>
 
-        {/* Simple data dependency diagram */}
         <div className="space-y-2">
           <label className="text-xs font-medium text-gray-700">
             Data Dependencies
@@ -223,4 +219,3 @@ export function NodeExecutionPanel({ node }: NodeExecutionPanelProps) {
     </Card>
   );
 }
-

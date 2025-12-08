@@ -1,8 +1,3 @@
-/**
- * UI-related types
- * Centralized types for UI components
- */
-
 export type ToastType = "success" | "error" | "warning" | "info";
 
 export interface Toast {
@@ -12,17 +7,3 @@ export interface Toast {
   message?: string;
   duration?: number;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-

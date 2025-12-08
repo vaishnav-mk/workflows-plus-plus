@@ -33,7 +33,7 @@ export function useCodePreview() {
         setBackendCode(undefined);
         setBackendBindings(undefined);
       }
-    } catch (e) {
+    } catch {
       setBackendCode(undefined);
       setBackendBindings(undefined);
     }

@@ -128,6 +128,5 @@ export function useNodeRegistry(): NodeRegistryContextValue {
   return context;
 }
 
-// Export hook for getting node definitions
 export { useNodeDefinitionQuery };
 

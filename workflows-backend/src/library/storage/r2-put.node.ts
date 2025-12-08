@@ -1,7 +1,3 @@
-/**
- * R2 Put Node - Upload object to R2
- */
-
 import { z } from "zod";
 import { Effect } from "effect";
 import { WorkflowNodeDefinition, CodeGenContext, CodeGenResult } from "../../core/types";
@@ -36,7 +32,6 @@ function resolveKeyExpression(
     return '';
   }
   if (key.includes("{{")) {
-    // Return template literal expression for dynamic keys (without backticks, will be used in template literal)
     return key.replace(TEMPLATE_PATTERNS.TEMPLATE_REGEX, (_match, innerExpr) => {
       const trimmed = innerExpr.trim();
       if (trimmed.startsWith(TEMPLATE_PATTERNS.STATE_PREFIX)) {
@@ -55,7 +50,6 @@ function resolveKeyExpression(
       return `\${_workflowState['${nodeRef}']${tail}}`;
     });
   }
-  // Return key directly (will be used in template literal, so no quotes needed)
   return key;
 }
 
@@ -64,7 +58,6 @@ function resolveValueContent(
   graphContext: CodeGenContext["graphContext"]
 ): string {
   if (value.type === "static") {
-    // For static content, determine if it's a string, object, or needs to be converted
     if (typeof value.content === "string") {
       return JSON.stringify(value.content);
     }
@@ -191,7 +184,6 @@ export const R2PutNode: WorkflowNodeDefinition<R2PutConfig> = {
         .filter(e => e.target === nodeId)
         .map(e => `_workflowState['${e.source}']?.output || event.payload`)[0] || "event.payload";
 
-      // Build options object for R2 put
       const optionLines: string[] = [];
       
       if (config.httpMetadata) {
@@ -228,10 +220,6 @@ export const R2PutNode: WorkflowNodeDefinition<R2PutConfig> = {
         ? `, {\n        ${optionLines.join(",\n        ")}\n      }`
         : "";
 
-      // Convert value to appropriate format for R2
-      // R2 put() accepts: ReadableStream | ArrayBuffer | ArrayBufferView | string | null | Blob
-      // For strings, we can pass directly. For objects, we'll stringify.
-      // Sanitize stepName for use as JavaScript identifier (replace hyphens with underscores)
       const sanitizedStepName = stepName.replace(/-/g, "_");
       
       const code = `
@@ -240,23 +228,17 @@ export const R2PutNode: WorkflowNodeDefinition<R2PutConfig> = {
       const key = ${keyExpr.includes('${') ? `\`${keyExpr}\`` : JSON.stringify(config.key || '')};
       const bucket = this.env["${bucket}"];
       
-      // Prepare value for upload
       let valueToUpload = ${valueContent};
       
-      // Convert value to appropriate format for R2 put()
-      // R2 accepts: ReadableStream | ArrayBuffer | ArrayBufferView | string | null | Blob
       if (typeof valueToUpload === 'object' && valueToUpload !== null) {
-        // Check if it's already a supported type
         if (!(valueToUpload instanceof Blob) && 
             !(valueToUpload instanceof ArrayBuffer) && 
             !(valueToUpload instanceof ReadableStream) &&
             !ArrayBuffer.isView(valueToUpload)) {
-          // Convert object to JSON string
           valueToUpload = JSON.stringify(valueToUpload);
         }
       }
       
-      // Call R2 put() method with key, value, and options
       const result = await bucket.put(key, valueToUpload${optionsObject});
       
       if (!result) {
@@ -287,4 +269,3 @@ export const R2PutNode: WorkflowNodeDefinition<R2PutConfig> = {
     });
   },
 };
-

@@ -1,41 +1,52 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
-import { useWorkflowStore } from '../../stores/workflowStore';
-import { toast } from '../../stores/toastStore';
-import { generateWorkflowId } from '@/utils/id-generator';
-import { Upload, FileText, X, Sparkles } from 'lucide-react';
-import { PageHeader, Card, CardContent, CardHeader, Button, Input, Spinner } from '@/components';
-import { useGenerateWorkflowFromAIMutation } from '../../hooks/useWorkflowsQuery';
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import { useWorkflowStore } from "../../stores/workflowStore";
+import { toast } from "../../stores/toastStore";
+import { generateWorkflowId } from "@/utils/id-generator";
+import { Upload, FileText, X, Sparkles } from "lucide-react";
+import {
+  PageHeader,
+  Card,
+  CardContent,
+  CardHeader,
+  Button,
+  Input,
+  Spinner
+} from "@/components";
+import Image from "next/image";
+import { useGenerateWorkflowFromAIMutation } from "../../hooks/useWorkflowsQuery";
 
 export default function CreateWorkflowPage() {
   const router = useRouter();
   const generateWorkflowMutation = useGenerateWorkflowFromAIMutation();
   const { saveWorkflowToStorage } = useWorkflowStore();
-  
+
   const [image, setImage] = useState<File | null>(null);
-  const [text, setText] = useState('');
+  const [text, setText] = useState("");
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [pasteIndicator, setPasteIndicator] = useState(false);
   const [generatedWorkflow, setGeneratedWorkflow] = useState<any>(null);
   const [missingFields, setMissingFields] = useState<any[]>([]);
-  const [fieldValues, setFieldValues] = useState<Record<string, Record<string, any>>>({});
+  const [fieldValues, setFieldValues] = useState<
+    Record<string, Record<string, any>>
+  >({});
   const containerRef = useRef<HTMLDivElement>(null);
 
   const processImageFile = (file: File) => {
-    if (!file.type.startsWith('image/')) {
-      toast.error('Invalid File', 'Please select an image file');
+    if (!file.type.startsWith("image/")) {
+      toast.error("Invalid File", "Please select an image file");
       return;
     }
     if (file.size > 10 * 1024 * 1024) {
-      toast.error('File Too Large', 'Image must be less than 10MB');
+      toast.error("File Too Large", "Image must be less than 10MB");
       return;
     }
-    
+
     setImage(file);
-    
+
     const reader = new FileReader();
     reader.onload = () => {
       setImagePreview(reader.result as string);
@@ -50,9 +61,9 @@ export default function CreateWorkflowPage() {
     }
   };
 
-  const handlePaste = async (e: ClipboardEvent) => {
+  const handlePaste = useCallback(async (e: ClipboardEvent) => {
     const target = e.target as HTMLElement;
-    if (target?.tagName === 'TEXTAREA' || target?.tagName === 'INPUT') {
+    if (target?.tagName === "TEXTAREA" || target?.tagName === "INPUT") {
       return;
     }
 
@@ -61,22 +72,22 @@ export default function CreateWorkflowPage() {
 
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
-      
-      if (item.type.startsWith('image/')) {
+
+      if (item.type.startsWith("image/")) {
         e.preventDefault();
-        
+
         const file = item.getAsFile();
         if (file) {
           processImageFile(file);
-          toast.success('Image Pasted', 'Image has been loaded from clipboard');
-          
+          toast.success("Image Pasted", "Image has been loaded from clipboard");
+
           setPasteIndicator(true);
           setTimeout(() => setPasteIndicator(false), 2000);
         }
         break;
       }
     }
-  };
+  }, []);
 
   const handleRemoveImage = () => {
     setImage(null);
@@ -85,20 +96,20 @@ export default function CreateWorkflowPage() {
 
   useEffect(() => {
     const container = containerRef.current || document;
-    
+
     const pasteHandler = (e: Event) => {
       handlePaste(e as ClipboardEvent);
     };
-    
-    container.addEventListener('paste', pasteHandler);
-    
+
+    container.addEventListener("paste", pasteHandler);
+
     return () => {
-      container.removeEventListener('paste', pasteHandler);
+      container.removeEventListener("paste", pasteHandler);
     };
-  }, []);
+  }, [handlePaste]);
 
   const handleFieldChange = (nodeId: string, fieldPath: string, value: any) => {
-    setFieldValues(prev => ({
+    setFieldValues((prev) => ({
       ...prev,
       [nodeId]: {
         ...prev[nodeId],
@@ -114,14 +125,11 @@ export default function CreateWorkflowPage() {
       ...workflow,
       id: workflowId
     };
-    
+
     saveWorkflowToStorage(workflowWithId);
 
-    toast.success(
-      'Workflow Generated!',
-      'Redirecting to workflow builder...'
-    );
-    
+    toast.success("Workflow Generated!", "Redirecting to workflow builder...");
+
     router.push(`/builder?type=ai&id=${workflowId}`);
   };
 
@@ -133,11 +141,11 @@ export default function CreateWorkflowPage() {
       if (!nodeFields) return node;
 
       const updatedConfig = { ...node.config };
-      
-      Object.keys(nodeFields).forEach(fieldPath => {
-        const parts = fieldPath.split('.');
+
+      Object.keys(nodeFields).forEach((fieldPath) => {
+        const parts = fieldPath.split(".");
         const value = nodeFields[fieldPath];
-        
+
         if (parts.length === 1) {
           updatedConfig[fieldPath] = value;
         } else {
@@ -168,23 +176,30 @@ export default function CreateWorkflowPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!image && !text.trim()) {
-      toast.error('Input Required', 'Please provide an image or text description');
+      toast.error(
+        "Input Required",
+        "Please provide an image or text description"
+      );
       return;
     }
 
     setIsGenerating(true);
-    
+
     try {
-      const requestBody: { image?: string; imageMimeType?: string; text?: string } = {};
-      
+      const requestBody: {
+        image?: string;
+        imageMimeType?: string;
+        text?: string;
+      } = {};
+
       if (image) {
         const reader = new FileReader();
         const imageBase64 = await new Promise<string>((resolve, reject) => {
           reader.onload = () => {
             const result = reader.result as string;
-            const base64 = result.split(',')[1];
+            const base64 = result.split(",")[1];
             resolve(base64);
           };
           reader.onerror = reject;
@@ -192,22 +207,25 @@ export default function CreateWorkflowPage() {
         });
 
         requestBody.image = imageBase64;
-        requestBody.imageMimeType = image.type || 'image/png';
+        requestBody.imageMimeType = image.type || "image/png";
       }
-      
+
       if (text.trim()) {
         requestBody.text = text.trim();
       }
 
       const result = await generateWorkflowMutation.mutateAsync(requestBody);
-      
+
       if (!result) {
-        toast.error('Generation Failed', 'No workflow data received');
+        toast.error("Generation Failed", "No workflow data received");
         setIsGenerating(false);
         return;
       }
 
-      if (result.missingRequiredFields && result.missingRequiredFields.length > 0) {
+      if (
+        result.missingRequiredFields &&
+        result.missingRequiredFields.length > 0
+      ) {
         setMissingFields(result.missingRequiredFields);
         setGeneratedWorkflow(result);
         setIsGenerating(false);
@@ -217,8 +235,8 @@ export default function CreateWorkflowPage() {
       saveAndRedirect(result);
     } catch (error) {
       toast.error(
-        'Generation Failed',
-        error instanceof Error ? error.message : 'Unknown error'
+        "Generation Failed",
+        error instanceof Error ? error.message : "Unknown error"
       );
       setIsGenerating(false);
     }
@@ -234,7 +252,9 @@ export default function CreateWorkflowPage() {
 
         <Card className="mt-6">
           <CardHeader>
-            <h3 className="text-lg font-semibold text-gray-900">Generate Workflow</h3>
+            <h3 className="text-lg font-semibold text-gray-900">
+              Generate Workflow
+            </h3>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
@@ -246,11 +266,11 @@ export default function CreateWorkflowPage() {
                     Upload or Paste Image (Optional)
                   </label>
                   {!image ? (
-                    <div 
+                    <div
                       className={`border-2 border-dashed rounded-lg p-8 text-center transition-all ${
-                        pasteIndicator 
-                          ? 'border-green-500 bg-green-50' 
-                          : 'border-gray-300 hover:border-[#056DFF]'
+                        pasteIndicator
+                          ? "border-green-500 bg-green-50"
+                          : "border-gray-300 hover:border-[#056DFF]"
                       }`}
                     >
                       <input
@@ -264,11 +284,13 @@ export default function CreateWorkflowPage() {
                         htmlFor="image-upload"
                         className="cursor-pointer flex flex-col items-center"
                       >
-                        <Upload className={`w-12 h-12 mb-4 ${pasteIndicator ? 'text-green-500' : 'text-gray-400'}`} />
+                        <Upload
+                          className={`w-12 h-12 mb-4 ${pasteIndicator ? "text-green-500" : "text-gray-400"}`}
+                        />
                         <span className="text-sm text-gray-600 mb-1">
-                          {pasteIndicator 
-                            ? 'Image pasted!'
-                            : 'Click to upload, drag and drop, or paste image (Ctrl/Cmd+V)'}
+                          {pasteIndicator
+                            ? "Image pasted!"
+                            : "Click to upload, drag and drop, or paste image (Ctrl/Cmd+V)"}
                         </span>
                         <span className="text-xs text-gray-500">
                           PNG, JPG, GIF up to 10MB
@@ -276,18 +298,19 @@ export default function CreateWorkflowPage() {
                       </label>
                     </div>
                   ) : (
-                    <div className="relative">
-                      <img
-                        src={imagePreview || ''}
+                    <div className="relative w-full h-96">
+                      <Image
+                        src={imagePreview || ""}
                         alt="Preview"
-                        className="w-full max-h-96 object-contain rounded-lg border border-gray-200"
+                        fill
+                        className="object-contain rounded-lg border border-gray-200"
                       />
                       <Button
                         type="button"
                         variant="secondary"
                         size="sm"
                         onClick={handleRemoveImage}
-                        className="absolute top-2 right-2"
+                        className="absolute top-2 right-2 z-10"
                       >
                         <X className="w-4 h-4 mr-1" />
                         Remove
@@ -320,14 +343,18 @@ export default function CreateWorkflowPage() {
                 <Button
                   type="button"
                   variant="secondary"
-                  onClick={() => router.push('/builder')}
+                  onClick={() => router.push("/builder")}
                 >
                   Cancel
                 </Button>
                 <Button
                   type="submit"
                   variant="primary"
-                  disabled={isGenerating || generateWorkflowMutation.isPending || (!image && !text.trim())}
+                  disabled={
+                    isGenerating ||
+                    generateWorkflowMutation.isPending ||
+                    (!image && !text.trim())
+                  }
                 >
                   {isGenerating || generateWorkflowMutation.isPending ? (
                     <>
@@ -357,7 +384,8 @@ export default function CreateWorkflowPage() {
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-gray-600 mb-6">
-                  The AI generated your workflow, but some required fields need your input to complete the configuration.
+                  The AI generated your workflow, but some required fields need
+                  your input to complete the configuration.
                 </p>
 
                 <div className="space-y-6">
@@ -369,23 +397,35 @@ export default function CreateWorkflowPage() {
                         </h3>
                         <div className="space-y-3">
                           {nodeMissing.missingFields.map((field: any) => {
-                            const currentValue = fieldValues[nodeMissing.nodeId]?.[field.field] || '';
-                            
+                            const currentValue =
+                              fieldValues[nodeMissing.nodeId]?.[field.field] ||
+                              "";
+
                             return (
                               <div key={field.field}>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                                  {field.field.replace(/\./g, ' → ')}
+                                  {field.field.replace(/\./g, " → ")}
                                   {field.type && (
-                                    <span className="text-gray-500 ml-2">({field.type})</span>
+                                    <span className="text-gray-500 ml-2">
+                                      ({field.type})
+                                    </span>
                                   )}
                                 </label>
                                 {field.description && (
-                                  <p className="text-xs text-gray-500 mb-2">{field.description}</p>
+                                  <p className="text-xs text-gray-500 mb-2">
+                                    {field.description}
+                                  </p>
                                 )}
                                 <Input
                                   type="text"
                                   value={currentValue}
-                                  onChange={(e) => handleFieldChange(nodeMissing.nodeId, field.field, e.target.value)}
+                                  onChange={(e) =>
+                                    handleFieldChange(
+                                      nodeMissing.nodeId,
+                                      field.field,
+                                      e.target.value
+                                    )
+                                  }
                                   placeholder={`Enter ${field.field}`}
                                 />
                               </div>
@@ -408,10 +448,7 @@ export default function CreateWorkflowPage() {
                   >
                     Cancel
                   </Button>
-                  <Button
-                    variant="primary"
-                    onClick={handleCompleteFields}
-                  >
+                  <Button variant="primary" onClick={handleCompleteFields}>
                     Complete & Continue
                   </Button>
                 </div>

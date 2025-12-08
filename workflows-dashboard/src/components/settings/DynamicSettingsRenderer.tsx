@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import { SettingField } from '@/components/settings/NodeSettingsConfigs';
 import { ConditionalBuilder } from '@/components/settings/ConditionalBuilder';
 import { ConditionalRouterBuilder } from '@/components/settings/ConditionalRouterBuilder';
@@ -8,7 +8,6 @@ import { D1DatabaseSelector } from '@/components/settings/D1DatabaseSelector';
 import { KVNamespaceSelector } from '@/components/settings/KVNamespaceSelector';
 import { R2BucketSelector } from '@/components/settings/R2BucketSelector';
 import { TransformNodeSettings } from '@/components/settings/TransformNodeSettings';
-import { SettingCard } from '@/components/ui/SettingCard';
 import { SettingInput } from '@/components/ui/SettingInput';
 import { TemplateInput } from '@/components/ui/TemplateInput';
 import { SettingSelect } from '@/components/ui/SettingSelect';
@@ -30,13 +29,6 @@ export function DynamicSettingsRenderer({
   onNodeUpdate, 
   nodeId 
 }: DynamicSettingsRendererProps) {
-  // Debug: Log when nodeData changes
-  useEffect(() => {
-    if (nodeData?.config?.value?.type) {
-      console.log(`[DynamicSettingsRenderer] nodeData updated, value.type:`, nodeData.config.value.type);
-    }
-  }, [nodeData?.config?.value?.type]);
-
   const handleFieldChange = (key: string, value: any) => {
     // Handle number inputs properly
     let processedValue = value;
@@ -78,10 +70,6 @@ export function DynamicSettingsRenderer({
           // For other nested keys, create empty object
           currentNested = {};
         }
-        console.log(`[DynamicSettingsRenderer] Migrated ${rootKey} from string to object:`, {
-          oldValue,
-          newValue: currentNested
-        });
       } else {
         // If it doesn't exist or is already an object, use it or create new object
         currentNested = currentNested || {};
@@ -99,11 +87,6 @@ export function DynamicSettingsRenderer({
       // Set the final value
       const finalKey = nestedKeys[nestedKeys.length - 1];
       nestedObj[finalKey] = processedValue;
-      
-      console.log(`[DynamicSettingsRenderer] handleFieldChange: ${key} = ${processedValue}, migrated:`, {
-        oldValue: nodeData.config?.[rootKey],
-        newValue: currentNested
-      });
       
       onNodeUpdate(nodeId, { 
         config: { 
@@ -124,16 +107,6 @@ export function DynamicSettingsRenderer({
   const renderField = (field: SettingField, index: number): React.ReactNode => {
     const key = `${field.key}-${index}`;
     
-    // Debug logging for content fields
-    if (field.key.includes('.content')) {
-      console.log(`[DynamicSettingsRenderer] Rendering content field:`, {
-        key: field.key,
-        type: field.type,
-        conditional: field.conditional,
-        nodeConfig: nodeData.config
-      });
-    }
-    
     // Handle nested keys (dot notation)
     const getNestedValue = (keyPath: string, defaultValue: any) => {
       if (keyPath.includes('.')) {
@@ -153,24 +126,14 @@ export function DynamicSettingsRenderer({
     // Check conditional rendering
     if (field.conditional) {
       const parentValue = getNestedValue(field.conditional.parentKey, null);
-      console.log(`[DynamicSettingsRenderer] Checking conditional for ${field.key}:`, {
-        parentKey: field.conditional.parentKey,
-        parentValue,
-        showWhen: field.conditional.showWhen,
-        nodeConfig: nodeData.config,
-        fullConfig: JSON.stringify(nodeData.config, null, 2)
-      });
       // If showWhen is true, show when parent has any value
       if (field.conditional.showWhen === true) {
         // Show when parent has any truthy value (including 0, false, empty object, etc.)
         // Only hide if it's explicitly null, undefined, or empty string
         if (parentValue === null || parentValue === undefined || parentValue === '') {
-          console.log(`[DynamicSettingsRenderer] Hiding field ${field.key} - parentValue is empty:`, parentValue);
           return null;
         }
-        console.log(`[DynamicSettingsRenderer] Showing field ${field.key} - parentValue:`, parentValue);
       } else if (parentValue !== field.conditional.showWhen) {
-        console.log(`[DynamicSettingsRenderer] Hiding field ${field.key} - parentValue doesn't match:`, parentValue, 'expected:', field.conditional.showWhen);
         return null;
       }
     }
@@ -205,13 +168,7 @@ export function DynamicSettingsRenderer({
         const description = field.children?.find(c => c.key === 'description')?.props?.children;
         
         // Debug logging for value container
-        if (field.key === 'value-container') {
-          console.log(`[DynamicSettingsRenderer] Rendering value card:`, {
-            key: field.key,
-            childrenCount: field.children?.length,
-            children: field.children?.map(c => ({ key: c.key, type: c.type }))
-          });
-        }
+        // if (field.key === 'value-container') { ... }
         
         return (
           <div key={key} className={isNested ? 'mt-6' : ''}>
@@ -225,9 +182,6 @@ export function DynamicSettingsRenderer({
             </div>
             <div className="space-y-4 pl-0">
               {field.children?.filter(child => child.key !== 'title' && child.key !== 'description').map((child, childIndex) => {
-                if (child.key.includes('.content')) {
-                  console.log(`[DynamicSettingsRenderer] Rendering child content field in card:`, child);
-                }
                 return renderField(child, childIndex);
               })}
             </div>
@@ -297,11 +251,9 @@ export function DynamicSettingsRenderer({
               options={field.options || []}
               value={currentValue}
               onChange={(e: any) => {
-                console.log(`[DynamicSettingsRenderer] Select changed: ${field.key} = ${e.target.value}`);
                 handleFieldChange(field.key, e.target.value);
                 // If this is a type field that affects other fields, trigger re-render
                 if (field.key.endsWith('.type')) {
-                  console.log(`[DynamicSettingsRenderer] Type field changed, triggering re-render for conditional fields`);
                   // Force update to show/hide conditional fields by updating with current config
                   // This ensures React re-renders and conditional fields are re-evaluated
                   setTimeout(() => {
@@ -327,7 +279,6 @@ export function DynamicSettingsRenderer({
           // If value is a string (old format), show it in the content field
           if (typeof valueObj === 'string') {
             displayValue = valueObj;
-            console.log(`[DynamicSettingsRenderer] Showing old string value in content field:`, valueObj);
           } else if (typeof currentValue === 'object' && currentValue !== null) {
             try {
               displayValue = JSON.stringify(currentValue, null, 2);

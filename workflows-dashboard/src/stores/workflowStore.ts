@@ -1,10 +1,3 @@
-/**
- * Main Workflow Store
- * Combines all workflow-related stores into a single interface
- * NO hardcoded values - everything comes from backend
- */
-
-import type { Node, Edge } from "reactflow";
 import { useNodesStore } from "@/stores/workflow/nodesStore";
 import { useSelectionStore } from "@/stores/workflow/selectionStore";
 import { useUIStore } from "@/stores/workflow/uiStore";
@@ -12,10 +5,6 @@ import { useActionsStore } from "@/stores/workflow/actionsStore";
 import { useInitializationStore } from "@/stores/workflow/initializationStore";
 import { generateWorkflowId } from "@/utils/id-generator";
 
-/**
- * Main workflow store hook
- * Combines all sub-stores for easy access
- */
 export function useWorkflowStore() {
   const nodesStore = useNodesStore();
   const selectionStore = useSelectionStore();
@@ -65,7 +54,6 @@ export function useWorkflowStore() {
     // Storage helpers
     saveWorkflowToStorage: (workflow: any) => {
       try {
-        // Always generate a standardized workflow ID if not present
         const workflowId = workflow.id || generateWorkflowId();
         const workflowDef = {
           ...workflow,
@@ -95,11 +83,9 @@ export function useWorkflowStore() {
         return null;
       }
     },
-    // Auto-save current workflow state
     autoSaveWorkflow: () => {
       try {
         const { nodes, edges } = useNodesStore.getState();
-        // Get workflow ID from URL or generate new one
         if (typeof window !== 'undefined') {
           const params = new URLSearchParams(window.location.search);
           const workflowId = params.get('id') || generateWorkflowId();

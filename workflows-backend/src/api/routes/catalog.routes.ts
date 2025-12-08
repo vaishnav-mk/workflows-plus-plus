@@ -1,143 +1,103 @@
-/**
- * Catalog Routes
- */
-
 import { Hono } from "hono";
+import { z } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
 import { NodeRegistry } from "../../catalog/registry";
 import { NodeCategory } from "../../core/enums";
 import { HTTP_STATUS_CODES } from "../../core/constants";
-import { validateParams, validateQuery, validationErrorResponse } from "../../core/validation/validator";
-import { NodeTypeParamSchema, CategoryQuerySchema } from "../../core/validation/schemas";
+import {
+  NodeTypeParamSchema,
+  CategoryQuerySchema
+} from "../../core/validation/schemas";
+import {
+  createSuccessResponse,
+  createErrorResponse,
+  safe
+} from "../../core/utils/route-helpers";
+import { zValidator } from "../../api/middleware/validation.middleware";
 
 const app = new Hono();
 
-// Get catalog JSON (lightweight)
-app.get("/", async (c) => {
-  try {
+app.get(
+  "/",
+  safe(async c => {
     const json = NodeRegistry.getCatalogJSON();
-    return c.json(JSON.parse(json), HTTP_STATUS_CODES.OK);
-  } catch (error) {
-    return c.json(
-      {
-        success: false,
-        error: "Failed to retrieve catalog",
-        message: error instanceof Error ? error.message : "Unknown error",
-      },
-      HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR
-    );
-  }
-});
+    return c.json(JSON.parse(json));
+  })
+);
 
-// Get full catalog
-app.get("/full", async (c) => {
-  try {
+app.get(
+  "/full",
+  safe(async c => {
     const catalog = NodeRegistry.getCatalog();
     return c.json(
-      {
-        success: true,
-        data: catalog,
-        message: "Catalog retrieved successfully",
-      },
-      HTTP_STATUS_CODES.OK
+      createSuccessResponse(catalog, "Catalog retrieved successfully")
     );
-  } catch (error) {
-    return c.json(
-      {
-        success: false,
-        error: "Failed to retrieve catalog",
-        message: error instanceof Error ? error.message : "Unknown error",
-      },
-      HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR
-    );
-  }
-});
+  })
+);
 
-// Get node by type
-app.get("/:nodeType", async (c) => {
-  try {
-    // Validate path parameters
-    const paramsValidation = validateParams(c, NodeTypeParamSchema);
-    if (!paramsValidation.success) {
-      return validationErrorResponse(paramsValidation);
-    }
-    
-    const { nodeType } = paramsValidation.data;
-
+app.get(
+  "/:nodeType",
+  zValidator("param", NodeTypeParamSchema),
+  safe(async c => {
+    const { nodeType } = c.req.valid("param") as z.infer<
+      typeof NodeTypeParamSchema
+    >;
     const node = NodeRegistry.getNode(nodeType);
+
     if (!node) {
       return c.json(
-        {
-          success: false,
-          error: "Node not found",
-          message: `Node type '${nodeType}' not found`,
-        },
+        createErrorResponse(
+          `Node type '${nodeType}' not found`,
+          "Node Not Found"
+        ),
         HTTP_STATUS_CODES.NOT_FOUND
       );
     }
 
-    // Convert Zod schema to JSON Schema for frontend
     const jsonSchema = zodToJsonSchema(node.configSchema, {
       target: "openApi3",
-      $refStrategy: "none",
+      $refStrategy: "none"
     });
 
-    // Return node with converted schema
     return c.json(
-      {
-        success: true,
-        data: {
+      createSuccessResponse(
+        {
           ...node,
-          configSchema: jsonSchema,
+          configSchema: jsonSchema
         },
-        message: "Node retrieved successfully",
-      },
-      HTTP_STATUS_CODES.OK
+        "Node retrieved successfully"
+      )
     );
-  } catch (error) {
-    return c.json(
-      {
-        success: false,
-        error: "Failed to retrieve node",
-        message: error instanceof Error ? error.message : "Unknown error",
-      },
-      HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR
-    );
-  }
-});
+  })
+);
 
-// Get nodes by category
-app.get("/categories", async (c) => {
-  try {
-    // Validate query parameters
-    const queryValidation = validateQuery(c, CategoryQuerySchema);
-    if (!queryValidation.success) {
-      return validationErrorResponse(queryValidation);
+app.get(
+  "/categories",
+  zValidator("query", CategoryQuerySchema),
+  safe(async c => {
+    const { category } = c.req.valid("query") as z.infer<
+      typeof CategoryQuerySchema
+    >;
+    const categoryUpper = category.toUpperCase();
+    const validCategories = Object.values(NodeCategory);
+
+    if (!validCategories.includes(categoryUpper as NodeCategory)) {
+      return c.json(
+        createErrorResponse(
+          `Category '${category}' is not valid. Valid categories: ${validCategories.join(
+            ", "
+          )}`,
+          "Invalid Category"
+        ),
+        HTTP_STATUS_CODES.BAD_REQUEST
+      );
     }
-    
-    const { category } = queryValidation.data;
 
-    const categoryEnum = category.toUpperCase() as NodeCategory;
-    const nodes = NodeRegistry.getNodesByCategory(categoryEnum);
-
-    return c.json(
-      {
-        success: true,
-        data: nodes,
-        message: "Nodes retrieved successfully",
-      },
-      HTTP_STATUS_CODES.OK
+    const nodes = NodeRegistry.getNodesByCategory(
+      categoryUpper as NodeCategory
     );
-  } catch (error) {
-    return c.json(
-      {
-        success: false,
-        error: "Failed to retrieve nodes",
-        message: error instanceof Error ? error.message : "Unknown error",
-      },
-      HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR
-    );
-  }
-});
+    return c.json(createSuccessResponse(nodes, "Nodes retrieved successfully"));
+  })
+);
 
 export default app;

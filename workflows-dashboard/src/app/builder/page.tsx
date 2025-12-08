@@ -18,7 +18,6 @@ import {
 import { generateWorkflowId } from "@/utils/id-generator";
 import { useRouter } from "next/navigation";
 import { apiClient } from "@/lib/api-client";
-import type { Node } from "reactflow";
 
 function WorkflowBuilderContent() {
   const {
@@ -416,7 +415,7 @@ function WorkflowBuilderContent() {
         );
       }
     }
-  }, [nodes, updateNode, setSelectedNode, mcpEnabled, setMCPEnabled]);
+  }, [nodes, updateNode, setSelectedNode, mcpEnabled, setMCPEnabled, workflowId]);
 
   const handleCodePreviewClick = useCallback(async () => {
     try {
@@ -561,7 +560,8 @@ function WorkflowBuilderContent() {
     workflowId,
     compileWorkflowMutation,
     deployWorkflowMutation,
-    router
+    router,
+    saveWorkflowToStorage
   ]);
 
   const handleMCPToggle = useCallback(
@@ -929,7 +929,7 @@ export default function WorkflowBuilder() {
     };
 
     init();
-  }, [mounted]); // Only depend on mounted, not the functions
+  }, [mounted, initializeWorkflow, applyWorkflowToState, loadWorkflowFromStorage, saveWorkflowToStorage]); // Only depend on mounted, not the functions
 
   if (!mounted) {
     return null;

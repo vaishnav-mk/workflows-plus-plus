@@ -1,13 +1,6 @@
-/**
- * Core Constants for Workflow System
- * All constants use UPPER_SNAKE_CASE
- */
-
 export const API_ENDPOINTS = {
-  // Health
   HEALTH: "/health",
   
-  // Workflows
   WORKFLOWS: "/api/workflows",
   WORKFLOW_BY_ID: (id: string) => `/api/workflows/${id}`,
   WORKFLOW_VALIDATE: "/api/workflows/validate",
@@ -15,12 +8,10 @@ export const API_ENDPOINTS = {
   WORKFLOW_GENERATE: "/api/workflows/generate",
   WORKFLOW_DEPLOY: (id: string) => `/api/workflows/${id}/deploy`,
   
-  // Catalog
   CATALOG: "/api/catalog",
   CATALOG_NODE: (nodeType: string) => `/api/catalog/${nodeType}`,
   CATALOG_CATEGORIES: "/api/catalog/categories",
   
-  // Compiler
   COMPILER_COMPILE: "/api/compiler/compile",
   COMPILER_PREVIEW: "/api/compiler/preview",
   COMPILER_VALIDATE_BINDINGS: "/api/compiler/validate-bindings",
@@ -28,35 +19,27 @@ export const API_ENDPOINTS = {
   COMPILER_RESOLVE_NODE: (nodeId: string) => `/api/compiler/resolve-node/${nodeId}`,
   COMPILER_VALIDATE_TEMPLATES: "/api/compiler/validate-templates",
   
-  // Nodes
   NODES: "/api/nodes",
   NODES_EXECUTE: "/api/nodes/execute",
   NODES_VALIDATE: "/api/nodes/validate",
   
-  // Instances
   INSTANCES: (workflowName: string) => `/api/workflows/${workflowName}/instances`,
   INSTANCE: (workflowName: string, instanceId: string) => 
     `/api/workflows/${workflowName}/instances/${instanceId}`,
   INSTANCE_LOGS: (workflowName: string, instanceId: string) =>
     `/api/workflows/${workflowName}/instances/${instanceId}/logs/tail-url`,
   
-  // Workers
   WORKERS: "/api/workers",
   WORKER: (id: string) => `/api/workers/${id}`,
   
-  // Versions
   VERSIONS: (workerId: string) => `/api/workers/${workerId}/versions`,
   VERSION: (workerId: string, versionId: string) => 
     `/api/workers/${workerId}/versions/${versionId}`
 } as const;
 
 export const DEFAULT_VALUES = {
-  // Default timeout for workflow steps and operations (in ms)
-  // Set to 2.5 minutes so long-running operations have enough time by default
   TIMEOUT: 150000,
-  // Default maximum retry attempts for nodes that support retry
   MAX_RETRIES: 3,
-  // Default delay between retries (in ms)
   RETRY_DELAY: 1000,
   STEP_NAME_PREFIX: "step",
   WORKFLOW_CLASS_SUFFIX: "Workflow",
@@ -125,8 +108,23 @@ export const HTTP_STATUS_CODES = {
   BAD_REQUEST: 400,
   UNAUTHORIZED: 401,
   NOT_FOUND: 404,
-  INTERNAL_SERVER_ERROR: 500
+  INTERNAL_SERVER_ERROR: 500,
+  SERVICE_UNAVAILABLE: 503
 } as const;
+
+export const PUBLIC_ROUTES = [
+  "/health",
+  "/",
+  "/api/setup",
+  "/api/setup/stream",
+  "/api/catalog",
+  "/api/catalog/categories"
+] as const;
+
+export const PUBLIC_ROUTE_PREFIXES = [
+  "/api/setup/",
+  "/api/catalog/"
+] as const;
 
 export const CACHE_KEYS = {
   NODE_CATALOG: "node_catalog",
@@ -137,11 +135,11 @@ export const CACHE_KEYS = {
 } as const;
 
 export const CACHE_TTL = {
-  NODE_CATALOG: 5 * 60 * 1000, // 5 minutes
-  NODE_SCHEMA: 60 * 60 * 1000, // 1 hour
-  WORKFLOW: 1 * 60 * 1000, // 1 minute
-  RESOLVED_WORKFLOW: 1 * 60 * 1000, // 1 minute
-  COMPILATION_PREVIEW: 1 * 60 * 1000 // 1 minute
+  NODE_CATALOG: 5 * 60 * 1000, 
+  NODE_SCHEMA: 60 * 60 * 1000, 
+  WORKFLOW: 1 * 60 * 1000, 
+  RESOLVED_WORKFLOW: 1 * 60 * 1000, 
+  COMPILATION_PREVIEW: 1 * 60 * 1000 
 } as const;
 
 export const PAGINATION = {
@@ -152,13 +150,11 @@ export const PAGINATION = {
 
 export const CLOUDFLARE = {
   API_BASE: "https://api.cloudflare.com/client/v4",
-  // Default account subdomain for Workers in this project. This ensures
-  // generated URLs point to "<workerName>.wishee.workers.dev".
   DEFAULT_SUBDOMAIN: "wishee.workers.dev",
   WORKER_EXISTS_ERROR_CODE: 10013,
   DEPLOYMENT_STRATEGY: "percentage",
   DEPLOYMENT_PERCENTAGE: 100,
-  TAIL_SESSION_TTL_MS: 3600000 // 1 hour
+  TAIL_SESSION_TTL_MS: 3600000 
 } as const;
 
 export const MESSAGES = {
@@ -181,13 +177,14 @@ export const MESSAGES = {
   WORKFLOW_GENERATED: "Workflow generated successfully",
   COMPILATION_PREVIEWED: "Compilation preview generated successfully",
   BINDINGS_VALIDATED: "Bindings validated successfully",
-  TEMPLATES_VALIDATED: "Templates validated successfully"
+  TEMPLATES_VALIDATED: "Templates validated successfully",
+  DATABASES_RETRIEVED: "Databases retrieved successfully",
+  QUERY_VALIDATED: "Query validated successfully"
 } as const;
 
 export const AI_GATEWAY = {
   MAX_RETRIES: 3,
   RETRY_DELAY_MS: 1000,
-  // Align AI Gateway timeout with the global default (2.5 minutes)
   TIMEOUT_MS: 150000,
   MAX_TOKENS: 4096,
   DEFAULT_TEMPERATURE: 0.7,
@@ -201,5 +198,3 @@ export const LOGGING = {
   ENABLE_RESPONSE_LOGGING: true,
   ENABLE_PERFORMANCE_LOGGING: true
 } as const;
-
-

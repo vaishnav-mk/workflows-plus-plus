@@ -1,13 +1,12 @@
 /**
- * Deployment Routes
- * Handles deployment progress streaming via SSE
+ * deployment routes sse
  */
 
 import { Hono } from "hono";
-import { HTTP_STATUS_CODES } from "../../core/constants";
-import { ErrorCode } from "../../core/enums";
-import { logger } from "../../core/logging/logger";
-import { CredentialsContext } from "../../api/middleware/credentials.middleware";
+import { CredentialsContext } from "../../core/types";
+import { safe } from "../../core/utils/route-helpers";
+import { z } from "zod";
+import { zValidator } from "../../api/middleware/validation.middleware";
 
 interface Env {
   DEPLOYMENT_DO?: DurableObjectNamespace;
@@ -20,37 +19,26 @@ interface ContextWithCredentials {
   };
 }
 
+const DeploymentIdParamSchema = z.object({
+  deploymentId: z.string().min(1, "Deployment ID is required")
+});
+
 const app = new Hono<{ Bindings: Env } & ContextWithCredentials>();
 
-// Stream deployment progress via SSE
-app.get("/:deploymentId/stream", async c => {
-  try {
-    const deploymentId = c.req.param("deploymentId");
-    if (!deploymentId) {
-      return c.json(
-        {
-          success: false,
-          error: "Deployment ID is required"
-        },
-        HTTP_STATUS_CODES.BAD_REQUEST
-      );
-    }
+// stream deployment progress
+app.get(
+  "/:deploymentId/stream",
+  zValidator("param", DeploymentIdParamSchema),
+  safe(async c => {
+    const { deploymentId } = c.req.valid("param") as z.infer<
+      typeof DeploymentIdParamSchema
+    >;
 
-    const env = c.env;
-    if (!env.DEPLOYMENT_DO) {
-      logger.error("DEPLOYMENT_DO binding not configured");
-      return c.json(
-        {
-          success: false,
-          error: "Deployment Durable Object not configured"
-        },
-        HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR
-      );
-    }
+    const deploymentDO = c.env.DEPLOYMENT_DO!;
 
     // Get or create Durable Object instance for this deployment
-    const id = env.DEPLOYMENT_DO.idFromName(deploymentId);
-    const deploymentDO = env.DEPLOYMENT_DO.get(id);
+    const id = deploymentDO.idFromName(deploymentId);
+    const deploymentDOInstance = deploymentDO.get(id);
 
     // Forward SSE request to Durable Object
     const baseUrl = new URL(c.req.url);
@@ -65,53 +53,24 @@ app.get("/:deploymentId/stream", async c => {
       headers
     });
 
-    return deploymentDO.fetch(request);
-  } catch (error) {
-    logger.error(
-      "Failed to stream deployment progress",
-      error instanceof Error ? error : new Error(String(error))
-    );
-    return c.json(
-      {
-        success: false,
-        error: "Failed to stream deployment progress",
-        message: error instanceof Error ? error.message : "Unknown error",
-        code: ErrorCode.INTERNAL_ERROR
-      },
-      HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR
-    );
-  }
-});
+    return deploymentDOInstance.fetch(request);
+  })
+);
 
-// Get deployment status
-app.get("/:deploymentId/status", async c => {
-  try {
-    const deploymentId = c.req.param("deploymentId");
-    if (!deploymentId) {
-      return c.json(
-        {
-          success: false,
-          error: "Deployment ID is required"
-        },
-        HTTP_STATUS_CODES.BAD_REQUEST
-      );
-    }
+// get deployment status
+app.get(
+  "/:deploymentId/status",
+  zValidator("param", DeploymentIdParamSchema),
+  safe(async c => {
+    const { deploymentId } = c.req.valid("param") as z.infer<
+      typeof DeploymentIdParamSchema
+    >;
 
-    const env = c.env;
-    if (!env.DEPLOYMENT_DO) {
-      logger.error("DEPLOYMENT_DO binding not configured");
-      return c.json(
-        {
-          success: false,
-          error: "Deployment Durable Object not configured"
-        },
-        HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR
-      );
-    }
+    const deploymentDO = c.env.DEPLOYMENT_DO!;
 
     // Get Durable Object instance for this deployment
-    const id = env.DEPLOYMENT_DO.idFromName(deploymentId);
-    const deploymentDO = env.DEPLOYMENT_DO.get(id);
+    const id = deploymentDO.idFromName(deploymentId);
+    const deploymentDOInstance = deploymentDO.get(id);
 
     // Forward status request to Durable Object
     const baseUrl = new URL(c.req.url);
@@ -125,22 +84,8 @@ app.get("/:deploymentId/status", async c => {
       headers
     });
 
-    return deploymentDO.fetch(request);
-  } catch (error) {
-    logger.error(
-      "Failed to get deployment status",
-      error instanceof Error ? error : new Error(String(error))
-    );
-    return c.json(
-      {
-        success: false,
-        error: "Failed to get deployment status",
-        message: error instanceof Error ? error.message : "Unknown error",
-        code: ErrorCode.INTERNAL_ERROR
-      },
-      HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR
-    );
-  }
-});
+    return deploymentDOInstance.fetch(request);
+  })
+);
 
 export default app;

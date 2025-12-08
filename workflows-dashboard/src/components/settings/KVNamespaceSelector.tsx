@@ -23,8 +23,8 @@ export function KVNamespaceSelector({
   onNodeUpdate,
   nodeId
 }: KVNamespaceSelectorProps) {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const searchParams = useSearchParams();
-  const workflowId = searchParams.get("id");
   const [namespaces, setNamespaces] = useState<KVNamespace[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -48,16 +48,22 @@ export function KVNamespaceSelector({
     if (selectedNamespaceId && selectedNamespaceTitle) {
       const ns = namespaces.find((n) => n.id === selectedNamespaceId);
       if (ns) {
-        onNodeUpdate(nodeId, {
-          config: {
-            ...nodeData?.config,
-            namespace_id: selectedNamespaceId,
-            namespace: ns.title
-          }
-        });
+        // Only update if values are different to avoid infinite loops
+        if (
+          nodeData?.config?.namespace_id !== selectedNamespaceId ||
+          nodeData?.config?.namespace !== ns.title
+        ) {
+          onNodeUpdate(nodeId, {
+            config: {
+              ...nodeData?.config,
+              namespace_id: selectedNamespaceId,
+              namespace: ns.title
+            }
+          });
+        }
       }
     }
-  }, [selectedNamespaceId, selectedNamespaceTitle, namespaces]);
+  }, [selectedNamespaceId, selectedNamespaceTitle, namespaces, nodeId, onNodeUpdate, nodeData?.config]);
 
   const loadNamespaces = async () => {
     setLoading(true);

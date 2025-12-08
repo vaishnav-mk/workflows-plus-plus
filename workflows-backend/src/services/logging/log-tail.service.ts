@@ -1,11 +1,5 @@
-/**
- * Log Tail Service
- * Creates Cloudflare Tail sessions for real-time log streaming
- * Based on main branch implementation
- */
-
 import Cloudflare from "cloudflare";
-import { TailSessionOptions, TailSessionResult } from "./types";
+import { TailSessionOptions, TailSessionResult } from "../../core/types";
 import { CLOUDFLARE } from "../../core/constants";
 import { logger } from "../../core/logging/logger";
 
@@ -25,10 +19,6 @@ export class LogTailService {
   constructor(apiToken: string, accountId: string) {
     this.client = new Cloudflare({ apiToken });
     this.accountId = accountId;
-
-    logger.info("LogTailService initialized", {
-      accountId: this.accountId
-    });
   }
 
   async createTailSession(

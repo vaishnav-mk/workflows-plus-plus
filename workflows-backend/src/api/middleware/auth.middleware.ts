@@ -1,68 +1,43 @@
-/**
- * Authentication Middleware
- * Validates cookie-based authentication
- * Routes that need Cloudflare credentials should use credentialsMiddleware instead
- */
-
 import { Context, Next } from "hono";
 import { getCookie } from "hono/cookie";
 import { ErrorCode } from "../../core/enums";
 import { logger } from "../../core/logging/logger";
-import { ErrorResponse } from "../../core/api-contracts";
+import { PUBLIC_ROUTES, PUBLIC_ROUTE_PREFIXES } from "../../core/constants";
+import { AppContext } from "../../core/types";
 
 const CREDENTIALS_COOKIE_NAME = "cf_credentials";
 
-export interface EnvWithAuth {
-  [key: string]: unknown;
-}
-
 export async function authMiddleware(
-  c: Context<{ Bindings: EnvWithAuth }>,
+  c: Context<AppContext>,
   next: Next
 ): Promise<Response | void> {
-  const startTime = Date.now();
+  const path = c.req.path;
 
-  // Skip auth for health check and setup routes
   if (
-    c.req.path === "/health" ||
-    c.req.path === "/" ||
-    c.req.path === "/api/setup" ||
-    c.req.path.startsWith("/api/setup/")
+    PUBLIC_ROUTES.includes(path as any) ||
+    PUBLIC_ROUTE_PREFIXES.some(prefix => path.startsWith(prefix))
   ) {
     return next();
   }
 
-  // Skip auth for catalog routes (public endpoint)
-  // Catalog doesn't need Cloudflare credentials
-  if (c.req.path === "/api/catalog" || c.req.path.startsWith("/api/catalog/")) {
-    return next();
-  }
-
-  // For other routes, check if cookie exists
-  // Routes that need Cloudflare credentials will be validated by credentialsMiddleware
   const cookie = getCookie(c, CREDENTIALS_COOKIE_NAME);
 
   if (!cookie) {
-    logger.warn("Authentication failed: No credentials cookie found", {
-      path: c.req.path,
+    logger.warn("authentication failed: no cookie", {
+      path,
       method: c.req.method
     });
-
-    const errorResponse: ErrorResponse = {
-      success: false,
-      error: "Authentication required",
-      message: "Please configure Cloudflare credentials",
-      code: ErrorCode.AUTHENTICATION_ERROR
-    };
-
-    return c.json(errorResponse, 401);
+    return c.json(
+      {
+        success: false,
+        error: "authentication required",
+        message: "please configure cloudflare credentials",
+        code: ErrorCode.AUTHENTICATION_ERROR
+      },
+      401
+    );
   }
 
-  const duration = Date.now() - startTime;
-  logger.logPerformance("auth_middleware", duration, {
-    path: c.req.path,
-    method: c.req.method
-  });
-
+  logger.logPerformance("auth_middleware", 0, { path, method: c.req.method });
   return next();
 }

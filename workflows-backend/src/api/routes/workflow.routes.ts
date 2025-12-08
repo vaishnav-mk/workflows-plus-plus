@@ -1,366 +1,238 @@
-/**
- * Workflow Routes
- */
-
 import { Hono } from "hono";
-import Cloudflare from "cloudflare";
+import { z } from "zod";
 import { WorkflowCompiler } from "../../services/compiler/workflow-compiler";
 import { WorkflowValidator } from "../../services/compiler/workflow-validator";
 import { runPromise } from "../../core/effect/runtime";
-import { HTTP_STATUS_CODES, DEFAULT_VALUES, MESSAGES } from "../../core/constants";
-import { ErrorCode } from "../../core/enums";
-import { ApiResponse } from "../../core/api-contracts";
+import { HTTP_STATUS_CODES, DEFAULT_VALUES, MESSAGES, PAGINATION } from "../../core/constants";
+import { BindingType } from "../../core/enums";
 import { createPaginationResponse } from "../../core/utils/pagination";
 import { logger } from "../../core/logging/logger";
 import { generateWorkflowId, generateClassName } from "../../core/utils/id-generator";
-import { BindingConfiguration } from "../../services/deployment/types";
-import { BindingType } from "../../core/enums";
-import { CredentialsContext } from "../../api/middleware/credentials.middleware";
-import { validateBody, validateQuery, validateParams, validationErrorResponse } from "../../core/validation/validator";
+import { BindingConfiguration } from "../../core/types";
+import { CredentialsContext } from "../../core/types";
 import {
   PaginationQuerySchema,
   IdParamSchema,
   WorkflowValidateSchema,
   WorkflowDeploySchema
 } from "../../core/validation/schemas";
+import { safe } from "../../core/utils/route-helpers";
+import { zValidator } from "../../api/middleware/validation.middleware";
+import { CloudflareContext } from "../../core/types";
 
-interface Env {
+interface WorkflowEnv {
   ENVIRONMENT?: string;
   DEPLOYMENT_DO?: DurableObjectNamespace;
   [key: string]: unknown;
 }
 
-interface ContextWithCredentials {
-  Variables: {
-    credentials: CredentialsContext;
-  };
-}
+function processWorkflowBindings(
+  bindingsArray: any[],
+  nodes: any[]
+): BindingConfiguration[] {
+  const d1Nodes = nodes.filter(n =>
+    (n.type === 'd1-query' || n.data?.type === 'd1-query') && n.config?.database_id
+  );
 
-const app = new Hono<{ Bindings: Env } & ContextWithCredentials>();
+  const kvNodes = nodes.filter(n =>
+    ((n.type === 'kv_get' || n.type === 'kv_put') ||
+     (n.data?.type === 'kv_get' || n.data?.type === 'kv_put')) && n.config?.namespace_id
+  );
 
-// List all workflows from Cloudflare
-app.get("/", async (c) => {
-  try {
-    logger.info("Listing workflows from Cloudflare");
-    
-    // Validate query parameters
-    const queryValidation = validateQuery(c, PaginationQuerySchema);
-    if (!queryValidation.success) {
-      return validationErrorResponse(queryValidation);
-    }
-    
-    const credentials = c.var.credentials;
+  const r2Nodes = nodes.filter(n =>
+    ((n.type === 'r2-get' || n.type === 'r2-put' || n.type === 'r2-list') ||
+     (n.data?.type === 'r2-get' || n.data?.type === 'r2-put' || n.data?.type === 'r2-list')) && n.config?.bucket
+  );
 
-    const client = new Cloudflare({
-      apiToken: credentials.apiToken
-    });
+  return bindingsArray.map((b: { name: string; type: string; id?: string; databaseName?: string; bucketName?: string }) => {
+    if (b.type === BindingType.D1) {
+      const matchingNode = d1Nodes.find(n => {
+        const nodeDb = n.config?.database || n.data?.config?.database;
+        return nodeDb === b.name || nodeDb === b.databaseName;
+      });
 
-    const page = queryValidation.data.page || 1;
-    const perPage = queryValidation.data.per_page || 10;
+      if (matchingNode) {
+        const nodeConfig = matchingNode.config || matchingNode.data?.config;
+        const dbName = nodeConfig?.database || b.databaseName || b.name;
+        const sanitizedBindingName = dbName.replace(/[^a-zA-Z0-9_]/g, "_");
 
-    const workflows = await client.workflows.list({
-      account_id: credentials.accountId,
-      page,
-      per_page: perPage
-    });
-
-    const totalCount = (workflows.result_info as { total_count?: number })?.total_count;
-    const response = createPaginationResponse(
-      workflows.result || [],
-      page,
-      perPage,
-      totalCount
-    );
-    response.message = MESSAGES.WORKFLOWS_RETRIEVED;
-
-    return c.json(response, HTTP_STATUS_CODES.OK);
-  } catch (error) {
-    logger.error("Failed to list workflows", error instanceof Error ? error : new Error(String(error)));
-    return c.json(
-      {
-        success: false,
-        error: "Failed to fetch workflows",
-        message: error instanceof Error ? error.message : "Unknown error",
-        code: ErrorCode.INTERNAL_ERROR
-      },
-      HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR
-    );
-  }
-});
-
-// Note: DB operations removed - workflows are stored in localStorage on frontend
-
-// Validate workflow
-app.post("/validate", async (c) => {
-  try {
-    logger.info("Validating workflow");
-    
-    // Validate request body
-    const bodyValidation = await validateBody(c, WorkflowValidateSchema);
-    if (!bodyValidation.success) {
-      return validationErrorResponse(bodyValidation);
-    }
-    
-    const workflowData = bodyValidation.data;
-
-    await runPromise(
-      WorkflowValidator.validateWorkflow(
-        workflowData.nodes,
-        workflowData.edges
-      )
-    );
-
-    const response: ApiResponse = {
-      success: true,
-      data: { valid: true },
-      message: MESSAGES.WORKFLOW_VALIDATED
-    };
-
-    return c.json(response, HTTP_STATUS_CODES.OK);
-  } catch (error) {
-    logger.error("Workflow validation failed", error instanceof Error ? error : new Error(String(error)));
-    return c.json(
-      {
-        success: true,
-        data: {
-          valid: false,
-          errors: [error instanceof Error ? error.message : "Validation failed"]
-        },
-        message: MESSAGES.WORKFLOW_VALIDATED
-      },
-      HTTP_STATUS_CODES.OK
-    );
-  }
-});
-
-// Deploy workflow
-app.post("/:id/deploy", async (c) => {
-  try {
-    // Validate path parameters
-    const paramsValidation = validateParams(c, IdParamSchema);
-    if (!paramsValidation.success) {
-      return validationErrorResponse(paramsValidation);
-    }
-    
-    const { id } = paramsValidation.data;
-    logger.info("Deploying workflow", { workflowId: id });
-
-    const credentials = c.var.credentials;
-
-    // Validate request body - workflow data should be in body now
-    const bodyValidation = await validateBody(c, WorkflowDeploySchema);
-    if (!bodyValidation.success) {
-      return validationErrorResponse(bodyValidation);
-    }
-    
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const body: any = bodyValidation.data;
-
-    // Workflow data comes from request body (no DB)
-    const workflow = {
-      id: id || generateWorkflowId(),
-      name: body.workflowName || DEFAULT_VALUES.DEFAULT_WORKFLOW_NAME,
-      nodes: Array.isArray(body.nodes) ? body.nodes : [],
-      edges: Array.isArray(body.edges) ? body.edges : []
-    };
-
-    // Compile workflow with standardized workflow ID
-    const compilationResult = await runPromise(
-      WorkflowCompiler.compile(workflow, {
-        workflowId: workflow.id,
-        desiredWorkflowName: body.workflowName
-      })
-    );
-
-    // Use workflow ID as name (keep the full ID including "workflow-" prefix)
-    // Example: workflow-ghost-beneficiary-bed -> workflow-ghost-beneficiary-bed
-    const workflowName =
-      body.workflowName ||
-      workflow.id;
-    const scriptName = body.scriptName || `${workflowName}-worker`;
-    const className = body.className || compilationResult.className || generateClassName(workflow.id);
-
-    // Convert bindings to BindingConfiguration format
-    const bindingsArray = (body.bindings ?? compilationResult.bindings) || [];
-    
-    // Extract database_id from D1 node configs if not already in bindings
-    const d1Nodes = (body.nodes || workflow.nodes || []).filter(
-      (n: any) => (n.type === 'd1-query' || n.data?.type === 'd1-query') && n.config?.database_id
-    );
-    
-    // Extract namespace_id from KV node configs if not already in bindings
-    const kvNodes = (body.nodes || workflow.nodes || []).filter(
-      (n: any) => ((n.type === 'kv_get' || n.type === 'kv_put') || (n.data?.type === 'kv_get' || n.data?.type === 'kv_put')) && n.config?.namespace_id
-    );
-    
-    // Extract bucket_name from R2 node configs if not already in bindings
-    const r2Nodes = (body.nodes || workflow.nodes || []).filter(
-      (n: any) => ((n.type === 'r2-get' || n.type === 'r2-put' || n.type === 'r2-list') || 
-                   (n.data?.type === 'r2-get' || n.data?.type === 'r2-put' || n.data?.type === 'r2-list')) && n.config?.bucket
-    );
-    
-    const bindings: BindingConfiguration[] = bindingsArray.map((b: { name: string; type: string; id?: string; databaseName?: string; bucketName?: string }) => {
-      // If this is a D1 binding and we have a node with database_id, use it
-      if (b.type === BindingType.D1) {
-        const matchingNode = d1Nodes.find((n: any) => {
-          const nodeDb = n.config?.database || n.data?.config?.database;
-          return nodeDb === b.name || nodeDb === b.databaseName;
-        });
-        if (matchingNode) {
-          const nodeConfig = matchingNode.config || matchingNode.data?.config;
-          const dbName = nodeConfig?.database || b.databaseName || b.name;
-          // Sanitize the binding name to match how it's used in generated code
-          // The codegen uses: (config.database || BINDING_NAMES.DEFAULT_D1).replace(/[^a-zA-Z0-9_]/g, "_")
-          const sanitizedBindingName = dbName.replace(/[^a-zA-Z0-9_]/g, "_");
-          return {
-            name: sanitizedBindingName, // Use the sanitized database name as the binding name to match the code
-            type: b.type as BindingType,
-            id: nodeConfig?.database_id || b.id,
-            databaseName: dbName, // Keep original name for database creation/lookup
-            bucketName: b.bucketName
-          };
-        }
+        return {
+          name: sanitizedBindingName,
+          type: b.type as BindingType,
+          id: nodeConfig?.database_id || b.id,
+          databaseName: dbName
+        };
       }
-      // If this is an R2 binding and we have a node with bucket, use it
-      if (b.type === BindingType.R2) {
-        const matchingNode = r2Nodes.find((n: any) => {
-          const nodeBucket = n.config?.bucket || n.data?.config?.bucket;
-          return nodeBucket === b.name || nodeBucket === b.bucketName;
-        });
-        if (matchingNode) {
-          const nodeConfig = matchingNode.config || matchingNode.data?.config;
-          const bucketName = nodeConfig?.bucket || b.bucketName || b.name;
-          // Sanitize the binding name to match how it's used in generated code
-          // The codegen uses: (config.bucket || BINDING_NAMES.DEFAULT_R2).replace(/[^a-zA-Z0-9_]/g, "_")
-          const sanitizedBindingName = bucketName.replace(/[^a-zA-Z0-9_]/g, "_");
-          return {
-            name: sanitizedBindingName, // Use the sanitized bucket name as the binding name to match the code
-            type: b.type as BindingType,
-            id: b.id,
-            databaseName: b.databaseName,
-            bucketName: bucketName // Keep original name for bucket creation/lookup
-          };
-        }
+    }
+
+    if (b.type === BindingType.R2) {
+      const matchingNode = r2Nodes.find(n => {
+        const nodeBucket = n.config?.bucket || n.data?.config?.bucket;
+        return nodeBucket === b.name || nodeBucket === b.bucketName;
+      });
+
+      if (matchingNode) {
+        const nodeConfig = matchingNode.config || matchingNode.data?.config;
+        const bucketName = nodeConfig?.bucket || b.bucketName || b.name;
+        const sanitizedBindingName = bucketName.replace(/[^a-zA-Z0-9_]/g, "_");
+
+        return {
+          name: sanitizedBindingName,
+          type: b.type as BindingType,
+          bucketName
+        };
       }
-      // If this is a KV binding and we have a node with namespace_id, use it
-      if (b.type === BindingType.KV) {
-        const matchingNode = kvNodes.find((n: any) => {
-          const nodeNs = n.config?.namespace || n.data?.config?.namespace;
-          // The binding name is now the namespace name (sanitized), so compare with sanitized node namespace
-          const sanitizedNodeNs = nodeNs ? nodeNs.replace(/[^a-zA-Z0-9_]/g, "_") : null;
-          return sanitizedNodeNs === b.name || nodeNs === b.name;
-        });
-        if (matchingNode) {
-          const nodeConfig = matchingNode.config || matchingNode.data?.config;
-          const nsName = nodeConfig?.namespace || b.name;
-          // Sanitize the binding name to match how it's used in generated code
-          // The codegen uses: (config.namespace || BINDING_NAMES.DEFAULT_KV).replace(/[^a-zA-Z0-9_]/g, "_")
-          const sanitizedBindingName = nsName.replace(/[^a-zA-Z0-9_]/g, "_");
-          return {
-            name: sanitizedBindingName, // Use the sanitized namespace name as the binding name to match the code
-            type: b.type as BindingType,
-            id: nodeConfig?.namespace_id || b.id,
-            databaseName: b.databaseName,
-            bucketName: b.bucketName
-          };
-        }
+    }
+
+    if (b.type === BindingType.KV) {
+      const matchingNode = kvNodes.find(n => {
+        const nodeNs = n.config?.namespace || n.data?.config?.namespace;
+        return nodeNs === b.name;
+      });
+
+      if (matchingNode) {
+        const nodeConfig = matchingNode.config || matchingNode.data?.config;
+        const nsName = nodeConfig?.namespace || b.name;
+        const sanitizedBindingName = nsName.replace(/[^a-zA-Z0-9_]/g, "_");
+
+        return {
+          name: sanitizedBindingName,
+          type: b.type as BindingType,
+          id: nodeConfig?.namespace_id || b.id
+        };
       }
-      return {
+    }
+
+    return {
       name: b.name,
       type: b.type as BindingType,
       id: b.id,
       databaseName: b.databaseName,
       bucketName: b.bucketName
-      };
-    });
+    };
+  });
+}
 
-    // Generate deployment ID from workflow ID (e.g., workflow-xxx -> deployment-xxx)
-    const deploymentId = id.startsWith("workflow-") 
-      ? id.replace("workflow-", "deployment-")
-      : `deployment-${id}`;
+const app = new Hono<{
+  Bindings: WorkflowEnv;
+  Variables: { credentials: CredentialsContext } & CloudflareContext;
+}>();
 
-    // Check if Durable Object is available
-    const env = c.env;
-    if (!env.DEPLOYMENT_DO) {
-      logger.error("DEPLOYMENT_DO binding not configured");
-      return c.json(
-        {
-          success: false,
-          error: "Deployment Durable Object not configured",
-          message: "DEPLOYMENT_DO binding is required for deployments",
-          code: ErrorCode.DEPLOYMENT_ERROR
-        },
-        HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR
-      );
-    }
+app.get("/", zValidator('query', PaginationQuerySchema), safe(async (c) => {
+  const credentials = c.var.credentials;
+  const client = c.var.cloudflare;
 
-    // Start deployment via Durable Object
-    const deploymentDOId = env.DEPLOYMENT_DO.idFromName(deploymentId);
-    const deploymentDO = env.DEPLOYMENT_DO.get(deploymentDOId);
+  const { page = PAGINATION.DEFAULT_PAGE, per_page: perPage = PAGINATION.DEFAULT_PER_PAGE } = c.req.valid('query') as z.infer<typeof PaginationQuerySchema>;
 
-    // Start deployment asynchronously
-    const baseUrl = new URL(c.req.url);
-    const deployUrl = `${baseUrl.origin}/deploy`;
-    const deployRequest = new Request(deployUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        deploymentId,
-        workflowId: id,
-        options: {
-          workflowName,
-          className,
-          scriptName,
-          subdomain: body.subdomain,
-          scriptContent: compilationResult.tsCode,
-          bindings,
-          assets: body.assets,
-          mcpEnabled: body.mcpEnabled || false
-        },
-        apiToken: credentials.apiToken,
-        accountId: credentials.accountId,
-        subdomain: body.subdomain
-      })
-    });
+  const workflows = await client.workflows.list({
+    account_id: credentials.accountId,
+    page,
+    per_page: perPage
+  });
 
-    // Don't await - let it run in background
-    deploymentDO.fetch(deployRequest).catch((error) => {
-      logger.error("Background deployment failed", error instanceof Error ? error : new Error(String(error)), {
-        deploymentId,
-        workflowId: id
-      });
-    });
+  const response = createPaginationResponse(
+    workflows.result || [],
+    page,
+    perPage,
+    (workflows.result_info as any)?.total_count
+  );
+  response.message = MESSAGES.WORKFLOWS_RETRIEVED;
 
-    logger.info("Deployment started", {
+  return c.json(response, HTTP_STATUS_CODES.OK);
+}));
+
+app.post("/validate", zValidator('json', WorkflowValidateSchema), safe(async (c) => {
+  const { nodes, edges } = c.req.valid('json') as z.infer<typeof WorkflowValidateSchema>;
+
+  await runPromise(WorkflowValidator.validateWorkflow(nodes, edges));
+
+  return c.json({
+    success: true,
+    data: { valid: true },
+    message: MESSAGES.WORKFLOW_VALIDATED
+  }, HTTP_STATUS_CODES.OK);
+}));
+
+app.post("/:id/deploy", zValidator('param', IdParamSchema), zValidator('json', WorkflowDeploySchema), safe(async (c) => {
+  const { id } = c.req.valid('param') as z.infer<typeof IdParamSchema>;
+  const credentials = c.var.credentials;
+  const body = c.req.valid('json') as z.infer<typeof WorkflowDeploySchema>;
+
+  const workflow = {
+    id: id || generateWorkflowId(),
+    name: body.workflowName || DEFAULT_VALUES.DEFAULT_WORKFLOW_NAME,
+    nodes: Array.isArray(body.nodes) ? body.nodes : [],
+    edges: Array.isArray(body.edges) ? body.edges : []
+  };
+
+  const compilationResult = await runPromise(
+    WorkflowCompiler.compile(workflow, {
+      workflowId: workflow.id,
+      desiredWorkflowName: body.workflowName
+    })
+  );
+
+  const workflowName = body.workflowName || workflow.id;
+  const scriptName = body.scriptName || `${workflowName}-worker`;
+  const className = body.className || compilationResult.className || generateClassName(workflow.id);
+
+  const bindingsArray = body.bindings ?? compilationResult.bindings ?? [];
+  const bindings = processWorkflowBindings(bindingsArray, workflow.nodes);
+
+  const deploymentId = id.startsWith("workflow-") 
+    ? id.replace("workflow-", "deployment-")
+    : `deployment-${id}`;
+
+  const deploymentDO = c.env.DEPLOYMENT_DO!;
+
+  const deploymentDOId = deploymentDO.idFromName(deploymentId);
+  const deploymentDOInstance = deploymentDO.get(deploymentDOId);
+
+  const baseUrl = new URL(c.req.url);
+  const deployRequest = new Request(`${baseUrl.origin}/deploy`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      deploymentId,
       workflowId: id,
-      workflowName,
-      deploymentId
-    });
+      options: {
+        workflowName,
+        className,
+        scriptName,
+        subdomain: body.subdomain,
+        scriptContent: compilationResult.tsCode,
+        bindings,
+        assets: body.assets,
+        mcpEnabled: (body as any).mcpEnabled || false
+      },
+      apiToken: credentials.apiToken,
+      accountId: credentials.accountId,
+      subdomain: body.subdomain
+    })
+  });
 
-    return c.json(
-      {
-        success: true,
-        data: {
-          deploymentId,
-          workflow: { workflowApiName: workflowName, className, scriptName },
-          message: "Deployment started. Connect to SSE endpoint to track progress."
-        },
-        message: "Deployment started"
-      },
-      HTTP_STATUS_CODES.ACCEPTED
-    );
-  } catch (error) {
-    logger.error("Workflow deployment failed", error instanceof Error ? error : new Error(String(error)));
-    return c.json(
-      {
-        success: false,
-        error: "Failed to deploy workflow",
-        message: error instanceof Error ? error.message : "Unknown error",
-        code: ErrorCode.DEPLOYMENT_ERROR
-      },
-      HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR
-    );
-  }
-});
+  deploymentDOInstance.fetch(deployRequest).catch((error: unknown) => {
+    logger.error("Background deployment failed", error instanceof Error ? error : new Error(String(error)), {
+      deploymentId,
+      workflowId: id
+    });
+  });
+
+  logger.info("Deployment started", {
+    workflowId: id,
+    workflowName,
+    deploymentId
+  });
+
+  return c.json({
+    success: true,
+    data: {
+      deploymentId,
+      workflow: { workflowApiName: workflowName, className, scriptName },
+      message: "Deployment started. Connect to SSE endpoint to track progress."
+    },
+    message: "Deployment started"
+  }, HTTP_STATUS_CODES.ACCEPTED);
+}));
 
 export default app;

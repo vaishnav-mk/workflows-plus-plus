@@ -1,8 +1,6 @@
 'use client';
 
 import React, { useState } from 'react';
-import { SettingInput } from '@/components/ui/SettingInput';
-import { SettingSelect } from '@/components/ui/SettingSelect';
 import { SettingButton } from '@/components/ui/SettingButton';
 
 interface Condition {

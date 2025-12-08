@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { Code, Lightbulb, BookOpen, Copy, Check, ChevronRight } from 'lucide-react';
 import { Tabs, Tab } from '@/components/ui/Tabs';
 import { Button } from '@/components/ui/Button';

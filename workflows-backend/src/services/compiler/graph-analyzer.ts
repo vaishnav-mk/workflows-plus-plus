@@ -1,16 +1,9 @@
-/**
- * Graph Analyzer - Analyzes workflow graph structure
- */
-
 import { Effect } from "effect";
 import { GraphContext } from "../../core/types";
 import { ErrorCode } from "../../core/enums";
 import { generateNodeId } from "../../core/utils/id-generator";
 
 export class GraphAnalyzer {
-  /**
-   * Build graph context from workflow nodes and edges
-   */
   static buildGraphContext(
     nodes: Array<{ id: string; type: string; data?: Record<string, unknown> }>,
     edges: Array<{
@@ -44,7 +37,6 @@ export class GraphAnalyzer {
         const isEntry = nodeId === entryNode?.id;
         const isReturn = nodeType === "return" || nodeType === "mcp-tool-output";
         
-        // Generate standardized step name based on node type and position
         const stepName = generateNodeId(
           nodeType,
           index,
@@ -68,9 +60,6 @@ export class GraphAnalyzer {
     });
   }
 
-  /**
-   * Topological sort of workflow nodes
-   */
   private static topologicalSort(
     nodes: Array<{ id: string }>,
     edges: Array<{ source: string; target: string }>
@@ -127,9 +116,6 @@ export class GraphAnalyzer {
   }
 
 
-  /**
-   * Find entry node
-   */
   static findEntryNode(nodes: Array<{ id: string; type: string }>): Effect.Effect<string, { _tag: ErrorCode; message: string }> {
     return Effect.gen(function* (_) {
       const entryNode = nodes.find(n => n.type === "entry" || n.type === "mcp-tool-input");
@@ -143,4 +129,3 @@ export class GraphAnalyzer {
     });
   }
 }
-

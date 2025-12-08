@@ -1,21 +1,16 @@
-/**
- * Main Application Entry Point
- * New Architecture - Split-Brain Design
- * 
- * Only exposes:
- * - /api/catalog - Discovery (node catalog)
- * - /api/compiler - Compilation (workflow compilation)
- */
-
 import { Hono } from "hono";
+import { cors } from "hono/cors";
+
+import { corsConfig } from "./core/cors.config";
 import { loggerMiddleware } from "./api/middleware/logger";
 import { errorHandler, notFoundHandler } from "./api/middleware/errorHandler";
 import { authMiddleware } from "./api/middleware/auth.middleware";
 import {
-  credentialsMiddleware,
-  CredentialsContext,
-  EnvWithCredentials
+  credentialsMiddleware
 } from "./api/middleware/credentials.middleware";
+import { cloudflareMiddleware } from "./api/middleware/cloudflare.middleware";
+import { ensureEnv, ensureDeploymentDO } from "./core/utils/route-helpers";
+
 import catalogRoutes from "./api/routes/catalog.routes";
 import compilerRoutes from "./api/routes/compiler.routes";
 import workflowRoutes from "./api/routes/workflow.routes";
@@ -29,59 +24,38 @@ import startersRoutes from "./api/routes/starters.routes";
 import deploymentRoutes from "./api/routes/deployment.routes";
 import d1Routes from "./api/routes/d1.routes";
 import r2Routes from "./api/routes/r2.routes";
+
 import { DeploymentDurableObject } from "./services/deployment/deployment-durable-object";
-import { cors } from "hono/cors";
+import { AppContext } from "./core/types";
 
-// Environment types for Cloudflare Workers
-interface Env extends EnvWithCredentials {
-  DB?: D1Database;
-  ENVIRONMENT?: string;
-  AI_GATEWAY_URL?: string;
-  AI_GATEWAY_TOKEN?: string;
-  [key: string]: unknown;
-}
+const app = new Hono<AppContext>();
 
-const app = new Hono<{
-  Bindings: Env;
-  Variables: { credentials?: CredentialsContext };
-}>();
+app.use("*", cors(corsConfig));
 
-// CORS configuration - restrict to specific origins in production
-app.use(
-  "*",
-  cors({
-    origin: origin => {
-      // In development, allow all origins
-      // In production, specify allowed origins
-      return origin || "*";
-    },
-    allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowHeaders: ["Content-Type", "Authorization"],
-    credentials: true
-  })
-);
+let envChecked = false;
 
-// Logging middleware (applied to all routes)
 app.use("*", loggerMiddleware);
-
-// Authentication middleware (applied to all routes except health and setup)
+app.use("*", async (c, next) => {
+  if (!envChecked) {
+    ensureEnv(c.env, [
+      "AI_GATEWAY_URL",
+      "AI_GATEWAY_TOKEN",
+      "CREDENTIALS_MASTER_KEY"
+    ]);
+    ensureDeploymentDO(c.env as any);
+    envChecked = true;
+  }
+  await next();
+});
 app.use("*", authMiddleware);
 
-// Credentials middleware (applied to protected routes that need Cloudflare credentials)
-// This runs after auth but before route handlers
 app.use("/api/*", async (c, next) => {
-  // Skip credentials check for setup routes
-  if (c.req.path === "/api/setup" || c.req.path.startsWith("/api/setup/")) {
-    return next();
-  }
-  // Type assertion needed because middleware expects specific context type
-  return credentialsMiddleware(
-    c as Parameters<typeof credentialsMiddleware>[0],
-    next
-  );
+  if (c.req.path.startsWith("/api/setup")) return next();
+  await credentialsMiddleware(c as any, async () => {
+    await cloudflareMiddleware(c as any, next);
+  });
 });
 
-// Health check
 app.get("/health", c =>
   c.json({ status: "ok", timestamp: new Date().toISOString() })
 );
@@ -89,39 +63,26 @@ app.get("/", c =>
   c.json({ status: "ok", timestamp: new Date().toISOString() })
 );
 
-// Setup routes (no credentials required)
 app.route("/api/setup", setupRoutes);
-
-// New Architecture Routes
 app.route("/api/catalog", catalogRoutes);
 app.route("/api/compiler", compilerRoutes);
 app.route("/api/starters", startersRoutes);
 
-// Workflow Management Routes
 workflowRoutes.route("/", instanceRoutes);
 workflowRoutes.route("/", aiWorkflowRoutes);
 app.route("/api/workflows", workflowRoutes);
 
-// Worker Management Routes
 workerRoutes.route("/", versionRoutes);
 app.route("/api/workers", workerRoutes);
 
-// Node Execution Routes
 app.route("/api/nodes", nodeExecutionRoutes);
-
-// Deployment Routes (SSE streaming)
 app.route("/api/deployments", deploymentRoutes);
-
-// D1 Database Routes
 app.route("/api/d1", d1Routes);
-
-// R2 Bucket Routes
 app.route("/api/r2", r2Routes);
 
 app.onError(errorHandler);
 app.notFound(notFoundHandler);
 
-// Export Durable Object class for Cloudflare Workers
 export { DeploymentDurableObject };
 
 export default app;

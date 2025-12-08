@@ -14,7 +14,7 @@ export function JsonViewer({ data, className = '' }: JsonViewerProps) {
         // Try to parse if it's a JSON string
         const parsed = JSON.parse(obj);
         return JSON.stringify(parsed, null, 2);
-      } catch (error) {
+      } catch {
         // If it's not valid JSON, try to format it manually for better readability
         if (obj.includes('{') && obj.includes('}')) {
           // Try to add line breaks and indentation manually

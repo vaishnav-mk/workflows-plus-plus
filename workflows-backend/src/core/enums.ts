@@ -1,8 +1,3 @@
-/**
- * Core Enums for Workflow System
- * All enum values use UPPER_SNAKE_CASE
- */
-
 export enum NodeCategory {
   CONTROL = "control",
   HTTP = "http",

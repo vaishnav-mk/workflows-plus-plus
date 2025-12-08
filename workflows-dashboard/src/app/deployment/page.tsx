@@ -73,7 +73,7 @@ interface AnimatedStepFlowProps {
 
 function AnimatedStepFlow({
   currentStep,
-  progress,
+  progress: _progress,
   isCompleted,
   isFailed,
   progressEvents,
@@ -250,7 +250,7 @@ function AnimatedStepFlow({
         selectable: false
       };
     });
-  }, [currentStepIndex, steps, progressEvents, currentStep, isFailed]);
+  }, [steps, progressEvents, currentStep, isFailed]);
 
   const edges: Edge[] = useMemo(() => {
     const newEdges: Edge[] = [];
@@ -343,7 +343,7 @@ function DeploymentPageContent() {
   });
 
   const deploymentState = state || statusResult?.data || null;
-  const progressEvents = deploymentState?.progress ?? [];
+  const progressEvents = useMemo(() => deploymentState?.progress ?? [], [deploymentState?.progress]);
   const currentProgressIndex =
     progressEvents.length > 0 ? progressEvents.length - 1 : -1;
   const currentProgress =
@@ -471,22 +471,7 @@ function DeploymentPageContent() {
     );
   }
 
-  const getStatusIcon = () => {
-    if (!deploymentState) {
-      return <Spinner size="md" className="text-blue-500" />;
-    }
 
-    switch (deploymentState.status) {
-      case "success":
-        return <CheckCircle2 className="w-5 h-5 text-green-500" />;
-      case "failed":
-        return <XCircle className="w-5 h-5 text-red-500" />;
-      case "in_progress":
-        return <Spinner size="md" className="text-blue-500" />;
-      default:
-        return <Rocket className="w-5 h-5 text-gray-500" />;
-    }
-  };
 
   const instanceHref =
     deploymentState?.workflowId && deploymentState?.result?.instanceId

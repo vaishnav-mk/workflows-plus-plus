@@ -1,5 +1,5 @@
 import React from "react";
-import { Badge, Button } from "@/components/ui";
+import { Button } from "@/components/ui";
 import { cn } from "@/lib/utils";
 
 export interface AlertProps {

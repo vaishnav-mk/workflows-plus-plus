@@ -1,7 +1,3 @@
-/**
- * MCP Tool Output Node - Format workflow output as MCP tool response
- */
-
 import { z } from "zod";
 import { Effect } from "effect";
 import { WorkflowNodeDefinition, CodeGenContext, CodeGenResult } from "../../core/types";
@@ -140,6 +136,3 @@ export const MCPToolOutputNode: WorkflowNodeDefinition<MCPToolOutputConfig> = {
     });
   },
 };
-
-
-

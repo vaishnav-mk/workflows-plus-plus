@@ -1,34 +1,17 @@
-/**
- * Workflow Compiler - Main compiler orchestrator
- */
-
 import { Effect } from "effect";
-import { WorkflowNodeDefinition, GraphContext, CodeGenContext, CodeGenResult, CompilationResult, CompilationOptions } from "../../core/types";
+import { WorkflowNodeDefinition, GraphContext, CodeGenContext, CodeGenResult, CompilationResult, CompilationOptions, Workflow, BindingConfiguration } from "../../core/types";
 import { CompilationStatus, ErrorCode, NodeType, BindingType } from "../../core/enums";
 import { GraphAnalyzer } from "./graph-analyzer";
 import { WorkflowValidator } from "./workflow-validator";
-import { BindingAnalyzer } from "./binding-analyzer";
+import { aggregateBindings, generateWranglerBindings } from "./binding-analyzer";
 import { CODE_GENERATION } from "../../core/constants";
 import { generateClassName, generateWorkflowId } from "../../core/utils/id-generator";
 import * as NodeLibrary from "../../library";
 import { logger } from "../../core/logging/logger";
 
 export class WorkflowCompiler {
-  /**
-   * Compile workflow to TypeScript code
-   */
   static compile(
-    workflow: {
-      name: string;
-      nodes: Array<{ id: string; type: string; data?: Record<string, unknown>; config?: Record<string, unknown> }>;
-      edges: Array<{
-        id: string;
-        source: string;
-        target: string;
-        sourceHandle?: string;
-        targetHandle?: string;
-      }>;
-    },
+    workflow: Workflow,
     options?: CompilationOptions
   ): Effect.Effect<CompilationResult, { _tag: ErrorCode; message: string }> {
     return Effect.gen(function* (_) {
@@ -40,7 +23,6 @@ export class WorkflowCompiler {
         options: options ? { workflowId: options.workflowId, className: options.className } : undefined
       });
 
-      // Step 1: Validate workflow
       const validateStart = Date.now();
       logger.debug("Validating workflow structure");
       yield* _(WorkflowValidator.validateWorkflow(workflow.nodes, workflow.edges));
@@ -49,7 +31,6 @@ export class WorkflowCompiler {
         edgeCount: workflow.edges.length
       });
       
-      // Step 2: Build graph context
       const graphStart = Date.now();
       logger.debug("Building graph context");
       const graphContext = yield* _(GraphAnalyzer.buildGraphContext(workflow.nodes, workflow.edges));
@@ -62,7 +43,6 @@ export class WorkflowCompiler {
         nodeCount: graphContext.nodes.length
       });
       
-      // Step 3: Generate code for all nodes
       const codegenStart = Date.now();
       logger.info("Starting code generation for nodes", {
         nodeCount: graphContext.topoOrder.length
@@ -80,12 +60,11 @@ export class WorkflowCompiler {
           .map(r => r.nodeType)
       });
       
-      // Step 4: Generate workflow ID and analyze bindings
       const workflowId = options?.workflowId || generateWorkflowId();
       logger.debug("Workflow ID generated", { workflowId });
       
       const bindingsStart = Date.now();
-      const bindings = BindingAnalyzer.aggregateBindings(codegenResults, workflowId);
+      const bindings = aggregateBindings(codegenResults, workflowId);
       logger.logPerformance("binding_analysis", Date.now() - bindingsStart, {
         bindingCount: bindings.length,
         bindings: bindings.filter(b => b && b.name && b.type).map(b => ({ name: b.name, type: b.type }))
@@ -95,7 +74,6 @@ export class WorkflowCompiler {
         bindings: bindings.filter(b => b && b.name && b.type).map(b => ({ name: b.name, type: b.type }))
       });
       
-      // Step 5: Generate worker code
       const workerCodeStart = Date.now();
       logger.debug("Generating worker TypeScript code");
       const tsCode = yield* _(
@@ -109,11 +87,9 @@ export class WorkflowCompiler {
         lineCount: tsCode.split("\n").length
       });
       
-      // Generate class name from workflow ID
       const className = options?.className || generateClassName(workflowId);
       logger.debug("Class name generated", { className });
 
-      // Step 6: Generate wrangler config
       const configStart = Date.now();
       logger.debug("Generating wrangler configuration");
       const wranglerConfig = yield* _(
@@ -148,9 +124,6 @@ export class WorkflowCompiler {
     });
   }
 
-  /**
-   * Generate code for all nodes
-   */
   private static generateCodeForNodes(
     nodes: Array<{ id: string; type: string; data?: Record<string, unknown>; config?: Record<string, unknown> }>,
     graphContext: GraphContext
@@ -212,7 +185,6 @@ export class WorkflowCompiler {
 
         const config = (node.config || node.data?.config || {}) as Record<string, unknown>;
         const nodeLabel = (node.data?.label as string | undefined) || node.type || "";
-        // Use nodeId directly as stepName (nodeId is already standardized like step_entry_0)
         const stepName = nodeId;
         const prevStepId = graphContext.edges
           .filter(e => e.target === nodeId)
@@ -253,7 +225,6 @@ export class WorkflowCompiler {
         }
         const codegenDuration = Date.now() - codegenStart;
         
-        // Validate result structure
         if (!result || typeof result !== 'object') {
           logger.error("Invalid codegen result", undefined, { nodeId, nodeType: node.type, result });
           return yield* _(Effect.fail({
@@ -270,7 +241,6 @@ export class WorkflowCompiler {
           }));
         }
         
-        // Ensure requiredBindings is an array and filter out invalid entries
         const validBindings = (result.requiredBindings || [])
           .filter(b => b && typeof b === 'object' && b.name && b.type);
         
@@ -290,8 +260,6 @@ export class WorkflowCompiler {
           bindings: validBindings.map(b => ({ name: b.name, type: b.type }))
         });
 
-        // Determine conditional branch guard (if this node is a target of a conditional-router)
-        // Router returns routing object: {true: boolean, false: boolean} (or {case1: boolean, case2: boolean, ...} for switch cases)
         let branchCondition: string | undefined;
         let branchReason: string | undefined;
 
@@ -308,13 +276,9 @@ export class WorkflowCompiler {
 
         if (conditionalIncoming.length > 0) {
           const { edge, sourceNode } = conditionalIncoming[0];
-          // sourceHandle is the route key (e.g., "true", "false", or future "case1", "case2", "default")
           const routeKey = edge.sourceHandle || "true";
-          // Results for nodes are stored using the node ID as the step name
           const sanitizedRouterStepName = sourceNode.id.replace(/[^a-zA-Z0-9_]/g, "_");
 
-          // Check if the routing object has this route key set to true
-          // Structure: {true: boolean, false: boolean} or {case1: boolean, case2: boolean, ...}
           branchCondition = `(_workflowResults.${sanitizedRouterStepName}?.['${routeKey}'] === true)`;
           branchReason = `route_${routeKey}_not_taken`;
         }
@@ -348,11 +312,7 @@ export class WorkflowCompiler {
     });
   }
 
-  /**
-   * Get node definition from library
-   */
   private static getNodeDefinition(nodeType: string): WorkflowNodeDefinition<unknown> | null {
-    // Type assertions needed because nodes have specific config types
     const nodeTypeMap: Record<string, WorkflowNodeDefinition<unknown>> = {
       [NodeType.ENTRY]: NodeLibrary.EntryNode as WorkflowNodeDefinition<unknown>,
       [NodeType.RETURN]: NodeLibrary.ReturnNode as WorkflowNodeDefinition<unknown>,
@@ -373,9 +333,6 @@ export class WorkflowCompiler {
     return nodeTypeMap[nodeType] || null;
   }
 
-  /**
-   * Generate worker TypeScript code
-   */
   private static generateWorkerCode(
     workflow: { name: string; nodes: Array<{ id: string; type: string; data?: Record<string, unknown> }> },
     codegenResults: Array<{
@@ -400,16 +357,14 @@ export class WorkflowCompiler {
       const className = options?.className || 
         CODE_GENERATION.CLASS_NAME_PATTERN(workflow.name);
 
-      // Generate class name from workflow ID if not provided
       const finalClassName = options?.className || (workflowId ? generateClassName(workflowId) : className);
       
       const hasMCPNodes = workflow.nodes.some(n => n.type === "mcp-tool-input" || n.type === "mcp-tool-output");
       const mcpInputNode = workflow.nodes.find(n => n.type === "mcp-tool-input");
       const mcpConfig = (mcpInputNode?.data?.config || {}) as Record<string, unknown>;
       
-      // Generate MCP class name and server name
       const mcpClassName = `${finalClassName}MCP`;
-      const serverName = mcpClassName; // Use MCP class name for server (e.g., "GhostCrystalSatisfiedMCP")
+      const serverName = mcpClassName; 
       const toolName = (mcpConfig.toolName as string) || `${finalClassName}MCPToolMain`;
       const toolParameters = (mcpConfig.parameters as Array<{ name: string; type: string; required?: boolean; description?: string }>) || [];
       
@@ -433,14 +388,10 @@ export class WorkflowCompiler {
         }
       });
 
-      // Helper function to properly indent node code
-      // Node code comes with 4 spaces base indentation, but needs 8 spaces total inside try block
-      // We preserve relative indentation while adjusting the base level
       const indentCode = (code: string, targetIndent: number): string => {
         const lines = code.split("\n");
         if (lines.length === 0) return "";
         
-        // Find the minimum indentation (base level) in non-empty lines
         let minIndent = Infinity;
         for (const line of lines) {
           if (line.trim() !== "") {
@@ -449,10 +400,8 @@ export class WorkflowCompiler {
           }
         }
         
-        // If no indentation found, use 0
         if (minIndent === Infinity) minIndent = 0;
         
-        // Adjust each line: remove base indentation, add target indentation
         return lines
           .map((line) => {
             if (line.trim() === "") return "";
@@ -462,7 +411,6 @@ export class WorkflowCompiler {
             return " ".repeat(targetIndent + relativeIndent) + trimmed;
           })
           .filter((line, index, arr) => {
-            // Remove empty lines at start/end
             if (index === 0 && line === "") return false;
             if (index === arr.length - 1 && line === "") return false;
             return true;
@@ -470,7 +418,6 @@ export class WorkflowCompiler {
           .join("\n");
       };
 
-      // Generate wrapped node codes with START/END logs
       logger.debug("Wrapping node codes with logging", {
         nodeCount: codegenResults.length
       });
@@ -487,10 +434,8 @@ export class WorkflowCompiler {
           originalCodeLength: nodeCode.length
         });
 
-        // Indent node code for insertion into try block (8 spaces total)
         const indentedNodeCode = indentCode(nodeCode, 8);
 
-        // If this node is guarded by a conditional branch, only execute when condition is met.
         if (branchCondition) {
           const reason = branchReason || "branch_condition_not_met";
           return `
@@ -509,7 +454,6 @@ ${indentedNodeCode}
     }`;
         }
 
-        // Default behaviour: always execute node
         return `
     try {
       console.log(JSON.stringify({type:'WF_NODE_START',nodeId:'${nodeId}',nodeName:${JSON.stringify(nodeName)},nodeType:'${nodeType}',timestamp:Date.now(),instanceId:event.instanceId}));
@@ -533,9 +477,6 @@ ${indentedNodeCode}
       
       let code: string;
       if (hasMCPNodes) {  
-        // Use the MCP entrypoints directly from the installed packages.
-        // Cloudflare's bundler (via Wrangler / Workers API) will resolve these
-        // from node_modules when deploying the compiled worker.
         code = `import { WorkflowEntrypoint } from 'cloudflare:workers';
 import { McpAgent } from "./bundles/agents/agents.mcp.bundle.mjs";
 import { McpServer } from "./bundles/mcp/mcp-sdk.bundle.mjs";
@@ -663,12 +604,9 @@ export default {
     });
   }
 
-  /**
-   * Generate wrangler config
-   */
   private static generateWranglerConfig(
     workflow: { name: string; nodes: Array<{ type: string }> },
-    bindings: Array<{ name: string; type: BindingType; usage: Array<{ nodeId: string; nodeLabel: string; nodeType: string }> }>,
+    bindings: BindingConfiguration[],
     options?: CompilationOptions,
     workflowId?: string,
     className?: string
@@ -682,24 +620,19 @@ export default {
       const hasAINodes = bindings.some(b => b.type === BindingType.AI);
       const mcpClassName = hasMCPNodes ? `${finalClassName}MCP` : null;
 
-      // Generate wrangler bindings, but exclude durable objects if we have MCP nodes
-      // (we'll add MCP durable objects separately with custom configuration)
-      const allWranglerBindings = BindingAnalyzer.generateWranglerBindings(bindings);
+      const allWranglerBindings = generateWranglerBindings(bindings);
       const wranglerBindings: Record<string, any> = { ...allWranglerBindings };
       
-      // Remove durable_objects from wranglerBindings if MCP nodes exist (we'll add custom MCP durable objects)
       if (hasMCPNodes && wranglerBindings.durable_objects) {
         delete wranglerBindings.durable_objects;
       }
 
-      // Add workflows section
       const workflows = [{
         name: finalClassName,
         binding: workflowBindingName,
         class_name: finalClassName
       }];
 
-      // Add MCP durable object bindings if MCP nodes exist
       const durableObjects: any = {};
       if (hasMCPNodes && mcpClassName) {
         durableObjects.bindings = [
@@ -716,7 +649,6 @@ export default {
         ];
       }
 
-      // Update AI binding format if AI nodes exist - always use "AI" as binding name
       if (hasAINodes) {
         wranglerBindings.ai = {
           binding: "AI"
@@ -731,7 +663,6 @@ export default {
         ...wranglerBindings,
       };
 
-      // Add durable objects if MCP exists
       if (hasMCPNodes && Object.keys(durableObjects).length > 0) {
         config.durable_objects = durableObjects;
       }
@@ -740,4 +671,3 @@ export default {
     });
   }
 }
-
