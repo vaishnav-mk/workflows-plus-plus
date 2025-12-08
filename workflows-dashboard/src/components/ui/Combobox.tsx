@@ -94,6 +94,7 @@ export function Combobox({
         role="combobox"
         aria-haspopup="listbox"
         aria-expanded={isOpen}
+        aria-controls={isOpen ? "combobox-menu" : undefined}
         className={cn(
           "flex items-center border border-gray-300 rounded-lg focus-within:border-primary focus-within:ring-2 focus-within:ring-primary",
           isOpen && "border-primary ring-2 ring-primary",

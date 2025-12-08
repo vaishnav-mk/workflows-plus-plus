@@ -1,7 +1,3 @@
-/**
- * AI Gateway Service Errors
- */
-
 import { ErrorCode } from "../../core/enums";
 
 export class AIGatewayError extends Error {
@@ -40,4 +36,3 @@ export class AIGatewayAPIError extends AIGatewayError {
     this.name = "AIGatewayAPIError";
   }
 }
-

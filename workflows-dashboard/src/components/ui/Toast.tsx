@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { X, CheckCircle, AlertCircle, Info, AlertTriangle } from 'lucide-react';
+import { X } from 'lucide-react';
 import type { ToastType, Toast } from '@/types/ui';
 import type { ToastProps } from '@/types/components';
 

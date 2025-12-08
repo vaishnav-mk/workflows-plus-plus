@@ -1,10 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../lib/api-client';
 
-// ============================================================================
-// QUERY HOOKS (GET requests)
-// ============================================================================
-
 export function useWorkflowsQuery(page = 1, perPage = 10) {
   return useQuery({
     queryKey: ['workflows', page, perPage],
@@ -153,15 +149,11 @@ export function useInstanceQuery(workflowName: string, instanceId: string) {
       return result.data?.result || result.data;
     },
     enabled: !!workflowName && !!instanceId,
-    staleTime: 10 * 1000, // 10 seconds - instance data changes frequently
+    staleTime: 10 * 1000,
     refetchOnWindowFocus: true,
-    refetchInterval: 5000, // Poll every 5 seconds for active instances
+    refetchInterval: 5000,
   });
 }
-
-// ============================================================================
-// MUTATION HOOKS (POST/PUT/DELETE requests)
-// ============================================================================
 
 export function useCompileWorkflowMutation() {
   return useMutation({

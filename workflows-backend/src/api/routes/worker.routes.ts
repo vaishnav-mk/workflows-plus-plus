@@ -3,107 +3,66 @@
  */
 
 import { Hono } from "hono";
-import Cloudflare from "cloudflare";
+import { z } from "zod";
 import { HTTP_STATUS_CODES, MESSAGES } from "../../core/constants";
-import { ErrorCode } from "../../core/enums";
 import { ApiResponse } from "../../core/api-contracts";
 import { createPaginationResponse } from "../../core/utils/pagination";
-import { CredentialsContext } from "../../api/middleware/credentials.middleware";
-import { validateQuery, validateParams, validationErrorResponse } from "../../core/validation/validator";
+import { CredentialsContext } from "../../core/types";
 import { PaginationQuerySchema, WorkerIdParamSchema } from "../../core/validation/schemas";
+import { safe } from "../../core/utils/route-helpers";
+import { zValidator } from "../../api/middleware/validation.middleware";
+import { CloudflareContext } from "../../core/types";
 
 interface ContextWithCredentials {
   Variables: {
     credentials: CredentialsContext;
-  };
+  } & CloudflareContext;
 }
 
 const app = new Hono<ContextWithCredentials>();
 
 // List workers
-app.get("/", async (c) => {
-  try {
-    // Validate query parameters
-    const queryValidation = validateQuery(c, PaginationQuerySchema);
-    if (!queryValidation.success) {
-      return validationErrorResponse(queryValidation);
-    }
-    
-    const credentials = c.var.credentials;
-    const client = new Cloudflare({
-      apiToken: credentials.apiToken,
-    });
+app.get("/", zValidator('query', PaginationQuerySchema), safe(async (c) => {
+  const credentials = c.var.credentials;
+  const client = c.var.cloudflare;
 
-    const page = queryValidation.data.page || 1;
-    const perPage = queryValidation.data.per_page || 10;
+  const { page = 1, per_page: perPage = 10 } = c.req.valid('query') as z.infer<typeof PaginationQuerySchema>;
 
-    const workers = await client.workers.beta.workers.list({
-      account_id: credentials.accountId,
-      page,
-      per_page: perPage,
-    });
+  const workers = await client.workers.beta.workers.list({
+    account_id: credentials.accountId,
+    page,
+    per_page: perPage,
+  });
 
-    const totalCount = (workers.result_info as { total_count?: number })?.total_count;
-    const response = createPaginationResponse(
-      workers.result || [],
-      page,
-      perPage,
-      totalCount
-    );
-    response.message = MESSAGES.WORKERS_RETRIEVED;
+  const totalCount = (workers.result_info as { total_count?: number })?.total_count;
+  const response = createPaginationResponse(
+    workers.result || [],
+    page,
+    perPage,
+    totalCount
+  );
+  response.message = MESSAGES.WORKERS_RETRIEVED;
 
-    return c.json(response, HTTP_STATUS_CODES.OK);
-  } catch (error) {
-    return c.json(
-      {
-        success: false,
-        error: "Failed to fetch workers",
-        message: error instanceof Error ? error.message : "Unknown error",
-        code: ErrorCode.INTERNAL_ERROR,
-      },
-      HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR
-    );
-  }
-});
+  return c.json(response, HTTP_STATUS_CODES.OK);
+}));
 
 // Get worker details
-app.get("/:id", async (c) => {
-  try {
-    // Validate path parameters
-    const paramsValidation = validateParams(c, WorkerIdParamSchema);
-    if (!paramsValidation.success) {
-      return validationErrorResponse(paramsValidation);
-    }
-    
-    const credentials = c.var.credentials;
-    const { id: workerId } = paramsValidation.data;
+app.get("/:id", zValidator('param', WorkerIdParamSchema), safe(async (c) => {
+  const credentials = c.var.credentials;
+  const { id: workerId } = c.req.valid('param') as z.infer<typeof WorkerIdParamSchema>;
+  const client = c.var.cloudflare;
 
-    const client = new Cloudflare({
-      apiToken: credentials.apiToken,
-    });
+  const worker = await client.workers.beta.workers.get(workerId, {
+    account_id: credentials.accountId,
+  });
 
-    const worker = await client.workers.beta.workers.get(workerId, {
-      account_id: credentials.accountId,
-    });
+  const response: ApiResponse = {
+    success: true,
+    data: worker,
+    message: MESSAGES.WORKER_RETRIEVED,
+  };
 
-    const response: ApiResponse = {
-      success: true,
-      data: worker,
-      message: MESSAGES.WORKER_RETRIEVED,
-    };
-
-    return c.json(response, HTTP_STATUS_CODES.OK);
-  } catch (error) {
-    return c.json(
-      {
-        success: false,
-        error: "Failed to get worker",
-        message: error instanceof Error ? error.message : "Unknown error",
-        code: ErrorCode.INTERNAL_ERROR,
-      },
-      HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR
-    );
-  }
-});
+  return c.json(response, HTTP_STATUS_CODES.OK);
+}));
 
 export default app;

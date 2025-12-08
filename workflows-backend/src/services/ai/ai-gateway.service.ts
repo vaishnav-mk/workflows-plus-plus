@@ -1,11 +1,6 @@
-/**
- * AI Gateway Service
- * Handles AI-powered workflow generation using Vercel AI SDK with Gemini
- */
-
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { generateText } from 'ai';
-import { AIGenerationRequest, AIGenerationResponse, AIGatewayConfig } from "./types";
+import { AIGenerationRequest, AIGenerationResponse, AIGatewayConfig } from "../../core/types";
 import { AIGatewayError, AIGatewayTimeoutError } from "./errors";
 import { ErrorCode } from "../../core/enums";
 import { AI_GATEWAY } from "../../core/constants";
@@ -22,17 +17,11 @@ export class AIGatewayService {
     this.config = config;
     this.maxRetries = config.maxRetries || AI_GATEWAY.MAX_RETRIES;
     this.timeout = config.timeout || AI_GATEWAY.TIMEOUT_MS;
-
-    logger.info("AIGatewayService initialized", {
-      url: this.config.url,
-      timeout: this.timeout,
-      maxRetries: this.maxRetries
-    });
   }
 
   async generateWorkflow(request: AIGenerationRequest): Promise<AIGenerationResponse> {
     const startTime = Date.now();
-    logger.info("Generating workflow with AI");
+    logger.info("generating workflow");
 
     try {
       const response = await this.callGeminiAPI(request);
@@ -46,7 +35,7 @@ export class AIGatewayService {
     } catch (error) {
       const duration = Date.now() - startTime;
       const errorMessage = error instanceof Error ? error.message : String(error);
-      logger.error("AI workflow generation failed", error instanceof Error ? error : new Error(errorMessage), {
+      logger.error("generation failed", error instanceof Error ? error : new Error(errorMessage), {
         duration
       });
 
@@ -175,10 +164,8 @@ export class AIGatewayService {
         throw new Error("Invalid workflow structure in AI response");
       }
 
-      // Always generate standardized workflow ID
       parsed.workflow.id = parsed.workflow.id || generateWorkflowId();
 
-      // Assign standardized node IDs
       const transformNodes = parsed.workflow.nodes.filter((n: any) => n.type === 'transform');
       
       parsed.workflow.nodes = parsed.workflow.nodes.map((node: any, index: number) => {

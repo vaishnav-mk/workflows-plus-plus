@@ -1,0 +1,15 @@
+{
+  "extends": "../../workflows-backend/tsconfig.json",
+  "compilerOptions": {
+    "types": ["vitest/globals"],
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM"],
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "skipLibCheck": true
+  },
+  "include": ["./**/*"],
+  "exclude": ["node_modules", "dist"]
+}
+

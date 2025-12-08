@@ -30,10 +30,9 @@ export const useNodeExecutionStore = create<NodeExecutionState>((set) => ({
     })),
   clearExecution: (nodeId) =>
     set((state) => {
-      const { [nodeId]: _removed, ...rest } = state.executions;
-      return { executions: rest };
+      const newExecutions = { ...state.executions };
+      delete newExecutions[nodeId];
+      return { executions: newExecutions };
     }),
   clearAll: () => set({ executions: {} }),
 }));
-
-

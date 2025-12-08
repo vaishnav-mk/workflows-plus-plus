@@ -5,8 +5,7 @@ import { useRouter } from "next/navigation";
 import { apiClient } from "@/lib/api-client";
 import { Card, CardContent, PageHeader, Button } from "@/components";
 import { InlineLoader } from "@/components/ui/Loader";
-import { Database, Plus, Search, ArrowLeft } from "lucide-react";
-import Link from "next/link";
+import { Database, Plus } from "lucide-react";
 
 interface D1Database {
   uuid: string;

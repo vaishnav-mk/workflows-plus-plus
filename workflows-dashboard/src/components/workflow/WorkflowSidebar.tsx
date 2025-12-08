@@ -8,6 +8,7 @@ export function WorkflowSidebar({ onAddNode, nodes, edges, edgeSelected = false 
   const { catalog } = useNodeRegistry();
 
   // Group nodes by type for stats
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const nodesByType = catalog.reduce((acc, nodeDef) => {
     const count = nodes.filter(n => n.data?.type === nodeDef.type).length;
     if (count > 0) {
@@ -17,6 +18,7 @@ export function WorkflowSidebar({ onAddNode, nodes, edges, edgeSelected = false 
   }, {} as Record<string, { count: number; name: string; category: string }>);
 
   const entryNodes = nodes.filter(n => n.data?.type === 'entry');
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const returnNodes = nodes.filter(n => n.data?.type === 'return');
   const controlNodes = nodes.filter(n => {
     const type = n.data?.type;

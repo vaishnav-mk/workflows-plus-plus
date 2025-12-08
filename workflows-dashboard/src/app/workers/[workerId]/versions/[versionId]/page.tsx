@@ -2,14 +2,12 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useState, useMemo } from "react";
-import { WorkflowLoader } from "@/components/ui/Loader";
 import { Spinner } from "@/components";
 import {
   useWorkerQuery,
   useWorkerVersionQuery
 } from "@/hooks/useWorkflowsQuery";
 import {
-  PageHeader,
   Card,
   CardHeader,
   CardContent,
@@ -84,7 +82,6 @@ function FileTreeItem({
   const [open, setOpen] = useState(false);
 
   if (node.type === "folder") {
-
     return (
       <div className="mb-0.5">
         <button
@@ -168,7 +165,7 @@ export default function VersionDetailPage() {
           ? String(workerError || versionError)
           : null;
 
-  const modules: Module[] = version?.modules || [];
+  const modules: Module[] = useMemo(() => version?.modules || [], [version?.modules]);
 
   const fileTree = useMemo<FileTreeNode[]>(() => {
     if (!modules.length) return [];

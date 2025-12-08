@@ -1,7 +1,3 @@
-/**
- * HTTP Request Node - Make external API calls
- */
-
 import { z } from "zod";
 import { Effect } from "effect";
 import { WorkflowNodeDefinition, CodeGenContext, CodeGenResult } from "../../core/types";
@@ -124,7 +120,6 @@ export const HttpRequestNode: WorkflowNodeDefinition<HttpRequestConfig> = {
   },
   codegen: ({ nodeId, config, stepName, graphContext }): Effect.Effect<CodeGenResult, { _tag: ErrorCode; message: string }> => {
     return Effect.gen(function* (_) {
-      // Validate and provide defaults for config
       if (!config || typeof config !== 'object') {
         return yield* _(Effect.fail({
           _tag: ErrorCode.COMPILATION_ERROR,
@@ -132,7 +127,6 @@ export const HttpRequestNode: WorkflowNodeDefinition<HttpRequestConfig> = {
         }));
       }
 
-      // Ensure url exists
       if (!config.url) {
         return yield* _(Effect.fail({
           _tag: ErrorCode.COMPILATION_ERROR,
@@ -150,7 +144,7 @@ export const HttpRequestNode: WorkflowNodeDefinition<HttpRequestConfig> = {
       let headersString = "";
       if (config.headers && Array.isArray(config.headers) && config.headers.length > 0) {
         headersString = config.headers
-          .filter(h => h && h.key && h.value) // Filter out invalid headers
+          .filter(h => h && h.key && h.value) 
           .map(h => {
             let headerValue = h.value;
             if (typeof headerValue === "string" && headerValue.includes("{{")) {
@@ -163,7 +157,6 @@ export const HttpRequestNode: WorkflowNodeDefinition<HttpRequestConfig> = {
       }
 
       let bodyContent = "";
-      // Ensure body exists and has a type property, default to "none" if missing
       const body = config.body || { type: "none", content: "" };
       if (body.type && body.type !== "none") {
         if (typeof body.content === "string" && body.content.includes("{{")) {
@@ -190,7 +183,6 @@ export const HttpRequestNode: WorkflowNodeDefinition<HttpRequestConfig> = {
         .filter(e => e.target === nodeId)
         .map(e => `_workflowState['${e.source}']?.output || event.payload`)[0] || "event.payload";
 
-      // Ensure method and timeout have defaults
       const method = config.method || "GET";
       const timeout = config.timeout || DEFAULT_VALUES.TIMEOUT;
 
@@ -229,4 +221,3 @@ ${headersString || "          // No custom headers"}
     });
   },
 };
-

@@ -5,13 +5,10 @@ import {
   useReactTable,
   getCoreRowModel,
   flexRender,
-  type ColumnDef,
 } from "@tanstack/react-table";
 import {
   Table,
   TableCell,
-  MoreVerticalIcon,
-  Button,
 } from "@/components/ui";
 import { cn } from "@/lib/utils";
 import type { DataTableProps } from "@/types/components";
@@ -24,7 +21,6 @@ export function DataTable<TData>({
   onRowAction,
 }: DataTableProps<TData>) {
   const tableColumns = React.useMemo(() => {
-    // Filter out action columns
     return columns.filter(col => col.id !== 'actions');
   }, [columns]);
 

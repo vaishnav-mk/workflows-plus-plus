@@ -1,9 +1,8 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { X, Type, Hash, ToggleLeft, Folder, List, FileJson } from 'lucide-react';
 import { useWorkflowStore } from '../../stores/workflowStore';
-import { useNodeRegistry } from '../../hooks/useNodeRegistry';
 
 interface TemplateBadgeProps {
   expression: string;
@@ -13,7 +12,6 @@ interface TemplateBadgeProps {
 
 export function TemplateBadge({ expression, onRemove, onClick }: TemplateBadgeProps) {
   const { nodes } = useWorkflowStore();
-  const { getNodeByType } = useNodeRegistry();
   
   // Extract the readable part (remove {{ and }})
   const readable = expression.replace(/\{\{|\}\}/g, '');

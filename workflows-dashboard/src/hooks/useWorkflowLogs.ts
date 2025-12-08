@@ -94,7 +94,7 @@ export function useWorkflowLogs({
         const tailUrl = `http://localhost:8787/api/workflows/${workflowNameRef.current}/instances/${instanceIdRef.current}/logs/tail-url`;
         
         const response = await fetch(tailUrl, {
-          credentials: "include" // Include cookies for authentication
+          credentials: "include"
         });
         const data = await response.json();
 
@@ -139,16 +139,18 @@ export function useWorkflowLogs({
                       });
                       setLastLog(parsed);
                     }
-                  } catch (e) {
+                  } catch {
+                    // Ignore parsing errors
                   }
                 }
               }
             }
-          } catch (err) {
+          } catch {
+            // Ignore message errors
           }
         };
 
-        ws.onerror = (error) => {
+        ws.onerror = () => {
           isConnectingRef.current = false;
           setIsConnected(false);
           setIsConnecting(false);
@@ -173,7 +175,7 @@ export function useWorkflowLogs({
           setIsConnected(false);
           setIsConnecting(false);
         };
-      } catch (err) {
+      } catch {
         isConnectingRef.current = false;
         setError("Failed to setup tail connection");
         setIsConnecting(false);
@@ -205,7 +207,7 @@ export function useWorkflowLogs({
       setError(null);
       connect();
     },
-    []
+    [connect, disconnect]
   );
 
   useEffect(
@@ -220,7 +222,7 @@ export function useWorkflowLogs({
         disconnect();
       };
     },
-    [enabled, workflowName, instanceId]
+    [enabled, workflowName, instanceId, connect, disconnect]
   );
 
   useEffect(
@@ -230,22 +232,16 @@ export function useWorkflowLogs({
       }
 
       if (lastLog.type === "WF_NODE_START" || lastLog.type === "WF_NODE_END") {
-        // Use React Query to fetch status
         const fetchStatus = async () => {
           try {
-            const { useInstanceQuery } = await import('./useWorkflowsQuery');
-            // Note: This is a hook, so we can't call it here directly
-            // Instead, we'll use the query client to refetch
-            const { useQueryClient } = await import('@tanstack/react-query');
-            // For now, keep the direct API call but we'll refactor this differently
             const { apiClient } = await import('../lib/api-client');
             const result = await apiClient.getInstance(workflowName, instanceId);
             
             if (result.success && onStatusUpdate) {
               onStatusUpdate(result.data);
             }
-          } catch (error) {
-            // Silently fail - status updates are not critical
+          } catch {
+            // Silently fail
           }
         };
 

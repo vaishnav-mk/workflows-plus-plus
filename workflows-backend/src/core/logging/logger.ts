@@ -182,9 +182,9 @@ class Logger {
     this.logLevel = level;
   }
 
-  createChild(_context: LogContext): Logger {
+  createChild(context?: LogContext): Logger {
     // Context is stored for potential future use in child logger
-    void _context;
+    void context;
     const child = new Logger();
     child.logLevel = this.logLevel;
     child.enableRequestLogging = this.enableRequestLogging;

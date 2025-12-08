@@ -1,12 +1,12 @@
 import Cloudflare from "cloudflare";
-import type {
+import {
   DeploymentOptions,
   DeploymentProgress,
   DeploymentState,
   DeploymentResult,
   DeploymentProgressCallback,
   BindingDeploymentContext
-} from "./types";
+} from "../../core/types";
 import { logger } from "../../core/logging/logger";
 import {
   DEPLOYMENT_STEPS_ORDER,
@@ -19,27 +19,14 @@ import {
   transformBindingsForAPI
 } from "./binding-deployment";
 import { MCP_EMBEDDED_MODULES } from "./mcp-bundles.generated";
+import { getSSECorsHeaders } from "../../core/cors.config";
 
 export class DeploymentDurableObject {
   private deploymentState: DeploymentState | null = null;
   private sseConnections: Set<ReadableStreamDefaultController> = new Set();
-  private readonly state: DurableObjectState;
-  private readonly env: { [key: string]: unknown };
 
-  constructor(state: DurableObjectState, env: { [key: string]: unknown }) {
-    this.state = state;
-    this.env = env;
-  }
+  constructor(_state: DurableObjectState, _env: { [key: string]: unknown }) {}
 
-  // Method to access state if needed in the future
-  getState(): DurableObjectState {
-    return this.state;
-  }
-
-  // Method to access env if needed in the future
-  getEnv(): { [key: string]: unknown } {
-    return this.env;
-  }
 
   async fetch(request: Request): Promise<Response> {
     const url = new URL(request.url);
@@ -92,16 +79,14 @@ export class DeploymentDurableObject {
       }
     });
 
-    return new Response(stream, {
-      headers: {
-        "Content-Type": "text/event-stream",
-        "Cache-Control": "no-cache",
-        Connection: "keep-alive",
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "GET",
-        "Access-Control-Allow-Headers": "Cache-Control"
-      }
-    });
+    const origin = request.headers.get("Origin");
+    const headers: HeadersInit = {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+      ...getSSECorsHeaders(origin, "GET", ["Cache-Control"])
+    };
+    return new Response(stream, { headers });
   }
 
   private sendSSEMessage(controller: ReadableStreamDefaultController, event: string, data: unknown): void {
@@ -284,11 +269,6 @@ export class DeploymentDurableObject {
   }
 }
 
-/**
- * Cloudflare deployment pipeline:
- * INITIALIZING → CREATING_WORKER → TRANSFORMING_BINDINGS → CREATING_VERSION
- * → DEPLOYING → UPDATING_WORKFLOW → CREATING_INSTANCE → COMPLETED/FAILED.
- */
 export async function deployToCloudflare(
   options: DeploymentOptions,
   apiToken: string,
@@ -322,8 +302,6 @@ export async function deployToCloudflare(
     const scriptFilename = `${workerName}.mjs`;
     const chosenSubdomain = options.subdomain || subdomain || CLOUDFLARE.DEFAULT_SUBDOMAIN;
 
-    // Derive the workflow binding name in the same way as the compiler, so
-    // the MCP Durable Object can consistently reference env.<BINDING_NAME>.
     const workflowBindingName =
       `${className.toUpperCase().replace(/[^A-Z0-9]/g, "_")}_WORKFLOW`;
 
@@ -354,7 +332,7 @@ export async function deployToCloudflare(
     const bindingCtx: BindingDeploymentContext = { 
       client: {
         kv: client.kv,
-        d1: undefined // D1 operations use direct fetch, not client interface
+        d1: undefined 
       }, 
       accountId,
       apiToken,
@@ -371,7 +349,6 @@ export async function deployToCloudflare(
         b.type === "durable_object_namespace"
     );
     
-    // Extract actual exported class names from script and update bindings
     if (durableObjectBindings.length > 0) {
       const exportedClasses = (options.scriptContent.match(/export\s+class\s+(\w+)/g) || [])
         .map(match => match.replace(/export\s+class\s+/, ''));
@@ -386,7 +363,6 @@ export async function deployToCloudflare(
           );
         }
         
-        // Update binding with exact class name from script
         binding.class_name = actualClassName;
       }
     }
@@ -411,7 +387,6 @@ export async function deployToCloudflare(
       }
     ];
 
-    // Include the embedded MCP/agents bundles only if MCP is enabled
     if (options.mcpEnabled) {
       logger.info("deployToCloudflare: embedded MCP bundle modules scan result", {
         bundleCount: MCP_EMBEDDED_MODULES.length
@@ -428,10 +403,7 @@ export async function deployToCloudflare(
           contentLength: mod.content.length,
           base64Length: encoded.length
         });
-        // Extra console log for debugging in test scripts
-        // eslint-disable-next-line no-console
-        console.log("[deployToCloudflare] Module included:", {
-          name: mod.name,
+        logger.debug(`[deployToCloudflare] Module included: ${mod.name}`, {
           contentLength: mod.content.length,
           base64Length: encoded.length
         });
@@ -444,8 +416,7 @@ export async function deployToCloudflare(
       totalModules: modules.length,
       moduleNames: modules.map(m => m.name)
     });
-    // eslint-disable-next-line no-console
-    console.log("[deployToCloudflare] Total modules:", modules.length);
+    logger.debug(`[deployToCloudflare] Total modules: ${modules.length}`);
     
     const migrations: { new_sqlite_classes?: string[]; tag?: string } | undefined = 
       durableObjectBindings.length > 0
@@ -455,9 +426,6 @@ export async function deployToCloudflare(
           }
         : undefined;
     
-    // Two-step deployment required for new durable object classes:
-    // 1. Deploy version with migrations (no bindings) to register classes
-    // 2. Deploy version with bindings (migrations already applied)
     if (migrations && durableObjectBindings.length > 0) {
       progress(DeploymentStep.CREATING_VERSION, "Creating version with migrations...", 45);
       
@@ -490,7 +458,6 @@ export async function deployToCloudflare(
         ]
       });
       
-      // Wait for migration to be applied
       await new Promise(resolve => setTimeout(resolve, 2000));
     }
     
@@ -500,8 +467,6 @@ export async function deployToCloudflare(
       compatibility_date: CODE_GENERATION.WRANGLER_COMPATIBILITY_DATE,
       compatibility_flags: ["nodejs_compat"],
       modules,
-      // Ensure the workflow is bound into the Worker environment so the MCP
-      // Durable Object can call env.<WORKFLOW_BINDING>.create(...)
       workflows: [
         {
           name: workflowName,
@@ -575,23 +540,13 @@ export async function deployToCloudflare(
       instanceCreateResponse?.id || instanceCreateResponse?.instance?.id;
     logger.info("Instance created", { instanceId: instanceId || "N/A" });
 
-    // Construct a valid Workers.dev URL for the deployed script.
-    // - If the chosenSubdomain is exactly "workers.dev", the public URL is
-    //   "https://<workerName>.workers.dev/"
-    // - If chosenSubdomain already ends with ".workers.dev" (for example
-    //   "wishee.workers.dev"), treat it as the full account subdomain and prepend
-    //   the worker name: "https://<workerName>.<subdomain>/"
-    // - Otherwise, treat chosenSubdomain as the account subdomain part and append
-    //   ".workers.dev".
     let workerUrl: string | undefined;
     if (chosenSubdomain) {
       if (chosenSubdomain === "workers.dev") {
         workerUrl = `https://${workerName}.workers.dev/`;
       } else if (chosenSubdomain.endsWith(".workers.dev")) {
-        // e.g. "wishee.workers.dev"
         workerUrl = `https://${workerName}.${chosenSubdomain}/`;
       } else {
-        // e.g. "wishee" -> "wishee.workers.dev"
         workerUrl = `https://${workerName}.${chosenSubdomain}.workers.dev/`;
       }
     }

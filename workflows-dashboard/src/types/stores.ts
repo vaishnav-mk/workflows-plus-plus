@@ -1,9 +1,5 @@
-/**
- * Store-related types
- * Centralized types for Zustand stores
- */
-
 import type { Node, Edge } from "reactflow";
+import type { Toast } from "./ui";
 
 export interface NodesState {
   nodes: Node[];
@@ -51,9 +47,8 @@ export interface ActionsState {
 }
 
 export interface ToastState {
-  toasts: import('./ui').Toast[];
-  addToast: (toast: Omit<import('./ui').Toast, "id">) => void;
+  toasts: Toast[];
+  addToast: (toast: Omit<Toast, "id">) => void;
   removeToast: (id: string) => void;
   clearToasts: () => void;
 }
-

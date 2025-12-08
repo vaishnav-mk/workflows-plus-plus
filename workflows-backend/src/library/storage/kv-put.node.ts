@@ -1,7 +1,3 @@
-/**
- * KV Put Node - Write to Workers KV
- */
-
 import { z } from "zod";
 import { Effect } from "effect";
 import { WorkflowNodeDefinition, CodeGenContext, CodeGenResult } from "../../core/types";
@@ -192,4 +188,3 @@ export const KVPutNode: WorkflowNodeDefinition<KVPutConfig> = {
     });
   },
 };
-

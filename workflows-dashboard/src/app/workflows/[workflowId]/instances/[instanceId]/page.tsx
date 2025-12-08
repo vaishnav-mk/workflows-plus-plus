@@ -101,7 +101,7 @@ export default function InstanceDetailPage() {
     setEdges((eds) => applyEdgeChanges(changes, eds) as Edge[]);
   }, []);
   
-  const onConnect = useCallback((connection: Connection) => {
+  const onConnect = useCallback((_connection: Connection) => {
     // Read-only view, no connections allowed
   }, []);
   

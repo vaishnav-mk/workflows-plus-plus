@@ -1,7 +1,3 @@
-/**
- * Node Execution Service Errors
- */
-
 import { ErrorCode } from "../../core/enums";
 
 export class ExecutionError extends Error {
@@ -14,4 +10,3 @@ export class ExecutionError extends Error {
     this.name = "ExecutionError";
   }
 }
-

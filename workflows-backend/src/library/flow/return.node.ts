@@ -1,7 +1,3 @@
-/**
- * Return Node - Workflow exit point
- */
-
 import { z } from "zod";
 import { Effect } from "effect";
 import { WorkflowNodeDefinition, CodeGenContext, CodeGenResult } from "../../core/types";
@@ -18,10 +14,6 @@ const ReturnConfigSchema = z.object({
 
 type ReturnConfig = z.infer<typeof ReturnConfigSchema>;
 
-/**
- * Sanitize a string to be a valid JavaScript identifier
- * Replaces hyphens and other invalid characters with underscores
- */
 function sanitizeIdentifier(name: string): string {
   return name.replace(/[^a-zA-Z0-9_]/g, "_");
 }
@@ -134,10 +126,8 @@ export const ReturnNode: WorkflowNodeDefinition<ReturnConfig> = {
         }
       }
 
-      // If no value is configured, default to returning the input data from the previous step
       const resultValue = value !== null ? value : inputData;
 
-      // Sanitize stepName for use as JavaScript identifier (replace hyphens with underscores)
       const sanitizedStepName = sanitizeIdentifier(stepName);
 
       const code = `
@@ -157,4 +147,3 @@ export const ReturnNode: WorkflowNodeDefinition<ReturnConfig> = {
     });
   },
 };
-

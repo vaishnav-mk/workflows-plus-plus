@@ -1,10 +1,5 @@
-/**
- * Node Execution Service
- * Executes node logic in a safe environment for testing
- */
-
 import { NodeRegistry } from "../../catalog/registry";
-import { ExecutionRequest, ExecutionResult } from "./types";
+import { ExecutionRequest, ExecutionResult } from "../../core/types";
 import { ExecutionError } from "./errors";
 import { ErrorCode } from "../../core/enums";
 import { logger } from "../../core/logging/logger";
@@ -80,7 +75,6 @@ export class NodeExecutionService {
     const startTime = Date.now();
 
     try {
-      // For nodes with preset output and no special runtime, just return the preset
       if (nodeDefinition.presetOutput && nodeDefinition.metadata.type !== "http-request") {
         logs.push(`Using preset output for node type: ${nodeDefinition.metadata.type}`);
         return {
@@ -93,7 +87,6 @@ export class NodeExecutionService {
 
       let output: unknown;
 
-      // Special-case: actually execute HTTP requests for local testing
       if (nodeDefinition.metadata.type === "http-request") {
         logs.push("Executing real HTTP request for local node test");
         output = await this.executeHttpRequestNode(config, inputData, logs);
@@ -129,11 +122,6 @@ export class NodeExecutionService {
     }
   }
 
-  /**
-   * Execute an HTTP Request node using the provided config.
-   * This is used for local testing from the dashboard and intentionally
-   * does NOT support template expressions or workflow state references.
-   */
   private async executeHttpRequestNode(
     config: Record<string, unknown>,
     inputData: Record<string, unknown>,
@@ -155,7 +143,6 @@ export class NodeExecutionService {
       );
     }
 
-    // For now, keep things simple and disallow template expressions in local tests
     if (rawUrl.includes("{{")) {
       throw new ExecutionError(
         ErrorCode.INVALID_CONFIG,
@@ -219,7 +206,6 @@ export class NodeExecutionService {
       method,
       headers,
       body,
-      // Cloudflare Workers and modern runtimes support AbortSignal.timeout
       signal: AbortSignal.timeout(timeoutMs)
     });
 
@@ -258,7 +244,6 @@ export class NodeExecutionService {
     config: Record<string, unknown>,
     inputData: Record<string, unknown>
   ): unknown {
-    // Simulate different node types
     switch (nodeType) {
       case "entry":
         return inputData;
@@ -314,4 +299,3 @@ export class NodeExecutionService {
     }
   }
 }
-

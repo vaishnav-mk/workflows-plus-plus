@@ -1,29 +1,37 @@
-/**
- * Node Library - Export all nodes
- */
+import * as aiGatewayNode from "./ai/ai-gateway.node";
+import * as workersAiNode from "./ai/workers-ai.node";
+import * as conditionalRouterNode from "./flow/conditional-router.node";
+import * as entryNode from "./flow/entry.node";
+import * as forEachNode from "./flow/for-each.node";
+import * as returnNode from "./flow/return.node";
+import * as waitEventNode from "./flow/wait-event.node";
+import * as httpRequestNode from "./http/http-request.node";
+import * as d1QueryNode from "./storage/d1-query.node";
+import * as kvGetNode from "./storage/kv-get.node";
+import * as kvPutNode from "./storage/kv-put.node";
+import * as r2GetNode from "./storage/r2-get.node";
+import * as r2PutNode from "./storage/r2-put.node";
+import * as sleepNode from "./utils/sleep.node";
+import * as transformNode from "./utils/transform.node";
+import * as validateNode from "./utils/validate.node";
+import * as mcpToolInputNode from "./ai/mcp-tool-input.node";
+import * as mcpToolOutputNode from "./ai/mcp-tool-output.node";
 
-// Flow nodes
-export { EntryNode } from "./flow/entry.node";
-export { ReturnNode } from "./flow/return.node";
-export { ConditionalRouterNode } from "./flow/conditional-router.node";
-export { WaitEventNode } from "./flow/wait-event.node";
-
-// Storage nodes
-export { KVGetNode } from "./storage/kv-get.node";
-export { KVPutNode } from "./storage/kv-put.node";
-export { R2GetNode } from "./storage/r2-get.node";
-export { R2PutNode } from "./storage/r2-put.node";
-export { D1QueryNode } from "./storage/d1-query.node";
-
-// HTTP nodes
-export { HttpRequestNode } from "./http/http-request.node";
-
-// Utils nodes
-export { SleepNode } from "./utils/sleep.node";
-export { TransformNode } from "./utils/transform.node";
-
-// AI nodes
-export { WorkersAINode } from "./ai/workers-ai.node";
-export { MCPToolInputNode } from "./ai/mcp-tool-input.node";
-export { MCPToolOutputNode } from "./ai/mcp-tool-output.node";
-
+export const AIGatewayNode = aiGatewayNode.AIGatewayNode;
+export const WorkersAINode = workersAiNode.WorkersAINode;
+export const ConditionalRouterNode = conditionalRouterNode.ConditionalRouterNode;
+export const EntryNode = entryNode.EntryNode;
+export const ForEachNode = forEachNode.ForEachNode;
+export const ReturnNode = returnNode.ReturnNode;
+export const WaitEventNode = waitEventNode.WaitEventNode;
+export const HttpRequestNode = httpRequestNode.HttpRequestNode;
+export const D1QueryNode = d1QueryNode.D1QueryNode;
+export const KVGetNode = kvGetNode.KVGetNode;
+export const KVPutNode = kvPutNode.KVPutNode;
+export const R2GetNode = r2GetNode.R2GetNode;
+export const R2PutNode = r2PutNode.R2PutNode;
+export const SleepNode = sleepNode.SleepNode;
+export const TransformNode = transformNode.TransformNode;
+export const ValidateNode = validateNode.ValidateNode;
+export const MCPToolInputNode = mcpToolInputNode.MCPToolInputNode;
+export const MCPToolOutputNode = mcpToolOutputNode.MCPToolOutputNode;

@@ -1,7 +1,3 @@
-/**
- * Workers AI Node - Simple AI model call using Cloudflare Workers AI
- */
-
 import { z } from "zod";
 import { Effect } from "effect";
 import {
@@ -26,10 +22,6 @@ const WorkersAIConfigSchema = z.object({
 
 type WorkersAIConfig = z.infer<typeof WorkersAIConfigSchema>;
 
-/**
- * Sanitize a string to be a valid JavaScript identifier
- * Replaces hyphens and other invalid characters with underscores
- */
 function sanitizeIdentifier(name: string): string {
   return name.replace(/[^a-zA-Z0-9_]/g, "_");
 }
@@ -116,20 +108,16 @@ export const WorkersAINode: WorkflowNodeDefinition<WorkersAIConfig> = {
         typeof config.prompt === "string" && config.prompt.includes("{{");
 
       if (hasTemplate) {
-        // Convert template string to JavaScript template literal
-        // Replace {{...}} with ${...} and resolve the inner expression
         const templateParts = config.prompt.split(/\{\{([^}]+)\}\}/g);
         let templateLiteral = "`";
 
         for (let i = 0; i < templateParts.length; i++) {
           if (i % 2 === 0) {
-            // Static text - escape backticks, $, and backslashes
             templateLiteral += templateParts[i]
               .replace(/\\/g, "\\\\")
               .replace(/`/g, "\\`")
               .replace(/\$/g, "\\$");
           } else {
-            // Template expression - resolve and convert to ${...}
             const expr = templateParts[i].trim();
             let jsExpr: string;
 
@@ -158,7 +146,6 @@ export const WorkersAINode: WorkflowNodeDefinition<WorkersAIConfig> = {
                 jsExpr = `_workflowState['${nodeRef}']${tail}`;
               }
             }
-            // Wrap the expression in JSON.stringify() to ensure values are properly stringified in the prompt
             templateLiteral += "${JSON.stringify(" + jsExpr + ")}";
           }
         }
@@ -191,7 +178,6 @@ export const WorkersAINode: WorkflowNodeDefinition<WorkersAIConfig> = {
             e => `_workflowState['${e.source}']?.output || event.payload`
           )[0] || "event.payload";
 
-      // Sanitize stepName for use as JavaScript identifier (replace hyphens with underscores)
       const sanitizedStepName = sanitizeIdentifier(stepName);
 
       const code = `

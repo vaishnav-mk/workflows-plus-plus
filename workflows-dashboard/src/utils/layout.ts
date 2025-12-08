@@ -10,12 +10,12 @@ export function getLayoutedNodes(nodes: Node[], edges: Edge[]): Node[] {
   const dagreGraph = new dagre.graphlib.Graph();
   dagreGraph.setDefaultEdgeLabel(() => ({}));
   dagreGraph.setGraph({ 
-    rankdir: 'TB', // Top to bottom
-    nodesep: 50,   // Horizontal spacing between nodes in same rank
-    ranksep: 150,   // Vertical spacing between ranks (layers)
-    align: 'UL',   // Align to upper left
-    marginx: 50,    // Horizontal margin
-    marginy: 50,    // Vertical margin
+    rankdir: 'TB',
+    nodesep: 50,
+    ranksep: 150,
+    align: 'UL',
+    marginx: 50,
+    marginy: 50,
   });
 
   nodes.forEach((node) => {
@@ -29,7 +29,7 @@ export function getLayoutedNodes(nodes: Node[], edges: Edge[]): Node[] {
     try {
       dagreGraph.setEdge(edge.source, edge.target);
     } catch (error) {
-      // Skip invalid edges (e.g., self-loops or missing nodes)
+      // Skip invalid edges
       console.warn('[Layout] Skipping invalid edge:', edge, error);
     }
   });

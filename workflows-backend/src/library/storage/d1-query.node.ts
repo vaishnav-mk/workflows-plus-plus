@@ -1,7 +1,3 @@
-/**
- * D1 Query Node - Execute SQL queries on D1 database
- */
-
 import { z } from "zod";
 import { Effect } from "effect";
 import { WorkflowNodeDefinition, CodeGenContext, CodeGenResult } from "../../core/types";
@@ -175,6 +171,3 @@ export const D1QueryNode: WorkflowNodeDefinition<D1QueryConfig> = {
     });
   },
 };
-
-
-

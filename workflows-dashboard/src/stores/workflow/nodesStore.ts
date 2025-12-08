@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { Node, Edge } from "reactflow";
+import type { Node } from "reactflow";
 import type { NodesState } from "@/types/stores";
 import { useSelectionStore } from "@/stores/workflow/selectionStore";
 import { getLayoutedNodes } from "@/utils/layout";
@@ -19,7 +19,6 @@ export const useNodesStore = create<NodesState>((set, get) => ({
     const { nodes } = get();
     const enrichedEdges = enrichEdges(edges, nodes);
     set({ edges: enrichedEdges });
-    // Recalculate layout when edges change
     const layoutedNodes = getLayoutedNodes(nodes, enrichedEdges);
     set({ nodes: layoutedNodes });
   },
@@ -78,56 +77,24 @@ export const useNodesStore = create<NodesState>((set, get) => ({
   },
   
   updateNode: (nodeId, updates) => {
-    console.log("[NodesStore] updateNode called", {
-      nodeId,
-      updates,
-      updateKeys: Object.keys(updates || {})
-    });
-    
     set((state) => {
-      const nodeToUpdate = state.nodes.find(n => n.id === nodeId);
-      console.log("[NodesStore] Node before update", {
-        nodeId,
-        found: !!nodeToUpdate,
-        currentData: nodeToUpdate?.data,
-        currentConfig: nodeToUpdate?.data?.config
-      });
-      
       const updatedNodes = state.nodes.map((n) => {
         if (n.id === nodeId) {
           const updatedData = { ...n.data, ...updates };
-          console.log("[NodesStore] Node after merge", {
-            nodeId,
-            oldData: n.data,
-            updates,
-            newData: updatedData,
-            newConfig: updatedData.config
-          });
           return { ...n, data: updatedData };
         }
         return n;
       });
       
       const updatedNode = updatedNodes.find(n => n.id === nodeId);
-      const config = updatedNode?.data?.config as Record<string, unknown> | undefined;
-      console.log("[NodesStore] Final updated node", {
-        nodeId,
-        data: updatedNode?.data,
-        config: config,
-        query: config?.query,
-        database: config?.database,
-        database_id: config?.database_id
-      });
       
       const selectedNode = useSelectionStore.getState().selectedNode;
       if (selectedNode && selectedNode.id === nodeId) {
         if (updatedNode) {
           useSelectionStore.getState().setSelectedNode(updatedNode);
-          console.log("[NodesStore] Updated selected node");
         }
       }
       
-      // Re-enrich all edges if node config changed (especially for conditional routers)
       const enrichedEdges = enrichEdges(state.edges, updatedNodes);
       return { nodes: updatedNodes, edges: enrichedEdges };
     });
@@ -138,7 +105,6 @@ export const useNodesStore = create<NodesState>((set, get) => ({
       const sourceNode = state.nodes.find(n => n.id === edge.source);
       const enrichedEdge = enrichEdge(edge, sourceNode, [...state.edges, edge]);
       const newEdges = [...state.edges, enrichedEdge];
-      // Recalculate layout when edges change
       const layoutedNodes = getLayoutedNodes(state.nodes, newEdges);
       return { edges: newEdges, nodes: layoutedNodes };
     });
@@ -147,7 +113,6 @@ export const useNodesStore = create<NodesState>((set, get) => ({
   removeEdge: (edgeId) => {
     set((state) => {
       const newEdges = state.edges.filter((e) => e.id !== edgeId);
-      // Recalculate layout when edges change
       const layoutedNodes = getLayoutedNodes(state.nodes, newEdges);
       return { edges: newEdges, nodes: layoutedNodes };
     });
@@ -158,10 +123,8 @@ export const useNodesStore = create<NodesState>((set, get) => ({
       const updatedEdges = state.edges.map((e) =>
         e.id === edgeId ? { ...e, ...updates } : e
       );
-      // Re-enrich edges after update (in case sourceHandle changed)
       const enrichedEdges = enrichEdges(updatedEdges, state.nodes);
       return { edges: enrichedEdges };
     });
   },
 }));
-

@@ -1,8 +1,3 @@
-/**
- * ID Generator Utilities (Frontend)
- * Generates standardized IDs for workflows, nodes, and bindings
- */
-
 // Common words for generating readable IDs
 const WORDS = [
   'sacred', 'tick', 'satisfied', 'ghost', 'beneficiary', 'bed',
@@ -17,11 +12,6 @@ const WORDS = [
   'brave', 'noble', 'wise', 'swift', 'strong', 'bright'
 ];
 
-/**
- * Generate a random word-based workflow ID
- * Format: workflow-{word1}-{word2}-{word3}
- * Example: workflow-sacred-tick-satisfied
- */
 export function generateWorkflowId(): string {
   const word1 = WORDS[Math.floor(Math.random() * WORDS.length)];
   const word2 = WORDS[Math.floor(Math.random() * WORDS.length)];
@@ -29,15 +19,9 @@ export function generateWorkflowId(): string {
   return `workflow-${word1}-${word2}-${word3}`;
 }
 
-/**
- * Generate class name from workflow ID
- * Example: workflow-ghost-beneficiary-bed -> WorkflowGhostBeneficiaryBed
- */
 export function generateClassName(workflowId: string): string {
-  // Remove 'workflow-' prefix
   const withoutPrefix = workflowId.replace(/^workflow-/, '');
   
-  // Split by hyphens and capitalize each word
   const words = withoutPrefix.split('-');
   const capitalized = words.map(word => 
     word.charAt(0).toUpperCase() + word.slice(1)
@@ -46,16 +30,10 @@ export function generateClassName(workflowId: string): string {
   return capitalized.join('');
 }
 
-/**
- * Generate binding name
- * Format: binding_{bindingName}_{workflowId}
- * Example: binding_KV_sacred-tick-satisfied
- */
 export function generateBindingName(
   bindingType: string,
   workflowId: string
 ): string {
-  // Remove 'workflow-' prefix from workflowId for binding name
   const workflowIdSuffix = workflowId.replace(/^workflow-/, '');
   const bindingName = bindingType.toUpperCase();
   return `binding_${bindingName}_${workflowIdSuffix}`;

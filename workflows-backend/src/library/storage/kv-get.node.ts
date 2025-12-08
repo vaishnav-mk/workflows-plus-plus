@@ -1,7 +1,3 @@
-/**
- * KV Get Node - Read from Workers KV
- */
-
 import { z } from "zod";
 import { Effect } from "effect";
 import { WorkflowNodeDefinition, CodeGenContext, CodeGenResult } from "../../core/types";
@@ -150,4 +146,3 @@ export const KVGetNode: WorkflowNodeDefinition<KVGetConfig> = {
     });
   },
 };
-

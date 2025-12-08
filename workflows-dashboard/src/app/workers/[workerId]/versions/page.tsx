@@ -2,12 +2,10 @@
 
 import { useState, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { WorkflowLoader } from '../../../../components/ui/Loader';
 import { Spinner } from '@/components';
 import { useWorkerQuery, useWorkerVersionsQuery } from '../../../../hooks/useWorkflowsQuery';
-import { PageHeader, SearchBar, DataTable, Card, Pagination, Alert, AlertTitle, Button } from '@/components';
+import { PageHeader, SearchBar, DataTable, Card, Pagination, Alert, AlertTitle } from '@/components';
 import { type ColumnDef } from '@tanstack/react-table';
-import { MoreVerticalIcon } from '@/components/ui';
 import Link from 'next/link';
 
 interface Version {
@@ -32,7 +30,7 @@ export default function WorkerVersionsPage() {
   const { data: worker, isLoading: workerLoading, error: workerError } = useWorkerQuery(workerId);
   const { data: versionsResult, isLoading: versionsLoading, error: versionsError } = useWorkerVersionsQuery(workerId, pagination.page, pagination.per_page);
   
-  const versions = versionsResult?.data || [];
+  const versions = useMemo(() => versionsResult?.data || [], [versionsResult?.data]);
   const loading = workerLoading || versionsLoading;
   const error = workerError instanceof Error ? workerError.message : (versionsError instanceof Error ? versionsError.message : (workerError || versionsError ? String(workerError || versionsError) : null));
   

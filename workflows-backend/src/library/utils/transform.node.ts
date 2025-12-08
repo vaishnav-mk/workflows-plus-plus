@@ -1,15 +1,15 @@
-/**
- * Transform Node - Execute JavaScript to transform data
- */
-
 import { z } from "zod";
 import { Effect } from "effect";
-import { WorkflowNodeDefinition, CodeGenContext, CodeGenResult } from "../../core/types";
+import {
+  WorkflowNodeDefinition,
+  CodeGenContext,
+  CodeGenResult
+} from "../../core/types";
 import { NodeType, NodeCategory, DataType, ErrorCode } from "../../core/enums";
 import { TEMPLATE_PATTERNS } from "../../core/constants";
 
 const TransformConfigSchema = z.object({
-  code: z.string().default("return data;"),
+  code: z.string().default("return data;")
 });
 
 type TransformConfig = z.infer<typeof TransformConfigSchema>;
@@ -46,7 +46,7 @@ export const TransformNode: WorkflowNodeDefinition<TransformConfig> = {
     version: "1.0.0",
     icon: "Code",
     color: "#8B5CF6",
-    tags: ["javascript", "data", "transform"],
+    tags: ["javascript", "data", "transform"]
   },
   configSchema: TransformConfigSchema,
   inputPorts: [
@@ -55,8 +55,8 @@ export const TransformNode: WorkflowNodeDefinition<TransformConfig> = {
       label: "Execute",
       type: DataType.ANY,
       description: "Input data",
-      required: true,
-    },
+      required: true
+    }
   ],
   outputPorts: [
     {
@@ -64,55 +64,64 @@ export const TransformNode: WorkflowNodeDefinition<TransformConfig> = {
       label: "Result",
       type: DataType.ANY,
       description: "Transformed data",
-      required: false,
-    },
+      required: false
+    }
   ],
   bindings: [],
   capabilities: {
     playgroundCompatible: true,
     supportsRetry: false,
     isAsync: false,
-    canFail: true,
+    canFail: true
   },
   validation: {
     rules: [],
-    errorMessages: {},
+    errorMessages: {}
   },
   examples: [
     {
       name: "Double Value",
       description: "Multiply input by 2",
-      config: { code: "return { value: data.value * 2 };" },
+      config: { code: "return { value: data.value * 2 };" }
     },
     {
       name: "Format User",
       description: "Format user data",
-      config: { code: "return { fullName: data.firstName + \" \" + data.lastName };" },
-    },
+      config: {
+        code: 'return { fullName: data.firstName + " " + data.lastName };'
+      }
+    }
   ],
   presetOutput: {
     result: { transformed: true, data: {} },
-    message: "Data transformation completed successfully",
+    message: "Data transformation completed successfully"
   },
-  codegen: ({ nodeId, config, stepName, graphContext }): Effect.Effect<CodeGenResult, { _tag: ErrorCode; message: string }> => {
-    return Effect.gen(function* (_) {
+  codegen: ({
+    nodeId,
+    config,
+    stepName,
+    graphContext
+  }): Effect.Effect<CodeGenResult, { _tag: ErrorCode; message: string }> => {
+    return Effect.gen(function*(_) {
       let code = config.code || "return inputData;";
       code = code.replace(/\binput\b/g, "inputData");
       code = code.replace(/\bdata\b/g, "inputData");
-      
+
       if (code.includes("{{")) {
         code = resolveTemplateExpression(code, graphContext);
       }
 
       code = code.replace(/\n/g, " ").replace(/\s+/g, " ").trim();
-      
-      // Ensure the code has a return statement
+
       const hasReturn = code.trim().startsWith("return ");
       const codeBody = hasReturn ? code : `return ${code}`;
 
-      const inputData = graphContext.edges
-        .filter(e => e.target === nodeId)
-        .map(e => `_workflowState['${e.source}']?.output || event.payload`)[0] || "event.payload";
+      const inputData =
+        graphContext.edges
+          .filter(e => e.target === nodeId)
+          .map(
+            e => `_workflowState['${e.source}']?.output || event.payload`
+          )[0] || "event.payload";
 
       const codeGen = `
     _workflowResults.${stepName} = await step.do('${stepName}', async () => {
@@ -127,11 +136,8 @@ export const TransformNode: WorkflowNodeDefinition<TransformConfig> = {
 
       return {
         code: codeGen,
-        requiredBindings: [],
+        requiredBindings: []
       };
     });
-  },
+  }
 };
-
-
-

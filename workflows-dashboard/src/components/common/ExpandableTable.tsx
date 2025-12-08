@@ -2,7 +2,6 @@
 
 import React from "react";
 import { type ColumnDef } from "@tanstack/react-table";
-import { cn } from "@/lib/utils";
 import type { ExpandableTableProps } from "@/types/components";
 
 export type { ExpandableTableProps };
@@ -74,7 +73,7 @@ export function ExpandableTable<TData>({
           </tr>
         </thead>
         <tbody className="bg-white">
-          {data.map((row, rowIdx) => {
+          {data.map((row) => {
             const rowId = getRowId(row);
             const isExpanded = expandedRows?.has(rowId) ?? false;
             return (
@@ -103,7 +102,6 @@ export function ExpandableTable<TData>({
                           maxWidth: (col as any).size ? `${(col as any).size}px` : undefined,
                         }}
                         onClick={(e) => {
-                          
                           const target = e.target as HTMLElement;
                           if (target.tagName === "A" || target.tagName === "BUTTON" || target.closest("a") || target.closest("button")) {
                             e.stopPropagation();
@@ -135,4 +133,3 @@ export function ExpandableTable<TData>({
     </div>
   );
 }
-
