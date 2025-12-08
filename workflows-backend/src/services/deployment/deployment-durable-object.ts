@@ -55,6 +55,15 @@ export class DeploymentDurableObject {
   }
 
   private async handleSSE(request: Request): Promise<Response> {
+    const url = new URL(request.url);
+    const tokenFromQuery = url.searchParams.get("token");
+    const authHeader = request.headers.get("Authorization");
+    const tokenFromHeader = authHeader?.startsWith("Bearer ") ? authHeader.substring(7) : null;
+    
+    if (!tokenFromQuery && !tokenFromHeader) {
+      return new Response("Unauthorized", { status: 401 });
+    }
+
     const stream = new ReadableStream({
       start: controller => {
         this.sseConnections.add(controller);

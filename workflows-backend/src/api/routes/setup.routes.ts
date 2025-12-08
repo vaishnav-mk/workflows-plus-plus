@@ -1,18 +1,14 @@
 import { Hono } from "hono";
 import { z } from "zod";
-import { setCookie, deleteCookie } from "hono/cookie";
 import { HTTP_STATUS_CODES, CLOUDFLARE } from "../../core/constants";
 import { ErrorCode } from "../../core/enums";
 import { ApiResponse } from "../../core/api-contracts";
 import { logger } from "../../core/logging/logger";
-import { encryptCredentials } from "../../core/utils/credentials";
+import { createAuthToken } from "../../core/utils/jwt";
 import { SetupRequestSchema } from "../../core/validation/schemas";
 import { getSSECorsHeaders } from "../../core/cors.config";
 import { zValidator } from "../../api/middleware/validation.middleware";
 import { safe } from "../../core/utils/route-helpers";
-
-const CREDENTIALS_COOKIE_NAME = "cf_credentials";
-const COOKIE_MAX_AGE = 30 * 24 * 60 * 60;
 
 interface SetupEnv {
   ENVIRONMENT?: string;
@@ -347,26 +343,16 @@ app.post("/", zValidator('json', SetupRequestSchema), safe(async c => {
       );
     }
 
-    // encrypt credentials
-    const encrypted = await encryptCredentials({ apiToken, accountId }, c.env.CREDENTIALS_MASTER_KEY!);
-
-    // determine if we're in production
-    const isProduction = c.env.ENVIRONMENT === "production";
-
-    // set cookie with encrypted credentials using hono cookie helper
-    setCookie(c, CREDENTIALS_COOKIE_NAME, encrypted, {
-      path: "/",
-      maxAge: COOKIE_MAX_AGE,
-      sameSite: "Lax",
-      httpOnly: true,
-      secure: isProduction
-    });
+    const token = await createAuthToken({ apiToken, accountId }, c.env.CREDENTIALS_MASTER_KEY!);
 
     logger.info("cloudflare credentials configured successfully");
 
     const response: ApiResponse = {
       success: true,
-      data: { configured: true },
+      data: { 
+        configured: true,
+        token
+      },
       message: "credentials configured successfully"
     };
 
@@ -391,14 +377,6 @@ app.post("/", zValidator('json', SetupRequestSchema), safe(async c => {
 // Logout
 app.post("/logout", async c => {
   try {
-    const isProduction = c.env.ENVIRONMENT === "production";
-
-    // Delete cookie using Hono cookie helper
-    deleteCookie(c, CREDENTIALS_COOKIE_NAME, {
-      path: "/",
-      secure: isProduction
-    });
-
     const response: ApiResponse = {
       success: true,
       data: { loggedOut: true },
