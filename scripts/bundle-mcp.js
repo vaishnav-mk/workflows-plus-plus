@@ -15,12 +15,20 @@ const fs = require("node:fs");
 // Try to load esbuild from workflows-backend node_modules first, then fallback to local
 let esbuild;
 try {
-  esbuild = require(path.join(__dirname, "..", "workflows-backend", "node_modules", "esbuild"));
+  esbuild = require(path.join(
+    __dirname,
+    "..",
+    "workflows-backend",
+    "node_modules",
+    "esbuild"
+  ));
 } catch {
   try {
     esbuild = require("esbuild");
   } catch {
-    throw new Error("esbuild not found. Please run 'npm install' in workflows-backend directory.");
+    throw new Error(
+      "esbuild not found. Please run 'npm install' in workflows-backend directory."
+    );
   }
 }
 
@@ -51,7 +59,7 @@ async function bundleAgentsMcp(rootDir) {
     platform: "node",
     outfile,
     minify: true,
-    external: ["cloudflare:*"],
+    external: ["cloudflare:*"]
   });
   console.log("[bundle-mcp] Wrote", outfile);
 }
@@ -80,13 +88,18 @@ async function bundleMcpSdk(rootDir) {
     format: "esm",
     platform: "node",
     outfile,
-    minify: true,
+    minify: true
   });
   console.log("[bundle-mcp] Wrote", outfile);
 }
 
 function writeGeneratedTs(rootDir) {
-  const agentsPath = path.join(rootDir, "bundles", "agents", "agents.mcp.bundle.mjs");
+  const agentsPath = path.join(
+    rootDir,
+    "bundles",
+    "agents",
+    "agents.mcp.bundle.mjs"
+  );
   const mcpSdkPath = path.join(rootDir, "bundles", "mcp", "mcp-sdk.bundle.mjs");
 
   const agentsCode = fs.readFileSync(agentsPath, "utf8");
@@ -128,7 +141,9 @@ async function main() {
     await bundleAgentsMcp(rootDir);
     await bundleMcpSdk(rootDir);
     writeGeneratedTs(rootDir);
-    console.log("[bundle-mcp] MCP bundles and generated TS module built successfully.");
+    console.log(
+      "[bundle-mcp] MCP bundles and generated TS module built successfully."
+    );
   } catch (err) {
     console.error("[bundle-mcp] MCP bundling failed:", err);
     process.exit(1);
@@ -136,5 +151,3 @@ async function main() {
 }
 
 main();
-
-

@@ -8,7 +8,7 @@
 
 import { deployToCloudflare } from '../workflows-backend/src/services/deployment/deployment-durable-object';
 import { BindingType, DeploymentStep } from '../workflows-backend/src/core/enums';
-import type { DeploymentOptions, DeploymentProgressCallback } from '../workflows-backend/src/services/deployment/types';
+import type { DeploymentOptions, DeploymentProgressCallback } from '../workflows-backend/src/core/types';
 import { WorkflowCompiler } from '../workflows-backend/src/services/compiler/workflow-compiler';
 import { runPromise } from '../workflows-backend/src/core/effect/runtime';
 import { join, dirname } from 'node:path';
