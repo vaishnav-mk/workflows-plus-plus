@@ -1,11 +1,15 @@
 {
   "extends": "../../workflows-backend/tsconfig.json",
   "compilerOptions": {
-    "types": ["@cloudflare/workers-types", "@cloudflare/vitest-pool-workers", "vitest/globals", "node"],
+    "types": ["vitest/globals"],
     "target": "ES2022",
-    "lib": ["ES2022", "WebWorker", "DOM"]
+    "lib": ["ES2022", "DOM"],
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "skipLibCheck": true
   },
-  "include": ["./**/*", "../../workflows-backend/src/**/*"],
+  "include": ["./**/*"],
   "exclude": ["node_modules", "dist"]
 }
 

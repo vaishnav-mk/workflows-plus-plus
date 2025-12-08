@@ -4,14 +4,16 @@
   "description": "Tests for workflows-backend",
   "type": "module",
   "scripts": {
-    "test": "vitest run",
+    "test": "TIMESTAMP=$(date +%Y%m%d_%H%M%S) && vitest run 2>&1 | tee test_results_${TIMESTAMP}.txt && echo \"Test results saved to: test_results_${TIMESTAMP}.txt\"",
     "test:watch": "vitest",
-    "test:ui": "vitest --ui"
+    "test:ui": "vitest --ui",
+    "test:api": "vitest run --reporter=verbose",
+    "test:raw": "vitest run"
   },
   "devDependencies": {
-    "@cloudflare/vitest-pool-workers": "^0.9.0",
-    "vitest": "^3.2.0",
-    "@cloudflare/workers-types": "^4.20231218.0"
+    "@cloudflare/workers-types": "^4.20231218.0",
+    "@types/node": "^24.10.1",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.0"
   }
 }
-
