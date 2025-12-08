@@ -2,8 +2,14 @@
  * Test helper utilities
  */
 
-import { SELF, env } from "cloudflare:test";
-import type { CredentialsContext } from "../../../../workflows-backend/src/api/middleware/credentials.middleware";
+// Type definition for credentials context
+export interface CredentialsContext {
+  apiToken: string;
+  accountId: string;
+}
+
+// Base URL for the API - should match the running backend
+const API_BASE_URL = process.env.API_BASE_URL || "http://localhost:8787";
 
 /**
  * Creates actual credentials for testing using the provided Cloudflare credentials
@@ -15,170 +21,127 @@ export function createTestCredentials(): CredentialsContext {
   };
 }
 
+// Cache for authenticated cookie
+let cachedAuthCookie: string | null = null;
+
 /**
- * Creates an encrypted credentials cookie for authentication
- * This is a test-specific implementation that works in Workers runtime
+ * Get or create authenticated cookie by calling setup endpoint
  */
-export async function createEncryptedCredentialsCookie(): Promise<string> {
-  const credentials = createTestCredentials();
-  const masterKey = env.CREDENTIALS_MASTER_KEY || "test-master-key-for-credentials-encryption-12345";
-  
-  // Re-implement encryption logic for Workers runtime
-  const PBKDF2_ITERATIONS = 100000;
-  const SALT_LENGTH = 16;
-  const IV_LENGTH = 12;
-  
-  // Generate random salt and IV
-  const salt = crypto.getRandomValues(new Uint8Array(SALT_LENGTH));
-  const iv = crypto.getRandomValues(new Uint8Array(IV_LENGTH));
-  
-  // Derive encryption key
-  const encoder = new TextEncoder();
-  const keyMaterial = await crypto.subtle.importKey(
-    "raw",
-    encoder.encode(masterKey),
-    "PBKDF2",
-    false,
-    ["deriveKey"]
-  );
-  
-  const saltBuffer = new ArrayBuffer(salt.length);
-  const saltView = new Uint8Array(saltBuffer);
-  saltView.set(salt);
-  
-  const key = await crypto.subtle.deriveKey(
-    {
-      name: "PBKDF2",
-      salt: saltBuffer,
-      iterations: PBKDF2_ITERATIONS,
-      hash: "SHA-256"
-    },
-    keyMaterial,
-    {
-      name: "AES-GCM",
-      length: 256
-    },
-    false,
-    ["encrypt", "decrypt"]
-  );
-  
-  // Encrypt credentials
-  const plaintext = encoder.encode(JSON.stringify(credentials));
-  
-  const ciphertext = await crypto.subtle.encrypt(
-    {
-      name: "AES-GCM",
-      iv
-    },
-    key,
-    plaintext
-  );
-  
-  // Combine salt + iv + ciphertext
-  const combined = new Uint8Array(
-    SALT_LENGTH + IV_LENGTH + ciphertext.byteLength
-  );
-  combined.set(salt, 0);
-  combined.set(iv, SALT_LENGTH);
-  combined.set(new Uint8Array(ciphertext), SALT_LENGTH + IV_LENGTH);
-  
-  // Return base64-encoded string
-  const chars: string[] = [];
-  for (let i = 0; i < combined.length; i++) {
-    chars.push(String.fromCharCode(combined[i]));
+async function getAuthenticatedCookie(): Promise<string> {
+  if (cachedAuthCookie) {
+    return cachedAuthCookie;
   }
-  return btoa(chars.join(""));
+
+  const credentials = createTestCredentials();
+  try {
+    const setupResponse = await fetch(`${API_BASE_URL}/api/setup`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        apiToken: credentials.apiToken,
+        accountId: credentials.accountId,
+      }),
+    });
+
+    if (setupResponse.ok) {
+      // Extract cookie from Set-Cookie header
+      const setCookieHeader = setupResponse.headers.get("Set-Cookie");
+      if (setCookieHeader) {
+        // Extract the cookie value - it's URL-encoded in the Set-Cookie header
+        const match = setCookieHeader.match(/cf_credentials=([^;]+)/);
+        if (match && match[1]) {
+          // The cookie value is URL-encoded in Set-Cookie header
+          // We need to decode it to get the actual encrypted value
+          // Then when we send it in Cookie header, it will be automatically encoded by fetch
+          cachedAuthCookie = decodeURIComponent(match[1]);
+          console.log("[TEST] Successfully obtained authenticated cookie");
+          return cachedAuthCookie;
+        }
+      }
+    } else {
+      const errorText = await setupResponse.text();
+      console.warn("[TEST] Failed to get authenticated cookie from setup endpoint:", setupResponse.status, errorText.substring(0, 200));
+    }
+  } catch (error) {
+    console.warn("[TEST] Error getting authenticated cookie:", error);
+  }
+
+  // Fallback: return dummy cookie (will rely on env vars in backend)
+  console.warn("[TEST] Using fallback authentication (relying on backend env vars)");
+  return "dummy-cookie-for-auth-check";
 }
 
 /**
- * Creates a request with authentication cookie
- */
-export async function createAuthenticatedRequest(
-  url: string,
-  options: RequestInit = {}
-): Promise<Request> {
-  const encryptedCookie = await createEncryptedCredentialsCookie();
-  const req = new Request(url, {
-    ...options,
-    headers: {
-      ...options.headers,
-      Cookie: `cf_credentials=${encryptedCookie}`,
-    },
-  });
-  return req;
-}
-
-/**
- * Creates a request with JSON body
- */
-export function createJsonRequest(
-  url: string,
-  method: string,
-  body: unknown,
-  options: RequestInit = {}
-): Request {
-  return new Request(url, {
-    method,
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
-    body: JSON.stringify(body),
-    ...options,
-  });
-}
-
-/**
- * Helper to make authenticated requests to the worker
- * Uses actual encrypted credentials cookie
+ * Helper to make authenticated requests to the actual API
+ * Uses the real API endpoint at http://localhost:8787
+ * Gets a real cookie from the setup endpoint or uses env vars fallback
  */
 export async function authenticatedFetch(
   path: string,
   options: RequestInit = {}
 ): Promise<Response> {
-  const url = new URL(path, "http://localhost");
-  const encryptedCookie = await createEncryptedCredentialsCookie();
-  const request = new Request(url.toString(), {
+  const url = new URL(path, API_BASE_URL);
+  const cookie = await getAuthenticatedCookie();
+  
+  const response = await fetch(url.toString(), {
     ...options,
     headers: {
       ...options.headers,
-      Cookie: `cf_credentials=${encryptedCookie}`,
+      Cookie: `cf_credentials=${cookie}`,
     },
   });
-  return SELF.fetch(request);
+
+  // Log errors for debugging
+  if (response.status >= 500) {
+    await logErrorResponse(response, `${options.method || 'GET'} ${path}`);
+  }
+
+  return response;
 }
 
 /**
- * Helper to make unauthenticated requests
+ * Helper to make unauthenticated requests to the actual API
  */
 export async function unauthenticatedFetch(
   path: string,
   options: RequestInit = {}
 ): Promise<Response> {
-  const url = new URL(path, "http://localhost");
-  return SELF.fetch(url.toString(), options);
+  const url = new URL(path, API_BASE_URL);
+  const response = await fetch(url.toString(), options);
+  
+  // Log errors for debugging
+  if (response.status >= 500) {
+    await logErrorResponse(response, `${options.method || 'GET'} ${path} (unauthenticated)`);
+  }
+  
+  return response;
 }
 
 /**
- * Parse JSON response
+ * Parse JSON response with error logging
  */
 export async function parseJsonResponse<T = unknown>(response: Response): Promise<T> {
   const text = await response.text();
-  return JSON.parse(text) as T;
+  try {
+    return JSON.parse(text) as T;
+  } catch (error) {
+    console.error(`[TEST ERROR] Failed to parse JSON response from ${response.url}:`, text.substring(0, 500));
+    throw error;
+  }
 }
 
 /**
- * Mock Cloudflare API responses
+ * Log error response details
  */
-export function mockCloudflareAPI(
-  fetchMock: import("undici").MockAgent,
-  path: string,
-  response: unknown,
-  status = 200
-): void {
-  fetchMock
-    .get(`https://api.cloudflare.com/client/v4${path}`)
-    .intercept({ path })
-    .reply(status, response);
+export async function logErrorResponse(response: Response, context?: string): Promise<void> {
+  if (response.status >= 400) {
+    const text = await response.clone().text();
+    let errorData: unknown;
+    try {
+      errorData = JSON.parse(text);
+    } catch {
+      errorData = text;
+    }
+    console.error(`[TEST ERROR]${context ? ` ${context}` : ''} ${response.status} ${response.url}:`, JSON.stringify(errorData, null, 2));
+  }
 }
-
