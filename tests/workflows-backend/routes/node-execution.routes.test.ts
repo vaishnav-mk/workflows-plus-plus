@@ -63,7 +63,7 @@ describe("Node Execution Routes", () => {
       });
 
       // Should either return 200 with error or 404/500
-      expect([200, 404, 500]).toContain(response.status);
+      expect([200, 404]).toContain(response.status);
     });
   });
 

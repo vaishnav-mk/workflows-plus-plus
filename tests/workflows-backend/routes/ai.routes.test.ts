@@ -1,9 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { authenticatedFetch, unauthenticatedFetch, parseJsonResponse } from "../helpers/test-helpers";
+import { authenticatedFetch, unauthenticatedFetch, parseJsonResponse, logErrorResponse } from "../helpers/test-helpers";
 
 describe("AI Routes", () => {
   describe("POST /api/workflows/generate", () => {
-    it("should successfully generate workflow from text", async () => {
+    // In the local environment without AI Gateway config, this should consistently return 503
+    it("should return 503 when AI Gateway is not configured", async () => {
       const response = await authenticatedFetch("/api/workflows/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -12,17 +13,13 @@ describe("AI Routes", () => {
         }),
       });
 
-      // May fail if AI Gateway is not configured, but should return proper error
-      expect([200, 500]).toContain(response.status);
-      const data = await parseJsonResponse(response);
+      // Strict check for 503 Service Unavailable
+      expect(response.status).toBe(503);
       
-      if (response.status === 200) {
-        expect(data.success).toBe(true);
-        expect(data.data).toBeDefined();
-      } else {
-        expect(data.success).toBe(false);
-        expect(data.error).toBeDefined();
-      }
+      const data = await parseJsonResponse(response);
+      expect(data.success).toBe(false);
+      expect(data.error).toBe("INTERNAL_ERROR"); // or whatever code we mapped
+      expect(data.message).toContain("AI Gateway not configured");
     });
 
     it("should fail without authentication", async () => {
@@ -44,25 +41,11 @@ describe("AI Routes", () => {
         body: JSON.stringify({}),
       });
 
-      expect(response.status).toBe(400);
-    });
-
-    it("should handle AI Gateway not configured", async () => {
-      const response = await authenticatedFetch("/api/workflows/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          text: "Create a workflow",
-        }),
-      });
-
-      // Should return 500 if AI Gateway is not configured
-      if (response.status === 500) {
-        const data = await parseJsonResponse(response);
-        expect(data.success).toBe(false);
-        expect(data.error).toContain("AI Gateway");
+      // Strict check for validation error (400)
+      if (response.status !== 400) {
+        await logErrorResponse(response, "AI generate missing fields");
       }
+      expect(response.status).toBe(400);
     });
   });
 });
-
