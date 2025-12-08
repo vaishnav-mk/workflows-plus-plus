@@ -7,7 +7,7 @@ node_modules/
 */dist/
 */build/
 
-# Environment variables
+# Environment variablesP
 .env
 .env.*
 .env.local
