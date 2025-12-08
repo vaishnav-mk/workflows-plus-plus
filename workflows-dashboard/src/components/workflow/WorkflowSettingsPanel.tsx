@@ -1,6 +1,6 @@
 'use client';
 
-import { Card, CardContent, EmptyState } from '@/components';
+import { EmptyState } from '@/components';
 import { DynamicSettingsRenderer } from '@/components/settings/DynamicSettingsRenderer';
 import { RetryConfigSection } from '@/components/settings/RetryConfigSection';
 import { useNodeSettingsConfigs } from '@/components/settings/NodeSettingsConfigs';

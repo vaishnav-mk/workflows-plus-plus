@@ -2,9 +2,8 @@
 
 import React, { useState } from 'react';
 import { useWorkflowStore } from '@/stores/workflowStore';
-import { useNodeRegistry } from '@/hooks/useNodeRegistry';
 import { useNodeExecutionStore } from '@/stores/workflow/nodeExecutionStore';
-import { Card, CardContent, CopyButton } from '@/components';
+import { Card, CardContent } from '@/components';
 import { ChevronRight, ChevronDown, Check, Type, Hash, ToggleLeft, Folder, List, FileJson } from 'lucide-react';
 import type { StateTreeNode } from '@/types/components';
 
@@ -20,7 +19,6 @@ interface ExtendedStateTreeNode extends StateTreeNode {
 
 export function WorkflowStateView() {
   const { nodes, edges } = useWorkflowStore();
-  const { catalog } = useNodeRegistry();
   const { executions } = useNodeExecutionStore();
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
   const [copiedItem, setCopiedItem] = useState<string | null>(null);
@@ -67,7 +65,6 @@ export function WorkflowStateView() {
     const execution = executions[nodeId];
     
     // Get output ports from catalog (synchronous) – kept for future use
-    const catalogItem = catalog.find(item => item.type === nodeType);
     const outputPorts: Array<{ id: string; label: string; type: string; description: string }> = [];
 
     // Use actual execution output when available, otherwise fall back to an empty structure.
