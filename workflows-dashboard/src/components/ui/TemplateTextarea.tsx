@@ -34,12 +34,11 @@ export function TemplateTextarea({
   style
 }: TemplateTextareaProps) {
   const { nodes } = useWorkflowStore();
-  const { catalog, getNodeByType } = useNodeRegistry();
+  const { getNodeByType } = useNodeRegistry();
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [suggestions, setSuggestions] = useState<Array<{ value: string; display: string }>>([]);
   const [cursorPosition, setCursorPosition] = useState(0);
   const [isEditing, setIsEditing] = useState(false);
-  const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [nodeDefCache, setNodeDefCache] = useState<Map<string, any>>(new Map());
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
@@ -267,7 +266,6 @@ export function TemplateTextarea({
 
   const editTemplate = (index: number) => {
     setIsEditing(true);
-    setEditingIndex(index);
     setTimeout(() => {
       if (textareaRef.current) {
         const segment = segments[index];
