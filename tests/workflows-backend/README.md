@@ -4,15 +4,24 @@ Comprehensive test suite for the workflows-backend API using Vitest and Cloudfla
 
 ## Setup
 
-1. Install dependencies:
+1. **Start the backend API first:**
+```bash
+cd workflows-backend
+npm run dev
+```
+The API should be running at `http://localhost:8787`
+
+2. **Install test dependencies:**
 ```bash
 cd tests/workflows-backend
 npm install
 ```
 
-2. The tests use the following Cloudflare credentials (configured in `vitest.config.ts`):
+3. The tests use the following Cloudflare credentials (set as environment variables in the backend):
    - API Token: `y8WYQMwuNQ-2nDDQYsxPeB6Q5hzR601I7zPpXYDC`
    - Account ID: `c714a393dbfabeb858a7dea729b5e8f8`
+   
+   Make sure these are set in `workflows-backend/.dev.vars` or as environment variables.
 
 ## Running Tests
 
@@ -76,28 +85,29 @@ The tests use `fetchMock` to mock Cloudflare API responses. Each test that makes
 ## Configuration
 
 The test configuration is in `vitest.config.ts`:
-- Uses `@cloudflare/vitest-pool-workers` for Workers runtime testing
-- Configures KV, D1, and Durable Objects bindings
-- Sets environment variables including credentials and master key
+- Uses standard Vitest (not Workers runtime)
+- Tests against the real API running at `http://localhost:8787`
+- Can be configured via `API_BASE_URL` environment variable
 
 ## Notes
 
-- Tests run in the Cloudflare Workers runtime using Miniflare
-- All storage operations are isolated per test
-- Tests use the actual Cloudflare credentials provided
-- Authentication cookies are encrypted using the same mechanism as production
+- **Tests run against the actual running API** - make sure the backend is running!
+- Tests make real HTTP requests to `http://localhost:8787`
+- Tests use actual Cloudflare credentials (set in backend environment)
+- Authentication works via cookies or env var fallback in credentials middleware
+- Tests will make real requests to Cloudflare API (not mocked)
 
-## Known Issues
+## Important
 
-There is currently a compatibility issue with `@cloudflare/vitest-pool-workers@0.9.0` that causes the error:
+⚠️ **Before running tests, ensure:**
+1. The backend is running: `cd workflows-backend && npm run dev`
+2. The backend has the correct credentials in `.dev.vars` or environment
+3. You have a valid Cloudflare API token with appropriate permissions
+
+## Environment Variables
+
+You can override the API URL:
+```bash
+API_BASE_URL=http://localhost:8787 npm test
 ```
-TypeError: vm._setUnsafeEval is not a function
-```
-
-This appears to be a bug in the package itself. Potential workarounds:
-1. Wait for an updated version of `@cloudflare/vitest-pool-workers`
-2. Use a different testing approach (e.g., using `unstable_startWorker()` API)
-3. Test individual functions in isolation without the Workers runtime
-
-The test structure is complete and ready to run once this issue is resolved.
 
