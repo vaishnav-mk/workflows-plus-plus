@@ -34,8 +34,8 @@ export function R2BucketSelector({
   onNodeUpdate,
   nodeId
 }: R2BucketSelectorProps) {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const searchParams = useSearchParams();
-  const workflowId = searchParams.get("id");
   const [buckets, setBuckets] = useState<R2Bucket[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -62,15 +62,18 @@ export function R2BucketSelector({
     if (selectedBucketName) {
       const bucket = buckets.find((b) => b.name === selectedBucketName);
       if (bucket) {
-        onNodeUpdate(nodeId, {
-          config: {
-            ...nodeData?.config,
-            bucket: bucket.name
-          }
-        });
+        // Only update if values are different to avoid infinite loops
+        if (nodeData?.config?.bucket !== bucket.name) {
+          onNodeUpdate(nodeId, {
+            config: {
+              ...nodeData?.config,
+              bucket: bucket.name
+            }
+          });
+        }
       }
     }
-  }, [selectedBucketName, buckets]);
+  }, [selectedBucketName, buckets, nodeId, onNodeUpdate, nodeData?.config]);
 
   const loadBuckets = async () => {
     setLoading(true);
