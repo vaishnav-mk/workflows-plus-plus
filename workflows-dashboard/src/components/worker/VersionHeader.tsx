@@ -44,7 +44,7 @@ export function VersionHeader({
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <Button variant="secondary" size="lg">
+          <Button variant="secondary" size="lg" comingSoon>
             View All Versions
           </Button>
           <Button
@@ -55,7 +55,7 @@ export function VersionHeader({
           >
             {isEditing ? "Parsing..." : "Edit Version"}
           </Button>
-          <Button variant="primary" size="lg">
+          <Button variant="primary" size="lg" comingSoon>
             Deploy to Production
           </Button>
         </div>

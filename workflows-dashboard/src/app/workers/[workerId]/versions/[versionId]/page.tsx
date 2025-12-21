@@ -258,6 +258,7 @@ export default function VersionDetailPage() {
                     variant="primary"
                     size="lg"
                     className="w-full justify-center"
+                    comingSoon
                   >
                     Deploy to Production
                   </Button>
@@ -265,6 +266,7 @@ export default function VersionDetailPage() {
                     variant="secondary"
                     size="lg"
                     className="w-full justify-center"
+                    comingSoon
                   >
                     Deploy to Staging
                   </Button>

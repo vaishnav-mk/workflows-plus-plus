@@ -282,7 +282,7 @@ export function renderFieldByType({
       return (
         <SettingButton
           key={key}
-          onClick={() => {}}
+          comingSoon
           className={field.props?.className}
         >
           {field.props?.children || "Button"}
