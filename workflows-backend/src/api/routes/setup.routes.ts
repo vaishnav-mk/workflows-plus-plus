@@ -14,7 +14,7 @@ import { SetupEnv } from "../../types/routes";
 
 async function verifyCloudflareToken(apiToken: string, accountId: string): Promise<boolean> {
   try {
-    const response = await fetch(`${CLOUDFLARE.API_BASE}/accounts/${accountId}/tokens/verify`, {
+    const response = await fetch(`${CLOUDFLARE.API_BASE}/user/tokens/verify`, {
       method: "GET",
       headers: {
         Authorization: `Bearer ${apiToken}`,
