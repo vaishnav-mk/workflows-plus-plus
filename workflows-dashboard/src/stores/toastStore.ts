@@ -1,12 +1,6 @@
 import { create } from "zustand";
-import { Toast, ToastType } from "../components/ui/Toast";
-
-interface ToastState {
-  toasts: Toast[];
-  addToast: (toast: Omit<Toast, "id">) => void;
-  removeToast: (id: string) => void;
-  clearToasts: () => void;
-}
+import type { Toast } from "@/types/ui";
+import type { ToastState } from "@/types/stores";
 
 export const useToastStore = create<ToastState>(set => ({
   toasts: [],
@@ -40,7 +34,7 @@ export const toast = {
       type: "success",
       title,
       message,
-      duration
+      duration: duration ?? 2500
     });
   },
 
@@ -49,7 +43,7 @@ export const toast = {
       type: "error",
       title,
       message,
-      duration
+      duration: duration ?? 2500
     });
   },
 
@@ -58,7 +52,7 @@ export const toast = {
       type: "warning",
       title,
       message,
-      duration
+      duration: duration ?? 2500
     });
   },
 
@@ -67,7 +61,7 @@ export const toast = {
       type: "info",
       title,
       message,
-      duration
+      duration: duration ?? 2500
     });
   }
 };

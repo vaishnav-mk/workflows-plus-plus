@@ -7,12 +7,17 @@ node_modules/
 */dist/
 */build/
 
-# Environment variables
+# Environment variablesP
 .env
+.env.*
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
+.env.production
+.env.local.backup
+.dev.vars
+*/.dev.vars
 
 # Logs
 npm-debug.log*
@@ -63,6 +68,8 @@ jspm_packages/
 
 # Next.js build output
 .next
+.open-next
+tsconfig.tsbuildinfo
 
 # Nuxt.js build / generate output
 .nuxt
@@ -103,4 +110,7 @@ Thumbs.db
 # Backend specific
 backend/logs/
 backend/uploads/
+
+# Tests (moved to feature/tests branch)
+tests/workflows-backend/
 .cursor

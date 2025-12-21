@@ -1,9 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
-import { CloudflareLayout } from '../../../components/CloudflareLayout';
-import { InstanceLoader } from '../../../../components/ui/Loader';
+import { useState, useMemo } from 'react';
+import { useParams, useRouter } from 'next/navigation';
+import { Spinner } from '@/components';
+import { PageHeader, DataTable, Card, StatCard, Tabs, Tab, Dropdown, Alert, AlertTitle, Pagination } from '@/components';
+import { type ColumnDef } from '@tanstack/react-table';
+import { Badge } from '@/components/ui';
+import Link from 'next/link';
+import { useInstancesQuery } from '../../../../hooks/useWorkflowsQuery';
 
 interface Instance {
   id: string;
@@ -20,299 +24,206 @@ interface Instance {
 
 export default function WorkflowInstancesPage() {
   const params = useParams();
-  const workflowName = params.workflowId as string; // This is now the workflow name
-  const [instances, setInstances] = useState<Instance[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
+  const workflowName = params.workflowId as string;
+  const [activeTab, setActiveTab] = useState(0);
+  
+  const { data: instancesData = [], isLoading: loading, error: queryError } = useInstancesQuery(workflowName);
+  const instances = instancesData as Instance[];
+  const error = queryError instanceof Error ? queryError.message : (queryError ? String(queryError) : null);
 
-  useEffect(() => {
-    const fetchInstances = async () => {
-      try {
-        setLoading(true);
-        
-        // Get instances for this workflow using the workflow name
-        const instancesResponse = await fetch(`http://localhost:8787/api/workflows/${workflowName}/instances`);
-        const instancesData = await instancesResponse.json();
-        
-        if (instancesData.success) {
-          // Handle Cloudflare API response structure
-          const instances = instancesData.data?.result || instancesData.data || [];
-          setInstances(Array.isArray(instances) ? instances : []);
-        } else {
-          setError(instancesData.error || 'Failed to fetch instances');
-        }
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Unknown error');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (workflowName) {
-      fetchInstances();
+  const getStatusBadge = (status: string) => {
+    const statusLower = status.toLowerCase();
+    let variant: "success" | "error" | "warning" | "info" = "info";
+    
+    if (statusLower === 'completed' || statusLower === 'success') {
+      variant = "success";
+    } else if (statusLower === 'failed' || statusLower === 'error' || statusLower === 'errored') {
+      variant = "error";
+    } else if (statusLower === 'running' || statusLower === 'pending') {
+      variant = "warning";
     }
-  }, [workflowName]);
 
-  const getStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
-      case 'running':
-        return 'bg-blue-100 text-blue-800';
-      case 'completed':
-      case 'success':
-        return 'bg-green-100 text-green-800';
-      case 'failed':
-      case 'error':
-        return 'bg-red-100 text-red-800';
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
+    return <Badge variant={variant}>{status === 'errored' ? 'Errored' : status}</Badge>;
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status.toLowerCase()) {
-      case 'running':
-        return '🔄';
-      case 'completed':
-      case 'success':
-        return '✅';
-      case 'failed':
-      case 'error':
-        return '❌';
-      case 'pending':
-        return '⏳';
-      default:
-        return '❓';
-    }
-  };
+  const columns: ColumnDef<Instance>[] = useMemo(() => [
+    {
+      accessorKey: 'status',
+      header: 'Status',
+      cell: ({ row }) => getStatusBadge(row.original.status),
+    },
+    {
+      accessorKey: 'id',
+      header: 'Instance ID',
+      cell: ({ row }) => (
+        <Link 
+          href={`/workflows/${workflowName}/instances/${row.original.id}`}
+          className="text-sm font-medium text-blue-600 hover:text-blue-500"
+        >
+          {row.original.id.substring(0, 8)}...
+        </Link>
+      ),
+    },
+    {
+      id: 'start_time',
+      header: 'Start time',
+      cell: ({ row }) => (
+        <div className="text-sm text-gray-900">
+          {row.original.created_on ? new Date(row.original.created_on).toLocaleString() : 'N/A'}
+        </div>
+      ),
+    },
+    {
+      id: 'end_time',
+      header: 'End time',
+      cell: ({ row }) => (
+        <div className="text-sm text-gray-900">
+          {row.original.modified_on ? new Date(row.original.modified_on).toLocaleString() : 'N/A'}
+        </div>
+      ),
+    },
+    {
+      id: 'wall_time',
+      header: 'Wall time',
+      cell: () => <div className="text-sm text-gray-900">~1s</div>,
+    },
+    {
+      id: 'cpu_time',
+      header: 'CPU time',
+      cell: () => <div className="text-sm text-gray-900">—</div>,
+    },
+    {
+      id: 'last_modified',
+      header: 'Last modified',
+      cell: ({ row }) => {
+        if (!row.original.modified_on) return <div className="text-sm text-gray-900">N/A</div>;
+        const minutesAgo = Math.floor((Date.now() - new Date(row.original.modified_on).getTime()) / (1000 * 60));
+        return <div className="text-sm text-gray-900">{minutesAgo} minutes ago</div>;
+      },
+    },
+  ], [workflowName]);
+
+  const instanceStats = [
+    { title: 'Queued', value: '0', infoTooltip: 'Number of queued instances' },
+    { title: 'Running', value: '0', infoTooltip: 'Number of running instances' },
+    { title: 'Paused', value: '0', infoTooltip: 'Number of paused instances' },
+    { title: 'Waiting', value: '0', infoTooltip: 'Number of waiting instances' },
+  ];
+
+  const endedStats = [
+    { title: 'Complete', value: '1', infoTooltip: 'Number of completed instances' },
+    { title: 'Errored', value: '0', infoTooltip: 'Number of errored instances' },
+    { title: 'Terminated', value: '0', infoTooltip: 'Number of terminated instances' },
+  ];
 
   if (loading) {
     return (
-      <CloudflareLayout>
-        <InstanceLoader text="Loading workflow instances..." />
-      </CloudflareLayout>
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <Spinner size="lg" />
+          <p className="text-sm text-gray-600">Loading workflow instances...</p>
+        </div>
+      </div>
     );
   }
 
   if (error) {
     return (
-      <CloudflareLayout>
-        <div className="p-6">
-          <div className="bg-red-50 border border-red-200 rounded-md p-4">
-            <div className="flex">
-              <div className="ml-3">
-                <h3 className="text-sm font-medium text-red-800">Error</h3>
-                <div className="mt-2 text-sm text-red-700">{error}</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </CloudflareLayout>
+      <div className="p-6">
+        <Alert variant="error">
+          <AlertTitle>Error</AlertTitle>
+          {error}
+        </Alert>
+      </div>
     );
   }
 
   return (
-    <CloudflareLayout>
-      <div className="min-h-screen bg-white">
-        {/* Breadcrumbs and Tabs */}
-        <div className="px-6 py-4 border-b border-gray-200">
-          <div className="flex items-center space-x-2 text-sm text-gray-500 mb-4">
-            <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" />
-            </svg>
-            <a href="/workflows" className="hover:text-gray-700">Workflows</a>
-            <span>/</span>
-            <span className="font-medium text-gray-900">{workflowName}</span>
-          </div>
-          
-          <div className="flex items-center justify-between">
-            <div className="flex space-x-8">
-              <button className="border-b-2 border-blue-500 pb-2 text-sm font-medium text-blue-600">
-                Instances
-              </button>
-              <button className="border-b-2 border-transparent pb-2 text-sm font-medium text-gray-500 hover:text-gray-700">
-                Metrics
-              </button>
-              <button className="border-b-2 border-transparent pb-2 text-sm font-medium text-gray-500 hover:text-gray-700">
-                Settings
-              </button>
-            </div>
-            
-            <div className="flex items-center space-x-3">
-              <div className="w-4 h-4 bg-gray-100 rounded flex items-center justify-center">
-                <svg className="h-3 w-3 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
-                </svg>
-              </div>
-              <select className="text-sm border border-gray-300 rounded-md px-3 py-1">
-                <option>Past 7 days</option>
-              </select>
-              <select className="text-sm border border-gray-300 rounded-md px-3 py-1">
-                <option>All</option>
-              </select>
-              <button className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h1m4 0h1m-6-8h8a2 2 0 012 2v8a2 2 0 01-2 2H8a2 2 0 01-2-2V8a2 2 0 012-2z" />
-                </svg>
-                Trigger
-              </button>
-            </div>
-          </div>
-        </div>
+    <div className="w-full px-6 py-8">
+      <PageHeader
+        title={workflowName}
+        description="Workflow instances and execution history"
+      />
 
-        {/* Summary Cards */}
-        <div className="px-6 py-6">
-          <div className="grid grid-cols-2 gap-6">
-            <div>
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Instances</h3>
-              <div className="grid grid-cols-4 gap-4">
-                <div className="bg-white border border-gray-200 rounded-lg p-4">
-                  <div className="text-2xl font-bold text-gray-900">0</div>
-                  <div className="text-sm text-gray-500">Queued</div>
-                </div>
-                <div className="bg-white border border-gray-200 rounded-lg p-4">
-                  <div className="text-2xl font-bold text-gray-900">0</div>
-                  <div className="text-sm text-gray-500">Running</div>
-                </div>
-                <div className="bg-white border border-gray-200 rounded-lg p-4">
-                  <div className="text-2xl font-bold text-gray-900">0</div>
-                  <div className="text-sm text-gray-500">Paused</div>
-                </div>
-                <div className="bg-white border border-gray-200 rounded-lg p-4">
-                  <div className="text-2xl font-bold text-gray-900">0</div>
-                  <div className="text-sm text-gray-500">Waiting</div>
-                </div>
-              </div>
-            </div>
-            
-            <div>
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Ended Instances</h3>
-              <div className="grid grid-cols-3 gap-4">
-                <div className="bg-white border border-gray-200 rounded-lg p-4">
-                  <div className="text-2xl font-bold text-gray-900">1</div>
-                  <div className="text-sm text-gray-500">Complete</div>
-                </div>
-                <div className="bg-white border border-gray-200 rounded-lg p-4">
-                  <div className="text-2xl font-bold text-gray-900">0</div>
-                  <div className="text-sm text-gray-500">Errored</div>
-                </div>
-                <div className="bg-white border border-gray-200 rounded-lg p-4">
-                  <div className="text-2xl font-bold text-gray-900">0</div>
-                  <div className="text-sm text-gray-500">Terminated</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+      <Tabs activeTab={activeTab} onTabChange={setActiveTab} className="mb-6">
+        <Tab>Instances</Tab>
+        <Tab>Metrics</Tab>
+        <Tab>Settings</Tab>
+      </Tabs>
 
-        {/* Instances Table */}
-        <div className="px-6 pb-6">
-          <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Instance ID
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Start time
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    End time
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Wall time
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    CPU time
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Last modified
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {instances.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} className="px-6 py-12 text-center text-gray-500">
-                      No instances found
-                    </td>
-                  </tr>
-                ) : (
-                  instances.map((instance) => (
-                    <tr key={instance.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(instance.status)}`}>
-                          {instance.status === 'errored' ? 'Errored' : 'Completed'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <a
-                          href={`/workflows/${workflowName}/instances/${instance.id}`}
-                          className="text-sm font-medium text-blue-600 hover:text-blue-500"
-                        >
-                          {instance.id.substring(0, 8)}...
-                        </a>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {instance.created_on ? new Date(instance.created_on).toLocaleString() : 'N/A'}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {instance.modified_on ? new Date(instance.modified_on).toLocaleString() : 'N/A'}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        ~1s
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        —
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {instance.modified_on ? `${Math.floor((Date.now() - new Date(instance.modified_on).getTime()) / (1000 * 60))} minutes ago` : 'N/A'}
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-          
-          {/* Pagination */}
-          <div className="flex items-center justify-between mt-4">
-            <div className="flex items-center">
-              <span className="text-sm text-gray-700">Items per page:</span>
-              <select className="ml-2 text-sm border border-gray-300 rounded-md px-2 py-1">
-                <option>25</option>
-              </select>
-            </div>
-            <div className="flex items-center space-x-2">
-              <button className="p-2 text-gray-400 hover:text-gray-600">
-                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
-                </svg>
-              </button>
-              <button className="p-2 text-gray-400 hover:text-gray-600">
-                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
-              </button>
-              <button className="p-2 text-gray-400 hover:text-gray-600">
-                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </button>
-              <button className="p-2 text-gray-400 hover:text-gray-600">
-                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
-                </svg>
-              </button>
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+        <Card>
+          <div className="p-4">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Instances</h3>
+            <div className="grid grid-cols-4 gap-4">
+              {instanceStats.map((stat, index) => (
+                <StatCard key={index} {...stat} />
+              ))}
             </div>
           </div>
-        </div>
+        </Card>
+        
+        <Card>
+          <div className="p-4">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Ended Instances</h3>
+            <div className="grid grid-cols-3 gap-4">
+              {endedStats.map((stat, index) => (
+                <StatCard key={index} {...stat} />
+              ))}
+            </div>
+          </div>
+        </Card>
       </div>
-    </CloudflareLayout>
+
+      {/* Instances Table */}
+      <Card>
+        <div className="p-4">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <Dropdown
+                options={[
+                  { value: '7', label: 'Past 7 days' },
+                  { value: '30', label: 'Past 30 days' },
+                ]}
+                value="7"
+                onChange={() => {}}
+              />
+              <Dropdown
+                options={[
+                  { value: 'all', label: 'All' },
+                  { value: 'running', label: 'Running' },
+                  { value: 'completed', label: 'Completed' },
+                ]}
+                value="all"
+                onChange={() => {}}
+              />
+            </div>
+          </div>
+
+          <DataTable
+            data={instances}
+            columns={columns}
+            onRowAction={(row) => {
+              router.push(`/workflows/${workflowName}/instances/${row.id}`);
+            }}
+          />
+
+          <div className="mt-4">
+            <Pagination
+              currentPage={1}
+              totalPages={1}
+              totalItems={instances.length}
+              itemsPerPage={25}
+              onPageChange={() => {}}
+              showItemsPerPage={true}
+              clientItemsPerPage={25}
+              onItemsPerPageChange={() => {}}
+            />
+          </div>
+        </div>
+      </Card>
+    </div>
   );
 }

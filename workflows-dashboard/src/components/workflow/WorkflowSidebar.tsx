@@ -1,36 +1,32 @@
 'use client';
 
-import { EnhancedNodePalette } from './EnhancedNodePalette';
+import { NodePalette } from '@/components/workflow/NodePalette';
 import { useNodeRegistry } from '@/hooks/useNodeRegistry';
+import type { WorkflowSidebarProps } from '@/types/components';
 
-interface WorkflowSidebarProps {
-  onAddNode: (type: string) => void;
-  registry?: { nodes: { name: string; category: string }[] };
-  nodes: any[];
-  edges: any[];
-}
-
-export function WorkflowSidebar({ onAddNode, registry, nodes, edges }: WorkflowSidebarProps) {
-  const { nodes: registryNodes } = useNodeRegistry();
+export function WorkflowSidebar({ onAddNode, nodes, edges, edgeSelected = false }: WorkflowSidebarProps) {
+  const { catalog } = useNodeRegistry();
 
   // Group nodes by type for stats
-  const nodesByType = registryNodes.reduce((acc, nodeDef) => {
-    const count = nodes.filter(n => n.data?.type === nodeDef.metadata.type).length;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const nodesByType = catalog.reduce((acc, nodeDef) => {
+    const count = nodes.filter(n => n.data?.type === nodeDef.type).length;
     if (count > 0) {
-      acc[nodeDef.metadata.type] = { count, name: nodeDef.metadata.name, category: nodeDef.metadata.category };
+      acc[nodeDef.type] = { count, name: nodeDef.name, category: nodeDef.category };
     }
     return acc;
   }, {} as Record<string, { count: number; name: string; category: string }>);
 
   const entryNodes = nodes.filter(n => n.data?.type === 'entry');
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const returnNodes = nodes.filter(n => n.data?.type === 'return');
   const controlNodes = nodes.filter(n => {
     const type = n.data?.type;
-    return type === 'conditional-inline' || type === 'conditional-router' || type === 'for-each';
+    return type === 'conditional-router' || type === 'for-each';
   });
   const httpNodes = nodes.filter(n => n.data?.type === 'http-request');
   const transformNodes = nodes.filter(n => n.data?.type === 'transform' || n.data?.type === 'validate');
-  const storageNodes = nodes.filter(n => n.data?.type === 'kv-get' || n.data?.type === 'kv-put' || n.data?.type === 'd1-query');
+  const storageNodes = nodes.filter(n => n.data?.type === 'kv_get' || n.data?.type === 'kv_put' || n.data?.type === 'd1-query');
   const timingNodes = nodes.filter(n => n.data?.type === 'sleep' || n.data?.type === 'wait-event');
 
   return (
@@ -41,7 +37,7 @@ export function WorkflowSidebar({ onAddNode, registry, nodes, edges }: WorkflowS
       </div>
       
       <div className="flex-1 overflow-y-auto">
-        <EnhancedNodePalette onAddNode={onAddNode} />
+        <NodePalette onAddNode={onAddNode} disabled={!edgeSelected} />
       </div>
       
       {/* Workflow Statistics */}

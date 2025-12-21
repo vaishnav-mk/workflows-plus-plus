@@ -1,0 +1,31 @@
+{
+  "name": "workflow-row",
+  "main": "worker.mjs",
+  "compatibility_date": "2025-10-22",
+  "workflows": [
+    {
+      "name": "CrystalGemQuestWorkflow",
+      "binding": "CRYSTALGEMQUESTWORKFLOW_WORKFLOW",
+      "class_name": "CrystalGemQuestWorkflow"
+    }
+  ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "class_name": "CrystalGemQuestWorkflowMCP",
+        "name": "MCP_OBJECT"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "new_sqlite_classes": [
+        "CrystalGemQuestWorkflowMCP"
+      ],
+      "tag": "V1"
+    }
+  ],
+  "compatibility_flags": [
+    "nodejs_compat"
+  ]
+}

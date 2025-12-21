@@ -1,64 +1,120 @@
 'use client';
 
-import { useState } from 'react';
-import { Copy, Download, Eye, EyeOff, Code, Check, Database, Settings } from 'lucide-react';
+import { useState, useMemo, useCallback } from 'react';
+import { Copy, Download, Eye, EyeOff, Code, Check, Database, ChevronRight, X } from 'lucide-react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import { WorkflowDefinition } from '../types/workflow';
+import type { CodePreviewProps, ParsedNode } from '@/types/components';
+import { Badge } from '@/components/ui/Badge';
+import { Tabs, Tab } from '@/components/ui/Tabs';
+import { Button } from '@/components/ui/Button';
+import { useNodeRegistry } from '@/hooks/useNodeRegistry';
 
-interface NodeUsage {
-  nodeId: string;
-  nodeLabel: string;
-  nodeType: string;
-  namespace?: {
-    configured: string | null;
-    default: string;
-    resolved: string;
-    finalBinding: string;
-  };
-  database?: {
-    configured: string | null;
-    default: string;
-    resolved: string;
-  };
-  key?: string;
-  type?: string;
-  valueType?: string;
-  query?: string;
-  returnType?: string;
-  options?: any;
-  parameters?: any[];
-}
+const DEFAULT_COLOR = '#6b7280';
+const NO_CODE_MESSAGE = '// No code generated yet';
 
-interface Binding {
-  name: string;
-  type: string;
-  description: string;
-  required: boolean;
-  usedBy: string[];
-  usage?: NodeUsage[];
-  nodeCount?: number;
-  nodes?: Array<{
-    id: string;
-    label: string;
-    type: string;
-  }>;
-}
+const hexToRgba = (hex: string, alpha: number): string => {
+  if (!hex || !hex.startsWith('#')) {
+    return `rgba(107, 114, 128, ${alpha})`;
+  }
+  try {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    if (isNaN(r) || isNaN(g) || isNaN(b)) {
+      return `rgba(107, 114, 128, ${alpha})`;
+    }
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  } catch {
+    return `rgba(107, 114, 128, ${alpha})`;
+  }
+};
 
-interface CodePreviewProps {
-  workflow: WorkflowDefinition;
-  isOpen: boolean;
-  onClose: () => void;
-  code?: string; // optional pre-generated code from backend
-  bindings?: Binding[]; // optional bindings from backend
-}
-
-export function CodePreview({ workflow, isOpen, onClose, code, bindings }: CodePreviewProps) {
+export function CodePreview({ workflow, isOpen, onClose, code, bindings, nodes = [], onNodeSelect }: CodePreviewProps) {
   const [copied, setCopied] = useState(false);
   const [showLineNumbers, setShowLineNumbers] = useState(true);
   const [activeTab, setActiveTab] = useState<'code' | 'bindings'>('code');
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const { catalog } = useNodeRegistry();
 
-  const generatedCode = code && code.trim() ? code : '// No code generated yet';
+  const generatedCode = code && code.trim() ? code : NO_CODE_MESSAGE;
+
+  const getNodeColor = useCallback((nodeType: string, nodeId: string): string => {
+    const catalogItem = catalog.find(item => item.type === nodeType);
+    const workflowNode = nodes.find(n => n.id === nodeId);
+    const nodeData = workflowNode?.data as any;
+    return catalogItem?.color || nodeData?.color || DEFAULT_COLOR;
+  }, [catalog, nodes]);
+
+  const parsedNodes = useMemo((): ParsedNode[] => {
+    if (!generatedCode || generatedCode === NO_CODE_MESSAGE) return [];
+    
+    const lines = generatedCode.split('\n');
+    const parsedNodesList: ParsedNode[] = [];
+    const nodeStack: { nodeId: string; nodeName: string; nodeType: string; startLine: number }[] = [];
+    
+    lines.forEach((line, index) => {
+      const lineNumber = index + 1;
+      
+      const nodeStartMatch = line.match(/console\.log\(JSON\.stringify\(\{type:'WF_NODE_START',nodeId:'([^']+)',nodeName:([^,]+),nodeType:'([^']+)'/);
+      if (nodeStartMatch) {
+        const [, nodeId, nodeName, nodeType] = nodeStartMatch;
+        nodeStack.push({ 
+          nodeId, 
+          nodeName: nodeName.replace(/^["']|["']$/g, ''), 
+          nodeType, 
+          startLine: lineNumber 
+        });
+      }
+      
+      const nodeEndMatch = line.match(/console\.log\(JSON\.stringify\(\{type:'WF_NODE_(END|ERROR)',nodeId:'([^']+)'/);
+      if (nodeEndMatch && nodeStack.length > 0) {
+        const topNode = nodeStack.pop();
+        if (topNode) {
+          parsedNodesList.push({
+            ...topNode,
+            endLine: lineNumber,
+            color: getNodeColor(topNode.nodeType, topNode.nodeId),
+          });
+        }
+      }
+    });
+    
+    nodeStack.forEach((topNode) => {
+      parsedNodesList.push({
+        ...topNode,
+        endLine: lines.length,
+        color: getNodeColor(topNode.nodeType, topNode.nodeId),
+      });
+    });
+    
+    return parsedNodesList;
+  }, [generatedCode, getNodeColor]);
+
+  const getNodeForLine = useCallback((lineNumber: number): ParsedNode | null => {
+    return parsedNodes.find(node => lineNumber >= node.startLine && lineNumber <= node.endLine) || null;
+  }, [parsedNodes]);
+
+  const handleLineClick = useCallback((lineNumber: number) => {
+    const node = getNodeForLine(lineNumber);
+    if (node && onNodeSelect) {
+      setSelectedNodeId(node.nodeId);
+      onNodeSelect(node.nodeId);
+      setTimeout(() => onClose(), 300);
+    }
+  }, [getNodeForLine, onNodeSelect, onClose]);
+
+  const scrollToNode = useCallback((nodeId: string) => {
+    const node = parsedNodes.find(n => n.nodeId === nodeId);
+    if (node) {
+      const codeElement = document.querySelector('.code-preview-container');
+      const lineElement = codeElement?.querySelector(`[data-line-number="${node.startLine}"]`);
+      if (lineElement) {
+        lineElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        setSelectedNodeId(nodeId);
+      }
+    }
+  }, [parsedNodes]);
 
   if (!isOpen) return null;
 
@@ -67,7 +123,8 @@ export function CodePreview({ workflow, isOpen, onClose, code, bindings }: CodeP
       await navigator.clipboard.writeText(generatedCode);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
+    } catch {
+      // Clipboard access denied or not available
     }
   };
 
@@ -83,384 +140,246 @@ export function CodePreview({ workflow, isOpen, onClose, code, bindings }: CodeP
     URL.revokeObjectURL(url);
   };
 
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl w-11/12 h-5/6 flex flex-col">
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-200">
-          <div className="flex items-center space-x-3">
-            <Code className="w-5 h-5 text-orange-500" />
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900">Generated Cloudflare Workers Code</h2>
-              <p className="text-sm text-gray-500">TypeScript code for your workflow</p>
-            </div>
-          </div>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-7xl h-[85vh] flex flex-col">
+        <div className="flex items-center justify-between p-3 border-b border-gray-200">
           <div className="flex items-center space-x-2">
+            <Code className="w-4 h-4 text-orange-500" />
+            <h2 className="text-base font-semibold text-gray-900">Generated Code</h2>
+          </div>
+          <div className="flex items-center gap-2">
             {activeTab === 'code' && (
               <>
-                <button
-                  onClick={() => setShowLineNumbers(!showLineNumbers)}
-                  className="flex items-center space-x-1 px-3 py-1 text-sm text-gray-600 hover:text-gray-900 border border-gray-300 rounded-md hover:bg-gray-50"
-                >
+                <Button variant="ghost" size="sm" onClick={() => setShowLineNumbers(!showLineNumbers)}>
                   {showLineNumbers ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  <span>{showLineNumbers ? 'Hide' : 'Show'} Line Numbers</span>
-                </button>
-                <button
-                  onClick={copyToClipboard}
-                  className="flex items-center space-x-1 px-3 py-1 text-sm text-gray-600 hover:text-gray-900 border border-gray-300 rounded-md hover:bg-gray-50"
-                >
+                </Button>
+                <Button variant="ghost" size="sm" onClick={copyToClipboard}>
                   {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
-                  <span>{copied ? 'Copied!' : 'Copy'}</span>
-                </button>
-                <button
-                  onClick={downloadCode}
-                  className="flex items-center space-x-1 px-3 py-1 text-sm text-gray-600 hover:text-gray-900 border border-gray-300 rounded-md hover:bg-gray-50"
-                >
+                </Button>
+                <Button variant="ghost" size="sm" onClick={downloadCode}>
                   <Download className="w-4 h-4" />
-                  <span>Download</span>
-                </button>
+                </Button>
               </>
             )}
-            <button
-              onClick={onClose}
-              className="px-4 py-1 text-sm text-gray-600 hover:text-gray-900 border border-gray-300 rounded-md hover:bg-gray-50"
-            >
-              Close
-            </button>
+            <Button variant="ghost" size="sm" onClick={onClose}>
+              <X className="w-4 h-4" />
+            </Button>
           </div>
         </div>
 
-        {/* Tabs */}
         <div className="border-b border-gray-200">
-          <nav className="flex space-x-8 px-4">
-            <button
-              onClick={() => setActiveTab('code')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'code'
-                  ? 'border-orange-500 text-orange-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              <div className="flex items-center space-x-2">
+          <Tabs activeTab={activeTab === 'code' ? 0 : 1} onTabChange={(idx) => setActiveTab(idx === 0 ? 'code' : 'bindings')}>
+            <Tab>
+              <div className="flex items-center gap-1.5">
                 <Code className="w-4 h-4" />
                 <span>Code</span>
               </div>
-            </button>
+            </Tab>
             {bindings && bindings.length > 0 && (
-              <button
-                onClick={() => setActiveTab('bindings')}
-                className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                  activeTab === 'bindings'
-                    ? 'border-orange-500 text-orange-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                <div className="flex items-center space-x-2">
+              <Tab>
+                <div className="flex items-center gap-1.5">
                   <Database className="w-4 h-4" />
                   <span>Bindings</span>
-                  <span className="bg-gray-200 text-gray-700 text-xs px-2 py-0.5 rounded-full">
-                    {bindings.length}
-                  </span>
+                  <Badge variant="default" className="ml-0.5">{bindings.length}</Badge>
                 </div>
-              </button>
+              </Tab>
             )}
-          </nav>
+          </Tabs>
         </div>
 
-        {/* Content */}
         <div className="flex-1 overflow-hidden">
           {activeTab === 'code' ? (
             <div className="h-full flex">
-              {/* Code */}
+              {parsedNodes.length > 0 && (
+                <div className="w-64 border-r border-gray-200 bg-gray-50 overflow-y-auto">
+                  <div className="p-4 border-b border-gray-200 bg-white sticky top-0 z-10">
+                    <h3 className="text-sm font-semibold text-gray-900">Nodes ({parsedNodes.length})</h3>
+                    <p className="text-xs text-gray-500 mt-1">Click to navigate to node</p>
+                  </div>
+                  <div className="p-2">
+                    {parsedNodes.map((node) => {
+                      const displayName = node.nodeName || node.nodeType || node.nodeId;
+                      const isSelected = selectedNodeId === node.nodeId;
+                      
+                      return (
+                        <button
+                          key={node.nodeId}
+                          onClick={() => scrollToNode(node.nodeId)}
+                          className={`w-full text-left p-3 rounded-lg mb-2 transition-all ${
+                            isSelected
+                              ? 'bg-blue-50 border-2 border-blue-300'
+                              : 'bg-white border border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                          }`}
+                          style={{
+                            borderLeftWidth: '4px',
+                            borderLeftColor: node.color || '#6b7280',
+                          }}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <div
+                                  className="w-3 h-3 rounded-full flex-shrink-0"
+                                  style={{ backgroundColor: node.color || '#6b7280' }}
+                                />
+                                <span className="text-sm font-medium text-gray-900 truncate">
+                                  {displayName}
+                                </span>
+                              </div>
+                              <div className="text-xs text-gray-500 ml-5">
+                                Lines {node.startLine}-{node.endLine}
+                              </div>
+                              <div className="text-xs text-gray-400 ml-5 mt-0.5 truncate">
+                                {node.nodeType}
+                              </div>
+                            </div>
+                            <ChevronRight className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+              
               <div className="flex-1 overflow-auto">
-                <SyntaxHighlighter
-                  language="typescript"
-                  style={oneLight}
-                  showLineNumbers={showLineNumbers}
-                  wrapLines={true}
-                  wrapLongLines={true}
-                  customStyle={{
-                    margin: 0,
-                    padding: '1rem',
-                    fontSize: '0.875rem',
-                    lineHeight: '1.5',
-                    fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace'
-                  }}
+                <div className="code-preview-container p-4 min-w-full">
+                  <SyntaxHighlighter
+                    language="typescript"
+                    style={oneLight}
+                    showLineNumbers={showLineNumbers}
+                    wrapLines={true}
+                    wrapLongLines={true}
+                    customStyle={{
+                      margin: 0,
+                      padding: 0,
+                      fontSize: '0.875rem',
+                      lineHeight: '1.5',
+                      fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace',
+                      background: 'transparent'
+                    }}
                   lineProps={(lineNumber) => {
-                    const lines = generatedCode.split('\n');
-                    const line = lines[lineNumber - 1];
-                    
-                    // Check if this line is part of a node block based on NODE START comments
-                    if (line?.includes('// === NODE START:')) {
-                      if (line.includes('ENTRY')) {
-                        return { style: { backgroundColor: '#f0f9ff', borderLeft: '3px solid #0ea5e9' } };
-                      }
-                      if (line.includes('KV-PUT')) {
-                        return { style: { backgroundColor: '#fef3c7', borderLeft: '3px solid #f59e0b' } };
-                      }
-                      if (line.includes('KV-GET')) {
-                        return { style: { backgroundColor: '#fef3c7', borderLeft: '3px solid #f59e0b' } };
-                      }
-                      if (line.includes('HTTP-REQUEST')) {
-                        return { style: { backgroundColor: '#f0fdf4', borderLeft: '3px solid #10b981' } };
-                      }
-                      if (line.includes('RETURN')) {
-                        return { style: { backgroundColor: '#fdf2f8', borderLeft: '3px solid #ec4899' } };
-                      }
-                      if (line.includes('D1-QUERY')) {
-                        return { style: { backgroundColor: '#faf5ff', borderLeft: '3px solid #8b5cf6' } };
-                      }
-                      if (line.includes('CONDITIONAL')) {
-                        return { style: { backgroundColor: '#fffbeb', borderLeft: '3px solid #f59e0b' } };
-                      }
-                      if (line.includes('TRANSFORM')) {
-                        return { style: { backgroundColor: '#eff6ff', borderLeft: '3px solid #3b82f6' } };
-                      }
-                      if (line.includes('VALIDATE')) {
-                        return { style: { backgroundColor: '#fef2f2', borderLeft: '3px solid #ef4444' } };
-                      }
+                    const node = getNodeForLine(lineNumber);
+                    if (!node) {
+                      return { 'data-line-number': lineNumber };
                     }
-                    
-                    // Check if this line is within a node block
-                    let inNodeBlock = false;
-                    let nodeType = '';
-                    
-                    for (let i = 0; i < lineNumber - 1; i++) {
-                      const prevLine = lines[i];
-                      if (prevLine?.includes('// === NODE START:')) {
-                        inNodeBlock = true;
-                        if (prevLine.includes('ENTRY')) nodeType = 'entry';
-                        else if (prevLine.includes('KV-PUT')) nodeType = 'kv-put';
-                        else if (prevLine.includes('KV-GET')) nodeType = 'kv-get';
-                        else if (prevLine.includes('HTTP-REQUEST')) nodeType = 'http';
-                        else if (prevLine.includes('RETURN')) nodeType = 'return';
-                        else if (prevLine.includes('D1-QUERY')) nodeType = 'd1';
-                        else if (prevLine.includes('CONDITIONAL')) nodeType = 'conditional';
-                        else if (prevLine.includes('TRANSFORM')) nodeType = 'transform';
-                        else if (prevLine.includes('VALIDATE')) nodeType = 'validate';
-                      } else if (prevLine?.includes('// === NODE END:') && inNodeBlock) {
-                        inNodeBlock = false;
-                        nodeType = '';
-                      }
-                    }
-                    
-                    if (inNodeBlock) {
-                      switch (nodeType) {
-                        case 'entry':
-                          return { style: { backgroundColor: '#f0f9ff' } };
-                        case 'kv-put':
-                        case 'kv-get':
-                          return { style: { backgroundColor: '#fef3c7' } };
-                        case 'http':
-                          return { style: { backgroundColor: '#f0fdf4' } };
-                        case 'return':
-                          return { style: { backgroundColor: '#fdf2f8' } };
-                        case 'd1':
-                          return { style: { backgroundColor: '#faf5ff' } };
-                        case 'conditional':
-                          return { style: { backgroundColor: '#fffbeb' } };
-                        case 'transform':
-                          return { style: { backgroundColor: '#eff6ff' } };
-                        case 'validate':
-                          return { style: { backgroundColor: '#fef2f2' } };
-                      }
-                    }
-                    
-                    return {};
+
+                    const isSelected = selectedNodeId === node.nodeId;
+                    const nodeColor = node.color || DEFAULT_COLOR;
+                    const bgColor = isSelected 
+                      ? hexToRgba(nodeColor, 0.3)
+                      : hexToRgba(nodeColor, 0.1);
+
+                    return {
+                      'data-line-number': lineNumber,
+                      className: 'code-line',
+                      style: {
+                        backgroundColor: bgColor,
+                        borderLeft: lineNumber === node.startLine ? `3px solid ${nodeColor}` : undefined,
+                        cursor: onNodeSelect ? 'pointer' : 'default',
+                        transition: 'background-color 0.2s',
+                      },
+                      onClick: () => handleLineClick(lineNumber),
+                      onMouseEnter: (e: React.MouseEvent) => {
+                        if (onNodeSelect) {
+                          (e.currentTarget as HTMLElement).style.backgroundColor = hexToRgba(nodeColor, 0.2);
+                        }
+                      },
+                      onMouseLeave: (e: React.MouseEvent) => {
+                        if (onNodeSelect) {
+                          (e.currentTarget as HTMLElement).style.backgroundColor = bgColor;
+                        }
+                      },
+                    };
                   }}
-                >
-                  {generatedCode}
-                </SyntaxHighlighter>
+                  >
+                    {generatedCode}
+                  </SyntaxHighlighter>
+                </div>
               </div>
             </div>
           ) : (
             <div className="h-full overflow-auto p-6">
-              <div className="space-y-4">
-                <div className="flex items-center space-x-2 mb-6">
+              <div className="mb-6">
+                <div className="flex items-center space-x-2">
                   <Database className="w-5 h-5 text-blue-500" />
                   <h3 className="text-lg font-semibold text-gray-900">Required Bindings</h3>
                   <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
                     {bindings?.length || 0} binding{(bindings?.length || 0) !== 1 ? 's' : ''}
                   </span>
                 </div>
-                
-                {bindings && bindings.length > 0 ? (
-                  <div className="space-y-4">
-                    {bindings.map((binding, index) => (
-                      <div key={index} className="border border-gray-200 rounded-lg p-5 bg-white shadow-sm">
-                        {/* Binding Header */}
-                        <div className="flex items-start justify-between mb-4">
-                          <div className="flex-1">
-                            <div className="flex items-center space-x-2 mb-2">
-                              <h4 className="font-semibold text-gray-900 text-lg">{binding.name}</h4>
-                              <span className={`px-2 py-1 text-xs rounded-full font-medium ${
-                                binding.required 
-                                  ? 'bg-red-100 text-red-800' 
-                                  : 'bg-green-100 text-green-800'
-                              }`}>
-                                {binding.required ? 'Required' : 'Optional'}
+              </div>
+              
+              {bindings && bindings.length > 0 ? (
+                <div className="space-y-3">
+                  {bindings.map((binding, index) => (
+                    <div key={index} className="border border-gray-200 rounded-lg p-3 bg-white">
+                      <div className="grid grid-cols-[auto_1fr_auto] gap-4 items-start">
+                        <div className="flex flex-col gap-1 min-w-[80px]">
+                          <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                            Binding {index + 1}
+                          </span>
+                          <div className="flex flex-wrap gap-1">
+                            <span className="px-1.5 py-0.5 text-xs bg-blue-100 text-blue-800 rounded font-medium">
+                              {binding.type}
+                            </span>
+                            {binding.required !== false && (
+                              <span className="px-1.5 py-0.5 text-xs bg-red-100 text-red-800 rounded font-medium">
+                                Required
                               </span>
-                              <span className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full font-medium">
-                                {binding.type}
-                              </span>
-                              {binding.nodeCount !== undefined && (
-                                <span className="px-2 py-1 text-xs bg-purple-100 text-purple-800 rounded-full">
-                                  {binding.nodeCount} node{binding.nodeCount !== 1 ? 's' : ''}
-                                </span>
-                              )}
-                            </div>
-                            <p className="text-sm text-gray-600 mb-3">{binding.description}</p>
-                            <div className="flex flex-wrap gap-2 text-sm">
-                              <span className="text-gray-500">
-                                <span className="font-medium">Used by:</span> {binding.usedBy.join(', ')}
-                              </span>
-                            </div>
+                            )}
                           </div>
                         </div>
 
-                        {/* Usage Details */}
-                        {binding.usage && binding.usage.length > 0 && (
-                          <div className="mt-4 pt-4 border-t border-gray-200">
-                            <h5 className="text-sm font-semibold text-gray-700 mb-3 flex items-center">
-                              <Database className="w-4 h-4 mr-2" />
-                              Usage Details ({binding.usage.length} usage{binding.usage.length !== 1 ? 's' : ''})
-                            </h5>
-                            <div className="space-y-3">
+                        <div className="min-w-0">
+                          <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">
+                            Used by Nodes
+                          </span>
+                          {binding.usage && binding.usage.length > 0 ? (
+                            <div className="flex flex-wrap gap-2">
                               {binding.usage.map((usage, usageIndex) => (
-                                <div key={usageIndex} className="bg-gray-50 rounded-lg p-4 border border-gray-100">
-                                  <div className="flex items-center justify-between mb-2">
-                                    <div className="flex items-center space-x-2">
-                                      <span className="font-medium text-gray-900">{usage.nodeLabel || usage.nodeType}</span>
-                                      <span className="px-2 py-0.5 text-xs bg-gray-200 text-gray-700 rounded">
-                                        {usage.nodeType}
-                                      </span>
-                                    </div>
-                                    <span className="text-xs text-gray-500 font-mono">{usage.nodeId}</span>
-                                  </div>
-
-                                  {/* KV-specific details */}
-                                  {usage.namespace && (
-                                    <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded">
-                                      <div className="text-xs font-semibold text-yellow-900 mb-2">KV Namespace Configuration</div>
-                                      <div className="space-y-1.5 text-xs">
-                                        <div className="flex justify-between">
-                                          <span className="text-yellow-700">Configured:</span>
-                                          <span className="font-mono text-yellow-900">
-                                            {usage.namespace.configured ? (
-                                              usage.namespace.configured
-                                            ) : (
-                                              <span className="text-gray-400">(not set)</span>
-                                            )}
-                                          </span>
-                                        </div>
-                                        <div className="flex justify-between">
-                                          <span className="text-yellow-700">Schema Default:</span>
-                                          <span className="font-mono text-yellow-900">{usage.namespace.default}</span>
-                                        </div>
-                                        <div className="flex justify-between">
-                                          <span className="text-yellow-700">Resolved:</span>
-                                          <span className="font-mono text-yellow-900">{usage.namespace.resolved}</span>
-                                        </div>
-                                        <div className="flex justify-between pt-1 border-t border-yellow-300">
-                                          <span className="font-semibold text-yellow-900">Final Binding:</span>
-                                          <span className="font-mono font-bold text-yellow-900">{usage.namespace.finalBinding}</span>
-                                        </div>
-                                      </div>
-                                      {usage.key && (
-                                        <div className="mt-2 pt-2 border-t border-yellow-300">
-                                          <span className="text-xs text-yellow-700">Key: </span>
-                                          <span className="font-mono text-xs text-yellow-900">{usage.key}</span>
-                                          {usage.type && (
-                                            <span className="ml-2 text-xs text-yellow-700">
-                                              (type: <span className="font-mono">{usage.type}</span>)
-                                            </span>
-                                          )}
-                                          {usage.valueType && (
-                                            <span className="ml-2 text-xs text-yellow-700">
-                                              (value type: <span className="font-mono">{usage.valueType}</span>)
-                                            </span>
-                                          )}
-                                        </div>
-                                      )}
-                                      {usage.options && Object.keys(usage.options).length > 0 && (
-                                        <div className="mt-2 pt-2 border-t border-yellow-300">
-                                          <span className="text-xs text-yellow-700">Options: </span>
-                                          <code className="text-xs bg-yellow-100 px-1 rounded">
-                                            {JSON.stringify(usage.options, null, 2)}
-                                          </code>
-                                        </div>
-                                      )}
-                                    </div>
-                                  )}
-
-                                  {/* D1-specific details */}
-                                  {usage.database && (
-                                    <div className="mt-3 p-3 bg-purple-50 border border-purple-200 rounded">
-                                      <div className="text-xs font-semibold text-purple-900 mb-2">D1 Database Configuration</div>
-                                      <div className="space-y-1.5 text-xs">
-                                        <div className="flex justify-between">
-                                          <span className="text-purple-700">Configured:</span>
-                                          <span className="font-mono text-purple-900">
-                                            {usage.database.configured ? (
-                                              usage.database.configured
-                                            ) : (
-                                              <span className="text-gray-400">(not set)</span>
-                                            )}
-                                          </span>
-                                        </div>
-                                        <div className="flex justify-between">
-                                          <span className="text-purple-700">Schema Default:</span>
-                                          <span className="font-mono text-purple-900">{usage.database.default}</span>
-                                        </div>
-                                        <div className="flex justify-between pt-1 border-t border-purple-300">
-                                          <span className="font-semibold text-purple-900">Resolved Binding:</span>
-                                          <span className="font-mono font-bold text-purple-900">{usage.database.resolved}</span>
-                                        </div>
-                                      </div>
-                                      {usage.query && (
-                                        <div className="mt-2 pt-2 border-t border-purple-300">
-                                          <div className="text-xs text-purple-700 mb-1">Query:</div>
-                                          <code className="text-xs bg-purple-100 px-2 py-1 rounded block font-mono">
-                                            {usage.query}
-                                          </code>
-                                          {usage.returnType && (
-                                            <div className="mt-1 text-xs text-purple-700">
-                                              Return type: <span className="font-mono">{usage.returnType}</span>
-                                            </div>
-                                          )}
-                                          {usage.parameters && usage.parameters.length > 0 && (
-                                            <div className="mt-1 text-xs text-purple-700">
-                                              Parameters: {usage.parameters.length}
-                                            </div>
-                                          )}
-                                        </div>
-                                      )}
-                                    </div>
-                                  )}
-                                </div>
+                                <span key={usageIndex} className="text-xs text-gray-700">
+                                  <span className="font-medium">{usage.nodeLabel || usage.nodeType}</span>
+                                  <span className="text-gray-400 ml-1">({usage.nodeType})</span>
+                                </span>
                               ))}
                             </div>
+                          ) : binding.usedBy && binding.usedBy.length > 0 ? (
+                            <div className="text-xs text-gray-700">
+                              {binding.usedBy.join(', ')}
+                            </div>
+                          ) : (
+                            <div className="text-xs text-gray-400 italic">No nodes specified</div>
+                          )}
+                        </div>
+
+                        <div className="min-w-[200px]">
+                          <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">
+                            Binding Name
+                          </span>
+                          <div className="font-mono text-xs font-semibold text-gray-900 bg-gray-50 px-2 py-1.5 rounded border border-gray-200 break-all">
+                            {binding.name}
                           </div>
-                        )}
+                        </div>
                       </div>
-                    ))}
-                 
-                  </div>
-                ) : (
-                  <div className="text-center py-12">
-                    <Database className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">No Bindings Required</h3>
-                    <p className="text-gray-500">This workflow doesn't require any Cloudflare bindings.</p>
-                  </div>
-                )}
-              </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <Database className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No Bindings Required</h3>
+                  <p className="text-gray-500">This workflow doesn't require any Cloudflare bindings.</p>
+                </div>
+              )}
             </div>
           )}
         </div>
 
-        {/* Footer */}
         <div className="border-t border-gray-200 p-4 bg-gray-50">
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center justify-between">
             <div className="text-sm text-gray-600">
               <strong>Workflow:</strong> {workflow.name} | 
               <strong> Nodes:</strong> {workflow.nodes.length} | 
@@ -470,39 +389,6 @@ export function CodePreview({ workflow, isOpen, onClose, code, bindings }: CodeP
               Generated for Cloudflare Workers with TypeScript
             </div>
           </div>
-          
-          {/* Node Block Legend */}
-          <div className="flex flex-wrap gap-4 text-xs">
-            <div className="flex items-center space-x-1">
-              <span className="w-3 h-3 rounded" style={{backgroundColor: '#0ea5e9'}}></span>
-              <span>Entry Node</span>
-            </div>
-            <div className="flex items-center space-x-1">
-              <span className="w-3 h-3 rounded" style={{backgroundColor: '#f59e0b'}}></span>
-              <span>KV Node</span>
-            </div>
-            <div className="flex items-center space-x-1">
-              <span className="w-3 h-3 rounded" style={{backgroundColor: '#10b981'}}></span>
-              <span>HTTP Request Node</span>
-            </div>
-            <div className="flex items-center space-x-1">
-              <span className="w-3 h-3 rounded" style={{backgroundColor: '#ec4899'}}></span>
-              <span>Return Node</span>
-            </div>
-            <div className="flex items-center space-x-1">
-              <span className="w-3 h-3 rounded" style={{backgroundColor: '#8b5cf6'}}></span>
-              <span>D1 Query Node</span>
-            </div>
-            <div className="flex items-center space-x-1">
-              <span className="w-3 h-3 rounded" style={{backgroundColor: '#3b82f6'}}></span>
-              <span>Transform Node</span>
-            </div>
-            <div className="flex items-center space-x-1">
-              <span className="w-3 h-3 rounded" style={{backgroundColor: '#ef4444'}}></span>
-              <span>Validate Node</span>
-            </div>
-          </div>
-          
         </div>
       </div>
     </div>

@@ -1,4 +1,5 @@
-import { useState, useCallback } from "react";
+import { useCallback } from "react";
+import { useExecuteNodeMutation } from './useWorkflowsQuery';
 
 interface ExecutionInput {
   type: string;
@@ -19,50 +20,35 @@ interface UseNodeExecutionReturn {
   error: string | null;
 }
 
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8787/api";
-
 export function useNodeExecution(): UseNodeExecutionReturn {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const executeNodeMutation = useExecuteNodeMutation();
 
   const execute = useCallback(async (input: ExecutionInput): Promise<
     ExecutionResult
   > => {
     try {
-      setLoading(true);
-      setError(null);
-
-      const response = await fetch(`${API_BASE}/nodes/execute`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(input)
-      });
-
-      const data = await response.json();
-
-      if (data.success && data.data) {
-        return data.data;
-      } else {
-        throw new Error(data.error || "Execution failed");
-      }
+      const result = await executeNodeMutation.mutateAsync(input);
+      const output = (result && typeof result === "object" && "output" in result ? result.output : null);
+      const logs = (result && typeof result === "object" && "logs" in result && Array.isArray(result.logs) ? result.logs : []);
+      return {
+        success: true,
+        output: output,
+        logs: logs
+      };
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : "Execution failed";
-      setError(errorMessage);
       return {
         success: false,
         error: errorMessage,
         logs: []
       };
-    } finally {
-      setLoading(false);
     }
-  }, []);
+  }, [executeNodeMutation]);
 
   return {
     execute,
-    loading,
-    error
+    loading: executeNodeMutation.isPending,
+    error: executeNodeMutation.error instanceof Error ? executeNodeMutation.error.message : (executeNodeMutation.error ? String(executeNodeMutation.error) : null)
   };
 }

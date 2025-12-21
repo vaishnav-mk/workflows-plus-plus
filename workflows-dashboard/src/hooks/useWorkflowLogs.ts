@@ -93,7 +93,14 @@ export function useWorkflowLogs({
       try {
         const tailUrl = `http://localhost:8787/api/workflows/${workflowNameRef.current}/instances/${instanceIdRef.current}/logs/tail-url`;
         
-        const response = await fetch(tailUrl);
+        const { tokenStorage } = await import("@/lib/token-storage");
+        const token = tokenStorage.getToken();
+        const headers: HeadersInit = {};
+        if (token) {
+          headers["Authorization"] = `Bearer ${token}`;
+        }
+        
+        const response = await fetch(tailUrl, { headers });
         const data = await response.json();
 
         if (!data.success) {
@@ -137,16 +144,18 @@ export function useWorkflowLogs({
                       });
                       setLastLog(parsed);
                     }
-                  } catch (e) {
+                  } catch {
+                    // Ignore parsing errors
                   }
                 }
               }
             }
-          } catch (err) {
+          } catch {
+            // Ignore message errors
           }
         };
 
-        ws.onerror = (error) => {
+        ws.onerror = () => {
           isConnectingRef.current = false;
           setIsConnected(false);
           setIsConnecting(false);
@@ -171,7 +180,7 @@ export function useWorkflowLogs({
           setIsConnected(false);
           setIsConnecting(false);
         };
-      } catch (err) {
+      } catch {
         isConnectingRef.current = false;
         setError("Failed to setup tail connection");
         setIsConnecting(false);
@@ -203,7 +212,7 @@ export function useWorkflowLogs({
       setError(null);
       connect();
     },
-    []
+    [connect, disconnect]
   );
 
   useEffect(
@@ -218,7 +227,7 @@ export function useWorkflowLogs({
         disconnect();
       };
     },
-    [enabled, workflowName, instanceId]
+    [enabled, workflowName, instanceId, connect, disconnect]
   );
 
   useEffect(
@@ -230,14 +239,14 @@ export function useWorkflowLogs({
       if (lastLog.type === "WF_NODE_START" || lastLog.type === "WF_NODE_END") {
         const fetchStatus = async () => {
           try {
-            const statusUrl = `http://localhost:8787/api/workflows/${workflowName}/instances/${instanceId}`;
-            const response = await fetch(statusUrl);
-            const data = await response.json();
+            const { apiClient } = await import('../lib/api-client');
+            const result = await apiClient.getInstance(workflowName, instanceId);
             
-            if (data.success && onStatusUpdate) {
-              onStatusUpdate(data.data);
+            if (result.success && onStatusUpdate) {
+              onStatusUpdate(result.data);
             }
-          } catch (error) {
+          } catch {
+            // Silently fail
           }
         };
 

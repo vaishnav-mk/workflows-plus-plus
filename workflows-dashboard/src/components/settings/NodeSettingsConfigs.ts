@@ -1,27 +1,8 @@
-import { useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { useNodeRegistry } from '@/hooks/useNodeRegistry';
+import type { SettingField, NodeSettingsConfig } from '@/types/settings';
 
-export interface SettingField {
-  type:
-    | "input"
-    | "select"
-    | "textarea"
-    | "button"
-    | "card"
-    | "text"
-    | "conditional-builder";
-  key: string;
-  label?: string;
-  placeholder?: string;
-  options?: { value: string; label: string }[];
-  defaultValue?: any;
-  props?: any;
-  children?: SettingField[];
-}
-
-export interface NodeSettingsConfig {
-  [nodeType: string]: SettingField[];
-}
+export type { SettingField, NodeSettingsConfig };
 
 interface JSONSchema {
   type?: string;
@@ -32,17 +13,20 @@ interface JSONSchema {
   min?: number;
   max?: number;
   format?: string;
+  required?: string[];
 }
 
-// Convert JSON Schema to SettingField array
 function generateSettingsFromSchema(
   schema: any,
   nodeType: string,
-  metadata: { name: string; description: string }
+  metadata: { name: string; description: string; type?: string }
 ): SettingField[] {
   const fields: SettingField[] = [];
 
-  // Add card wrapper
+  if (!schema || typeof schema !== 'object') {
+    return DEFAULT_CONFIG;
+  }
+
   fields.push({
       type: "card",
     key: `${nodeType}-card`,
@@ -60,42 +44,162 @@ function generateSettingsFromSchema(
             className: "text-sm text-gray-500 mb-4"
           }
         },
-      // Generate fields from schema properties
-      ...generateFieldsFromSchema(schema)
+      ...generateFieldsFromSchema(schema, '', [], nodeType)
     ]
   });
 
   return fields;
 }
 
-function generateFieldsFromSchema(schema: JSONSchema, prefix = ''): SettingField[] {
+function generateFieldsFromSchema(schema: JSONSchema, prefix = '', requiredFields: string[] = [], nodeType?: string): SettingField[] {
   if (!schema.properties) return [];
 
   const fields: SettingField[] = [];
+  const schemaRequired = (schema.required as string[]) || [];
+
+  if (nodeType === 'conditional-router' && !prefix) {
+    if (schema.properties.conditionPath && schema.properties.cases) {
+      fields.push({
+        type: 'conditional-router-builder',
+        key: 'conditional-router-config',
+      });
+      return fields;
+    }
+  }
+
+  if (nodeType === 'd1-query' && !prefix) {
+    if (schema.properties.database) {
+      fields.push({
+        type: 'd1-database-selector',
+        key: 'd1-database-config',
+      });
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { database: _database, ...otherProps } = schema.properties;
+      const otherFields = generateFieldsFromSchema(
+        { ...schema, properties: otherProps },
+        prefix,
+        requiredFields.filter(r => r !== 'database'),
+        nodeType
+      );
+      return [...fields, ...otherFields];
+    }
+  }
+
+  if (nodeType === 'transform' && !prefix) {
+    if (schema.properties.code) {
+      fields.push({
+        type: 'transform-node-settings',
+        key: 'transform-config',
+      });
+      return fields;
+    }
+  }
+
+  if ((nodeType === 'kv_get' || nodeType === 'kv_put') && !prefix) {
+    const namespaceProp = schema.properties.namespace;
+    if (namespaceProp) {
+      const description = typeof namespaceProp === 'object' 
+        ? (namespaceProp.description || namespaceProp.title || '')
+        : '';
+      if (typeof description === 'string' && description.includes('binding:kv')) {
+        fields.push({
+          type: 'kv-namespace-selector',
+          key: 'kv-namespace-config',
+        });
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { namespace: _namespace, ...otherProps } = schema.properties;
+        const otherFields = generateFieldsFromSchema(
+          { ...schema, properties: otherProps },
+          prefix,
+          requiredFields.filter(r => r !== 'namespace'),
+          nodeType
+        );
+        return [...fields, ...otherFields];
+      }
+    }
+  }
+
+  if ((nodeType === 'r2-get' || nodeType === 'r2-put' || nodeType === 'r2-list') && !prefix) {
+    const bucketProp = schema.properties.bucket;
+    if (bucketProp) {
+      const description = typeof bucketProp === 'object' 
+        ? (bucketProp.description || bucketProp.title || '')
+        : '';
+      if (typeof description === 'string' && description.includes('binding:r2')) {
+        fields.push({
+          type: 'r2-bucket-selector',
+          key: 'r2-bucket-config',
+        });
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { bucket: _bucket, ...otherProps } = schema.properties;
+        const otherFields = generateFieldsFromSchema(
+          { ...schema, properties: otherProps },
+          prefix,
+          requiredFields.filter(r => r !== 'bucket'),
+          nodeType
+        );
+        return [...fields, ...otherFields];
+      }
+    }
+  }
 
   Object.entries(schema.properties).forEach(([key, prop]: [string, any]) => {
     const fullKey = prefix ? `${prefix}.${key}` : key;
+    const isRequired = schemaRequired.includes(key) || requiredFields.includes(fullKey);
     
-    // Handle nested objects recursively
-    if (prop.type === 'object' && prop.properties) {
-      // Create a card/section for nested objects
-      fields.push({
-        type: "card",
-        key: `${fullKey}-container`,
-        label: prop.title || formatLabel(key),
-        children: generateFieldsFromSchema(prop, fullKey)
-      });
+    if (key === 'content' && prefix) {
+      const contentField: SettingField = {
+        type: "textarea",
+        key: fullKey,
+        label: prop.title || formatLabel(key) || "Content",
+        placeholder: prop.description || "Enter JSON object or expression",
+        defaultValue: prop.default,
+        required: isRequired,
+        description: prop.description || "The content to store in KV",
+        props: {
+          className: "settings-object-input",
+          style: { height: '96px' }
+        }
+      };
+      fields.push(contentField);
+      return;
+    }
+    
+    if (prop.type === 'object' || (!prop.type && prop.properties)) {
+      if (prop.properties) {
+        const children = generateFieldsFromSchema(prop, fullKey, schemaRequired.map((r: string) => `${fullKey}.${r}`), nodeType);
+        fields.push({
+          type: "card",
+          key: `${fullKey}-container`,
+          label: prop.title || formatLabel(key),
+          children: children
+        });
+      } else {
+        const field: SettingField = {
+          type: "textarea",
+          key: fullKey,
+          label: prop.title || formatLabel(key),
+          placeholder: prop.description || "Enter JSON object",
+          defaultValue: prop.default,
+          required: isRequired,
+          description: prop.description,
+          props: {
+            className: "settings-object-input"
+          }
+        };
+        fields.push(field);
+      }
     } else {
-      // Handle regular fields
       const field: SettingField = {
         type: getFieldType(prop),
         key: fullKey,
         label: prop.title || formatLabel(key),
         placeholder: prop.description || "",
         defaultValue: prop.default,
+        required: isRequired,
+        description: prop.description,
       };
 
-      // Add options for enum types
       if (prop.enum) {
         field.options = prop.enum.map((val: any) => ({
           value: String(val),
@@ -103,14 +207,12 @@ function generateFieldsFromSchema(schema: JSONSchema, prefix = ''): SettingField
         }));
       }
 
-      // Add type-specific props
       if (prop.type === 'number') {
         field.props = { type: 'number' };
         if (prop.min !== undefined) field.props.min = prop.min;
         if (prop.max !== undefined) field.props.max = prop.max;
       }
 
-      // Add textarea props for long strings
       if (prop.type === 'string' && (key.includes('code') || key.includes('query') || key.includes('body'))) {
         field.props = {
           className: "w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono"
@@ -119,6 +221,22 @@ function generateFieldsFromSchema(schema: JSONSchema, prefix = ''): SettingField
           field.props.style = { height: '128px' };
         } else {
           field.props.style = { height: '96px' };
+        }
+      }
+
+      if (prefix && key === 'content') {
+        field.conditional = {
+          parentKey: prefix + '.type',
+          showWhen: true
+        };
+        field.type = 'textarea';
+        if (!field.props) {
+          field.props = {};
+        }
+        field.props.className = "settings-object-input";
+        field.props.style = { height: '96px' };
+        if (!field.placeholder) {
+          field.placeholder = "Enter JSON object or expression";
         }
       }
 
@@ -131,7 +249,7 @@ function generateFieldsFromSchema(schema: JSONSchema, prefix = ''): SettingField
 
 function getFieldType(prop: any): SettingField['type'] {
   if (prop.type === 'array' && prop.items?.type === 'object') {
-    return 'text'; // Special handling for complex arrays
+    return 'text';
   }
 
   if (prop.enum) {
@@ -147,7 +265,6 @@ function getFieldType(prop: any): SettingField['type'] {
   }
 
   if (prop.type === 'string') {
-    // Determine if it should be textarea based on key name or length expectations
     if (prop.maxLength && prop.maxLength > 100) {
       return 'textarea';
     }
@@ -156,6 +273,10 @@ function getFieldType(prop: any): SettingField['type'] {
 
   if (prop.type === 'object') {
     return 'text';
+  }
+
+  if (!prop.type || prop.type === 'any') {
+    return 'textarea';
   }
 
   return 'input';
@@ -170,7 +291,6 @@ function formatLabel(key: string): string {
     .join(' ');
 }
 
-// Fallback default config
 const DEFAULT_CONFIG: SettingField[] = [
     {
       type: "card",
@@ -193,32 +313,48 @@ const DEFAULT_CONFIG: SettingField[] = [
     }
 ];
 
-// Hook to get node settings configs dynamically from backend
 export function useNodeSettingsConfigs(): NodeSettingsConfig {
-  const { nodes } = useNodeRegistry();
+  const { catalog, getNodeByType } = useNodeRegistry();
+  const [configs, setConfigs] = useState<NodeSettingsConfig>({});
 
-  const configs = useMemo(() => {
-    const settingsConfig: NodeSettingsConfig = {};
+  useEffect(() => {
+    const catalogLength = catalog.length;
+    
+    if (catalogLength === 0) {
+      return;
+    }
 
-    nodes.forEach(node => {
-      const fields = generateSettingsFromSchema(
-        node.configSchema,
-        node.metadata.type,
-        node.metadata
-      );
-      settingsConfig[node.metadata.type] = fields;
-    });
+    const loadConfigs = async () => {
+      const settingsConfig: NodeSettingsConfig = {};
 
-    // Always add fallback default config
-    settingsConfig.default = DEFAULT_CONFIG;
+      for (const catalogItem of catalog) {
+        try {
+          const nodeDef = await getNodeByType(catalogItem.type);
+          if (nodeDef) {
+            if (!nodeDef.configSchema) {
+              continue;
+            }
+            
+            const fields = generateSettingsFromSchema(
+              nodeDef.configSchema,
+              nodeDef.metadata.type,
+              nodeDef.metadata
+            );
+            settingsConfig[nodeDef.metadata.type] = fields;
+          }
+        } catch {
+          console.error(`[NodeSettingsConfigs] Failed: ${catalogItem.type}`);
+        }
+      }
+      
+      setConfigs(settingsConfig);
+    };
 
-    return settingsConfig;
-  }, [nodes]);
+    if (catalog.length > 0) {
+      loadConfigs();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [catalog]);
 
-  return configs;
+  return { ...configs, default: DEFAULT_CONFIG };
 }
-
-// Legacy static config for backward compatibility during transition
-export const nodeSettingsConfigs: NodeSettingsConfig = {
-  default: DEFAULT_CONFIG
-};

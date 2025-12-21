@@ -1,229 +1,310 @@
 import { WorkflowEntrypoint } from 'cloudflare:workers';
-import { McpAgent } from "agents/mcp";
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { z } from "zod";
 
-export class GeneratedworkflowWorkflow extends WorkflowEntrypoint {
-  async run(event, step) {
-    // === WORKFLOW START (one-liner) ===
-    console.log(JSON.stringify({type:'WF_START',timestamp:Date.now(),instanceId:event.instanceId,eventTimestamp:event.timestamp,payload:event.payload}));
+export class WindSatisfiedTempleWorkflow extends WorkflowEntrypoint {
+	async run(event, step) {
+		console.log(
+			JSON.stringify({
+				type: 'WF_START',
+				timestamp: Date.now(),
+				instanceId: event.instanceId,
+				eventTimestamp: event.timestamp,
+				payload: event.payload,
+			}),
+		);
+		const _workflowResults = {};
+		const _workflowState = {};
 
-    const _workflowResults = {};
-      const _workflowState = {};
+		try {
+			console.log(
+				JSON.stringify({
+					type: 'WF_NODE_START',
+					nodeId: 'step_entry_0',
+					nodeName: 'Entry',
+					nodeType: 'entry',
+					timestamp: Date.now(),
+					instanceId: event.instanceId,
+				}),
+			);
+			// Workflow entry point
+			_workflowState['step_entry_0'] = {
+				input: event.payload,
+				output: event.payload,
+			};
+			console.log(
+				JSON.stringify({
+					type: 'WF_NODE_END',
+					nodeId: 'step_entry_0',
+					nodeName: 'Entry',
+					nodeType: 'entry',
+					timestamp: Date.now(),
+					instanceId: event.instanceId,
+					success: true,
+					output: _workflowState['step_entry_0']?.output,
+				}),
+			);
+		} catch (error) {
+			const errorMessage = error instanceof Error ? error.message : String(error);
+			console.log(
+				JSON.stringify({
+					type: 'WF_NODE_ERROR',
+					nodeId: 'step_entry_0',
+					nodeName: 'Entry',
+					nodeType: 'entry',
+					timestamp: Date.now(),
+					instanceId: event.instanceId,
+					success: false,
+					error: errorMessage,
+				}),
+			);
+			throw error;
+		}
 
-    
-    // === NODE START: MCP-TOOL-INPUT (mcp-tool-input) [node-1763299499039-x17zpm1a1] ===
-    console.log(JSON.stringify({type:'WF_NODE_START',nodeId:'node-1763299499039-x17zpm1a1',nodeName:'mcp-tool-input',nodeType:'mcp-tool-input',timestamp:Date.now(),instanceId:event.instanceId}));
-    try {
-      
-    _workflowState['node-1763299499039-x17zpm1a1'] = {
-      input: event.payload,
-      output: event.payload
-    };
-      console.log(JSON.stringify({type:'WF_NODE_END',nodeId:'node-1763299499039-x17zpm1a1',nodeName:'mcp-tool-input',nodeType:'mcp-tool-input',timestamp:Date.now(),instanceId:event.instanceId,success:true}));
-    } catch (error) {
-      console.log(JSON.stringify({type:'WF_NODE_ERROR',nodeId:'node-1763299499039-x17zpm1a1',nodeName:'mcp-tool-input',nodeType:'mcp-tool-input',timestamp:Date.now(),instanceId:event.instanceId,error:error.message||String(error)}));
-      throw error;
-    }
-    // === NODE END: MCP-TOOL-INPUT (mcp-tool-input) [node-1763299499039-x17zpm1a1] ===
+		try {
+			console.log(
+				JSON.stringify({
+					type: 'WF_NODE_START',
+					nodeId: 'step_http_request_1',
+					nodeName: 'HTTP Request',
+					nodeType: 'http-request',
+					timestamp: Date.now(),
+					instanceId: event.instanceId,
+				}),
+			);
+			_workflowResults.step_http_request_1 = await step.do('step_http_request_1', async () => {
+				const inputData = _workflowState['step_entry_0']?.output || event.payload;
+				const response = await fetch('https://api.jolpi.ca/ergast/f1/current/driverStandings.json', {
+					method: 'GET',
+					headers: {
+						// No custom headers
+					},
 
+					signal: AbortSignal.timeout(150000),
+				});
+				if (!response.ok) {
+					throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+				}
+				const body = await response.json();
+				const result = {
+					status: response.status,
+					headers: Object.fromEntries(response.headers.entries()),
+					body: body,
+					message: 'HTTP request completed successfully',
+				};
+				_workflowState['step_http_request_1'] = {
+					input: inputData,
+					output: result,
+				};
+				return result;
+			});
+			console.log(
+				JSON.stringify({
+					type: 'WF_NODE_END',
+					nodeId: 'step_http_request_1',
+					nodeName: 'HTTP Request',
+					nodeType: 'http-request',
+					timestamp: Date.now(),
+					instanceId: event.instanceId,
+					success: true,
+					output: _workflowState['step_http_request_1']?.output,
+				}),
+			);
+		} catch (error) {
+			const errorMessage = error instanceof Error ? error.message : String(error);
+			console.log(
+				JSON.stringify({
+					type: 'WF_NODE_ERROR',
+					nodeId: 'step_http_request_1',
+					nodeName: 'HTTP Request',
+					nodeType: 'http-request',
+					timestamp: Date.now(),
+					instanceId: event.instanceId,
+					success: false,
+					error: errorMessage,
+				}),
+			);
+			throw error;
+		}
 
-    // === NODE START: HTTP-REQUEST (http-request) [node-1763299488374-o36zmkknq] ===
-    console.log(JSON.stringify({type:'WF_NODE_START',nodeId:'node-1763299488374-o36zmkknq',nodeName:'http-request',nodeType:'http-request',timestamp:Date.now(),instanceId:event.instanceId}));
-    try {
-      
-    _workflowResults.httpRequest = await step.do('httpRequest', async () => {
-      const inputData = _workflowState['node-1763299499039-x17zpm1a1']?.output || event.payload;
-      const response = await fetch("https://api.agify.io?name=steve", {
-        method: 'GET',
-        headers: {
-          // No custom headers
-        },
-        
-        signal: AbortSignal.timeout(30000)
-      });
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-      const body = await response.json();
-      const result = {
-        status: response.status,
-        headers: Object.fromEntries(response.headers.entries()),
-        body: body,
-        message: 'HTTP request completed successfully'
-      };
-      _workflowState['node-1763299488374-o36zmkknq'] = {
-        input: inputData,
-        output: result
-      };
-      return result;
-    });
-      console.log(JSON.stringify({type:'WF_NODE_END',nodeId:'node-1763299488374-o36zmkknq',nodeName:'http-request',nodeType:'http-request',timestamp:Date.now(),instanceId:event.instanceId,success:true}));
-    } catch (error) {
-      console.log(JSON.stringify({type:'WF_NODE_ERROR',nodeId:'node-1763299488374-o36zmkknq',nodeName:'http-request',nodeType:'http-request',timestamp:Date.now(),instanceId:event.instanceId,error:error.message||String(error)}));
-      throw error;
-    }
-    // === NODE END: HTTP-REQUEST (http-request) [node-1763299488374-o36zmkknq] ===
+		try {
+			console.log(
+				JSON.stringify({
+					type: 'WF_NODE_START',
+					nodeId: 'step_r2-get_3',
+					nodeName: 'R2 Get',
+					nodeType: 'r2-get',
+					timestamp: Date.now(),
+					instanceId: event.instanceId,
+				}),
+			);
+			_workflowResults.step_r2_get_3 = await step.do('step_r2-get_3', async () => {
+				const inputData = _workflowState['step_http_request_1']?.output || event.payload;
+				const key = '10/deploy-workers-applications-in-seconds-2025-04-08.json';
+				const bucket = this.env['cloudflare_blogs'];
+        console.log({bucket});
 
+				// Get object metadata using head() - this is faster than get() as it doesn't download the body
+				const object = await bucket.get(key);
+        console.log({object});
 
-    // === NODE START: KV-PUT (kv-put) [node-1763299488374-f7dak0fd8] ===
-    console.log(JSON.stringify({type:'WF_NODE_START',nodeId:'node-1763299488374-f7dak0fd8',nodeName:'kv-put',nodeType:'kv-put',timestamp:Date.now(),instanceId:event.instanceId}));
-    try {
-      
-    _workflowResults.kvPut = await step.do("kvPut", async () => {
-      const inputData = _workflowState['node-1763299488374-o36zmkknq']?.output || event.payload;
-      const key = `name`;
-      const value = "vaish";
-      await this.env["MY_KV"].put(key, value);
-      const result = { success: true, key };
-      _workflowState['node-1763299488374-f7dak0fd8'] = {
-        input: inputData,
-        output: result
-      };
-      return result;
-    });
-      console.log(JSON.stringify({type:'WF_NODE_END',nodeId:'node-1763299488374-f7dak0fd8',nodeName:'kv-put',nodeType:'kv-put',timestamp:Date.now(),instanceId:event.instanceId,success:true}));
-    } catch (error) {
-      console.log(JSON.stringify({type:'WF_NODE_ERROR',nodeId:'node-1763299488374-f7dak0fd8',nodeName:'kv-put',nodeType:'kv-put',timestamp:Date.now(),instanceId:event.instanceId,error:error.message||String(error)}));
-      throw error;
-    }
-    // === NODE END: KV-PUT (kv-put) [node-1763299488374-f7dak0fd8] ===
+				if (!object) {
+					const result = {
+						signedUrl: null,
+						exists: false,
+						metadata: null,
+					};
+					_workflowState['step_r2-get_3'] = {
+						input: inputData,
+						output: result,
+					};
+					return result;
+				}
 
+				// Generate signed URL
+				// If publicUrl is configured (from R2 custom domain or public URL), use it
+				// Otherwise, generate a presigned URL using the R2 API
+				let signedUrl = null;
+				const publicUrl = null;
+				const expiresAt = Math.floor(Date.now() / 1000) + 3600;
 
-    // === NODE START: KV-GET (kv-get) [node-1763299488374-3jyb7f712] ===
-    console.log(JSON.stringify({type:'WF_NODE_START',nodeId:'node-1763299488374-3jyb7f712',nodeName:'kv-get',nodeType:'kv-get',timestamp:Date.now(),instanceId:event.instanceId}));
-    try {
-      
-    _workflowResults.kvGet = await step.do("kvGet", async () => {
-      const inputData = _workflowState['node-1763299488374-f7dak0fd8']?.output || event.payload;
-      const key = `name`;
-      const value = await this.env["MY_KV"].get(key);
-      const result = {
-        value,
-        exists: value !== null,
-        metadata: value ? { key } : null
-      };
-      _workflowState['node-1763299488374-3jyb7f712'] = {
-        input: inputData,
-        output: result
-      };
-      return result;
-    });
-      console.log(JSON.stringify({type:'WF_NODE_END',nodeId:'node-1763299488374-3jyb7f712',nodeName:'kv-get',nodeType:'kv-get',timestamp:Date.now(),instanceId:event.instanceId,success:true}));
-    } catch (error) {
-      console.log(JSON.stringify({type:'WF_NODE_ERROR',nodeId:'node-1763299488374-3jyb7f712',nodeName:'kv-get',nodeType:'kv-get',timestamp:Date.now(),instanceId:event.instanceId,error:error.message||String(error)}));
-      throw error;
-    }
-    // === NODE END: KV-GET (kv-get) [node-1763299488374-3jyb7f712] ===
+				if (publicUrl) {
+					// Use provided public URL (from R2 custom domain or public URL configuration)
+					// Append expiration timestamp as query parameter
+					const urlKey = encodeURIComponent(key).replace(/%2F/g, '/');
+					signedUrl = `${publicUrl.replace(/\/$/, '')}/${urlKey}?expires=${expiresAt}`;
+				} else {
+					// Generate presigned URL using R2 API
+					// This requires making an authenticated request to Cloudflare R2 API
+					// For now, we'll construct a URL that can be used with R2's public endpoint
+					// In production, you would call the R2 API to generate a proper presigned URL
+					// Note: R2 doesn't have built-in presigned URL generation in Workers runtime
+					// You need to use the R2 API or configure a public URL for the bucket
+					signedUrl = `r2://${key}?expires=${expiresAt}&bucket=${bucket}`;
+				}
 
+				const result = {
+					signedUrl,
+					exists: true,
+					metadata: {
+						key: object.key,
+						version: object.version,
+						size: object.size,
+						etag: object.etag,
+						httpEtag: object.httpEtag,
+						uploaded: object.uploaded.toISOString(),
+						httpMetadata: object.httpMetadata || {},
+						customMetadata: object.customMetadata || {},
+						storageClass: object.storageClass,
+					},
+				};
+				_workflowState['step_r2-get_3'] = {
+					input: inputData,
+					output: result,
+				};
+				return result;
+			});
+			console.log(
+				JSON.stringify({
+					type: 'WF_NODE_END',
+					nodeId: 'step_r2-get_3',
+					nodeName: 'R2 Get',
+					nodeType: 'r2-get',
+					timestamp: Date.now(),
+					instanceId: event.instanceId,
+					success: true,
+					output: _workflowState['step_r2-get_3']?.output,
+				}),
+			);
+		} catch (error) {
+			const errorMessage = error instanceof Error ? error.message : String(error);
+			console.log(
+				JSON.stringify({
+					type: 'WF_NODE_ERROR',
+					nodeId: 'step_r2-get_3',
+					nodeName: 'R2 Get',
+					nodeType: 'r2-get',
+					timestamp: Date.now(),
+					instanceId: event.instanceId,
+					success: false,
+					error: errorMessage,
+				}),
+			);
+			throw error;
+		}
 
-    // === NODE START: MCP-TOOL-OUTPUT (mcp-tool-output) [node-1763299499039-ah5tido1z] ===
-    console.log(JSON.stringify({type:'WF_NODE_START',nodeId:'node-1763299499039-ah5tido1z',nodeName:'mcp-tool-output',nodeType:'mcp-tool-output',timestamp:Date.now(),instanceId:event.instanceId}));
-    try {
-      
-    _workflowResults.mcpToolOutput = await step.do('mcpToolOutput', async () => {
-      const inputData = _workflowState['node-1763299488374-3jyb7f712']?.output || event.payload;
-      const result = {
-        content: [{
-          type: "json",
-          text: JSON.stringify(_workflowState['node-1763299488374-3jyb7f712']?.output || event.payload)
-        }]
-      };
-      _workflowState['node-1763299499039-ah5tido1z'] = {
-        input: inputData,
-        output: result
-      };
-      return result;
-    });
-      console.log(JSON.stringify({type:'WF_NODE_END',nodeId:'node-1763299499039-ah5tido1z',nodeName:'mcp-tool-output',nodeType:'mcp-tool-output',timestamp:Date.now(),instanceId:event.instanceId,success:true}));
-    } catch (error) {
-      console.log(JSON.stringify({type:'WF_NODE_ERROR',nodeId:'node-1763299499039-ah5tido1z',nodeName:'mcp-tool-output',nodeType:'mcp-tool-output',timestamp:Date.now(),instanceId:event.instanceId,error:error.message||String(error)}));
-      throw error;
-    }
-    // === NODE END: MCP-TOOL-OUTPUT (mcp-tool-output) [node-1763299499039-ah5tido1z] ===
-
-    // === WORKFLOW END (one-liner) ===
-    console.log(JSON.stringify({type:'WF_END',timestamp:Date.now(),instanceId:event.instanceId,results:_workflowResults}));
-    return _workflowResults;
-  }
-}
-
-export class GeneratedworkflowWorkflowMCP extends McpAgent {
-  server = new McpServer({
-		name: "GeneratedworkflowWorkflowMCP-i2nfjx-test-32",
-		version: "1.0.0",
-	});
-
-  async init() {
-    console.log('GeneratedworkflowWorkflowMCP');
-
-    this.server.tool(
-      "GeneratedworkflowWorkflowMCP-i2nfjx-test-32",
-      {},
-      async (args) => {
-        const instance = await this.env.GENERATEDWORKFLOW_WORKFLOW.create({
-          id: crypto.randomUUID(),
-          payload: args || {}
-        });
-        let status = await instance.status();
-
-        console.log('GeneratedworkflowWorkflowMCP-i2nfjx-test-32', status);
-
-        while (status.status !== 'complete') {
-          await new Promise(resolve => setTimeout(resolve, 5000));
-          status = await instance.status();
-          console.log('GeneratedworkflowWorkflowMCP-i2nfjx-test-32', status);
-          if (status.status === 'complete') {
-            return {
-              content: [{
-                type: "text",
-                text: JSON.stringify(status)
-              }]
-            };
-          }
-        }
-
-        return {
-          content: [{
-            type: "text",
-            text: JSON.stringify(status)
-          }]
-        };
-      }
-    );
-  }
+		try {
+			console.log(
+				JSON.stringify({
+					type: 'WF_NODE_START',
+					nodeId: 'step_return_2',
+					nodeName: 'Return',
+					nodeType: 'return',
+					timestamp: Date.now(),
+					instanceId: event.instanceId,
+				}),
+			);
+			_workflowResults.step_return_2 = await step.do('step_return_2', async () => {
+				const result = _workflowState['step_r2-get_3']?.output || event.payload;
+				_workflowState['step_return_2'] = {
+					input: _workflowState['step_r2-get_3']?.output || event.payload,
+					output: result,
+				};
+				return result;
+			});
+			console.log(
+				JSON.stringify({
+					type: 'WF_NODE_END',
+					nodeId: 'step_return_2',
+					nodeName: 'Return',
+					nodeType: 'return',
+					timestamp: Date.now(),
+					instanceId: event.instanceId,
+					success: true,
+					output: _workflowState['step_return_2']?.output,
+				}),
+			);
+		} catch (error) {
+			const errorMessage = error instanceof Error ? error.message : String(error);
+			console.log(
+				JSON.stringify({
+					type: 'WF_NODE_ERROR',
+					nodeId: 'step_return_2',
+					nodeName: 'Return',
+					nodeType: 'return',
+					timestamp: Date.now(),
+					instanceId: event.instanceId,
+					success: false,
+					error: errorMessage,
+				}),
+			);
+			throw error;
+		}
+		console.log(JSON.stringify({ type: 'WF_END', timestamp: Date.now(), instanceId: event.instanceId, results: _workflowResults }));
+		return _workflowResults;
+	}
 }
 
 export default {
-  async fetch(req, env, ctx) {
-    const url = new URL(req.url);
-    
-    if (url.pathname.startsWith('/sse')) {
-      console
-      return GeneratedworkflowWorkflowMCP.serveSSE('/sse').fetch(req, env);
-    }
-    
-    if (url.pathname.startsWith('/mcp')) {
-      console.log('mcp');
-      return GeneratedworkflowWorkflowMCP.serve('/mcp').fetch(req, env, ctx);
-    }
-    
-    const instanceId = url.searchParams.get("instanceId");
+	async fetch(req, env) {
+		console.log('🌐 === FETCH HANDLER STARTED ===');
+		console.log('📡 Request URL:', req.url);
+		console.log('📋 Request Method:', req.method);
 
-    if (instanceId) {
-      const instance = await env.GENERATEDWORKFLOW_WORKFLOW.get(instanceId);
-      return Response.json({
-        status: await instance.status(),
-      });
-    }
+		const instanceId = new URL(req.url).searchParams.get('instanceId');
 
-    const newId = await crypto.randomUUID();
-    let instance = await env.GENERATEDWORKFLOW_WORKFLOW.create({
-      id: newId
-    });
-    return Response.json({
-      id: instance.id,
-      details: await instance.status()
-    });
-  },
+		if (instanceId) {
+			const instance = await env.WINDSATISFIEDTEMPLEWORKFLOW_WORKFLOW.get(instanceId);
+			return Response.json({
+				status: await instance.status(),
+			});
+		}
+
+		const newId = await crypto.randomUUID();
+		let instance = await env.WINDSATISFIEDTEMPLEWORKFLOW_WORKFLOW.create({
+			id: newId,
+		});
+		return Response.json({
+			id: instance.id,
+			details: await instance.status(),
+		});
+	},
 };

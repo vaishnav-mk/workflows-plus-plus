@@ -1,8 +1,8 @@
 'use client';
 
 import React from 'react';
-import { SettingInput } from '../ui/SettingInput';
-import { SettingSelect } from '../ui/SettingSelect';
+import { SettingInput } from '@/components/ui/SettingInput';
+import { SettingSelect } from '@/components/ui/SettingSelect';
 
 interface RetryConfigSectionProps {
   nodeData: any;

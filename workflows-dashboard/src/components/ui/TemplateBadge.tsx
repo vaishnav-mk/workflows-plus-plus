@@ -3,7 +3,6 @@
 import React from 'react';
 import { X, Type, Hash, ToggleLeft, Folder, List, FileJson } from 'lucide-react';
 import { useWorkflowStore } from '../../stores/workflowStore';
-import { useNodeRegistry } from '../../hooks/useNodeRegistry';
 
 interface TemplateBadgeProps {
   expression: string;
@@ -13,10 +12,9 @@ interface TemplateBadgeProps {
 
 export function TemplateBadge({ expression, onRemove, onClick }: TemplateBadgeProps) {
   const { nodes } = useWorkflowStore();
-  const { getNodeByType } = useNodeRegistry();
   
   // Extract the readable part (remove {{ and }})
-  let readable = expression.replace(/\{\{|\}\}/g, '');
+  const readable = expression.replace(/\{\{|\}\}/g, '');
   const originalPath = readable;
   
   // Resolve node IDs to node names
@@ -68,41 +66,18 @@ export function TemplateBadge({ expression, onRemove, onClick }: TemplateBadgePr
       const node = nodes.find(n => n.id === nodeId);
       
       if (node) {
-        const nodeDef = getNodeByType(node.data?.type || '');
-        if (nodeDef) {
-          // Check if this matches an output port
-          const outputPort = nodeDef.outputPorts?.find(p => p.id === varName);
-          if (outputPort) {
-            const portType = outputPort.type.toLowerCase();
-            if (portType === 'string' || portType === 'text') {
-              return <Type className="w-3 h-3 text-blue-600" />;
-            } else if (portType === 'number' || portType === 'integer') {
-              return <Hash className="w-3 h-3 text-green-600" />;
-            } else if (portType === 'boolean') {
-              return <ToggleLeft className="w-3 h-3 text-purple-600" />;
-            } else if (portType === 'object') {
-              return <Folder className="w-3 h-3 text-orange-600" />;
-            } else if (portType === 'array') {
-              return <List className="w-3 h-3 text-pink-600" />;
-            }
-          }
-          
-          // Check preset output for type hints
-          const presetOutput = (nodeDef as any)?.presetOutput;
-          if (presetOutput && presetOutput[varName] !== undefined) {
-            const value = presetOutput[varName];
-            if (typeof value === 'string') {
-              return <Type className="w-3 h-3 text-blue-600" />;
-            } else if (typeof value === 'number') {
-              return <Hash className="w-3 h-3 text-green-600" />;
-            } else if (typeof value === 'boolean') {
-              return <ToggleLeft className="w-3 h-3 text-purple-600" />;
-            } else if (Array.isArray(value)) {
-              return <List className="w-3 h-3 text-pink-600" />;
-            } else if (typeof value === 'object') {
-              return <Folder className="w-3 h-3 text-orange-600" />;
-            }
-          }
+        // Infer type from variable name for display
+        const varNameLower = varName.toLowerCase();
+        if (varNameLower.includes('string') || varNameLower.includes('text') || varNameLower.includes('name') || varNameLower.includes('message')) {
+          return <Type className="w-3 h-3 text-blue-600" />;
+        } else if (varNameLower.includes('number') || varNameLower.includes('count') || varNameLower.includes('id')) {
+          return <Hash className="w-3 h-3 text-green-600" />;
+        } else if (varNameLower.includes('boolean') || varNameLower.includes('is') || varNameLower.includes('has')) {
+          return <ToggleLeft className="w-3 h-3 text-purple-600" />;
+        } else if (varNameLower.includes('object') || varNameLower.includes('data') || varNameLower.includes('result')) {
+          return <Folder className="w-3 h-3 text-orange-600" />;
+        } else if (varNameLower.includes('array') || varNameLower.includes('list') || varNameLower.includes('items')) {
+          return <List className="w-3 h-3 text-pink-600" />;
         }
       }
     }

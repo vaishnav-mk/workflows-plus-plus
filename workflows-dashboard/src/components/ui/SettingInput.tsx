@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { Input } from '@/components';
 
 interface SettingInputProps {
   label?: string;
@@ -21,7 +22,6 @@ export function SettingInput({
   onChange, 
   className 
 }: SettingInputProps) {
-  // Use controlled component if value is provided, otherwise uncontrolled
   const isControlled = value !== undefined;
   
   return (
@@ -31,12 +31,12 @@ export function SettingInput({
           {label}
         </label>
       )}
-      <input
+      <Input
         type={type}
         placeholder={placeholder}
         {...(isControlled ? { value } : { defaultValue })}
         onChange={onChange}
-        className={className || "w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"}
+        className={className}
       />
     </div>
   );
