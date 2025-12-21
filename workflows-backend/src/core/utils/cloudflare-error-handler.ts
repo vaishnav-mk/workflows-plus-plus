@@ -12,6 +12,14 @@ export function parseCloudflareError(error: unknown): {
     message: error instanceof Error ? error.message : String(error)
   };
 
+  if (error instanceof RangeError && error.message.includes("status codes")) {
+    return {
+      statusCode: HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR,
+      errorCode: ErrorCode.INTERNAL_ERROR,
+      message: "Invalid HTTP status code"
+    };
+  }
+
   if (!error) {
     return defaultResponse;
   }
@@ -61,6 +69,9 @@ export function parseCloudflareError(error: unknown): {
   const match = errorMessage.match(/^(\d+)\s*({.*})$/);
   if (match) {
     const statusCode = parseInt(match[1], 10);
+    if (isNaN(statusCode) || statusCode < 200 || statusCode > 599) {
+      return defaultResponse;
+    }
     try {
       const errorData = JSON.parse(match[2]) as CloudflareErrorResponse;
       const cloudflareMessage = errorData.errors?.[0]?.message || errorMessage;
@@ -73,14 +84,16 @@ export function parseCloudflareError(error: unknown): {
         };
       }
       
+      const validStatusCode = Math.max(200, Math.min(599, statusCode));
       return {
-        statusCode: statusCode >= 400 && statusCode < 600 ? statusCode : HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR,
+        statusCode: validStatusCode >= 400 && validStatusCode < 600 ? validStatusCode : HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR,
         errorCode: ErrorCode.INTERNAL_ERROR,
         message: cloudflareMessage
       };
     } catch {
+      const validStatusCode = Math.max(200, Math.min(599, statusCode));
       return {
-        statusCode: statusCode >= 400 && statusCode < 600 ? statusCode : HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR,
+        statusCode: validStatusCode >= 400 && validStatusCode < 600 ? validStatusCode : HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR,
         errorCode: ErrorCode.INTERNAL_ERROR,
         message: errorMessage
       };
