@@ -18,7 +18,12 @@ export async function authMiddleware(
   }
 
   const authHeader = c.req.header("Authorization");
-  const token = authHeader?.startsWith("Bearer ") ? authHeader.substring(7) : null;
+  let token = authHeader?.startsWith("Bearer ") ? authHeader.substring(7) : null;
+
+  if (!token && path.includes("/deployments/") && path.includes("/stream")) {
+    const url = new URL(c.req.url);
+    token = url.searchParams.get("token");
+  }
 
   if (!token) {
     logger.warn("authentication failed: no bearer token", {

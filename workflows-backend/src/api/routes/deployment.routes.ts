@@ -27,6 +27,13 @@ app.get(
     c.req.raw.headers.forEach((value, key) => {
       headers.set(key, value);
     });
+    
+    const url = new URL(c.req.url);
+    const tokenFromQuery = url.searchParams.get("token");
+    if (tokenFromQuery && !headers.has("Authorization")) {
+      headers.set("Authorization", `Bearer ${tokenFromQuery}`);
+    }
+    
     headers.set("accept", "text/event-stream");
     const request = new Request(doUrl, {
       method: "GET",
