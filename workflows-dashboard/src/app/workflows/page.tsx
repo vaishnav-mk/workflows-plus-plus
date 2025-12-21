@@ -14,7 +14,8 @@ import {
   Card,
   Pagination,
   Alert,
-  AlertTitle
+  AlertTitle,
+  Button
 } from "@/components";
 import { type ColumnDef } from "@tanstack/react-table";
 import Link from "next/link";
@@ -218,9 +219,9 @@ export default function WorkflowsPage() {
                   {isFetching && <InlineLoader />}
                 </div>
                 <div className="flex items-center gap-3">
-                  <button className="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+                  <Button variant="secondary" size="sm" comingSoon>
                     Edit columns
-                  </button>
+                  </Button>
                 </div>
               </div>
 

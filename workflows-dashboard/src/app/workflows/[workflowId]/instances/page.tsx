@@ -189,6 +189,7 @@ export default function WorkflowInstancesPage() {
                 ]}
                 value="7"
                 onChange={() => {}}
+                disabled
               />
               <Dropdown
                 options={[
@@ -198,6 +199,7 @@ export default function WorkflowInstancesPage() {
                 ]}
                 value="all"
                 onChange={() => {}}
+                disabled
               />
             </div>
           </div>
@@ -210,18 +212,26 @@ export default function WorkflowInstancesPage() {
             }}
           />
 
-          <div className="mt-4">
-            <Pagination
-              currentPage={1}
-              totalPages={1}
-              totalItems={instances.length}
-              itemsPerPage={25}
-              onPageChange={() => {}}
-              showItemsPerPage={true}
-              clientItemsPerPage={25}
-              onItemsPerPageChange={() => {}}
-            />
-          </div>
+          {instances.length > 25 && (
+            <div className="mt-4">
+              <Pagination
+                currentPage={1}
+                totalPages={Math.ceil(instances.length / 25)}
+                totalItems={instances.length}
+                itemsPerPage={25}
+                onPageChange={(page) => {
+                  // TODO: Implement pagination
+                  console.log('Page change:', page);
+                }}
+                showItemsPerPage={true}
+                clientItemsPerPage={25}
+                onItemsPerPageChange={(itemsPerPage) => {
+                  // TODO: Implement items per page change
+                  console.log('Items per page change:', itemsPerPage);
+                }}
+              />
+            </div>
+          )}
         </div>
       </Card>
     </div>
