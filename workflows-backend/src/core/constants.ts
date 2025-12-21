@@ -117,6 +117,7 @@ export const PUBLIC_ROUTES = [
   "/",
   "/api/setup",
   "/api/setup/stream",
+  "/api/setup/test-credentials",
   "/api/catalog",
   "/api/catalog/categories"
 ] as const;

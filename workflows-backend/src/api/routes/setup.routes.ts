@@ -354,6 +354,30 @@ app.post("/", rateLimitMiddleware(), zValidator('json', SetupRequestSchema), saf
   }
 }));
 
+app.get("/test-credentials", safe(async c => {
+  const env = c.env as SetupEnv;
+  
+  const testToken = env.TEST_API_TOKEN;
+  const testAccountId = env.TEST_ACCOUNT_ID;
+
+  if (!testToken || !testAccountId) {
+    return c.json({
+      success: false,
+      error: "Test credentials not configured",
+      message: "Test credentials are not available. Set TEST_API_TOKEN and TEST_ACCOUNT_ID as Wrangler secrets."
+    }, HTTP_STATUS_CODES.NOT_FOUND);
+  }
+
+  return c.json({
+    success: true,
+    data: {
+      apiToken: testToken,
+      accountId: testAccountId
+    },
+    message: "Test credentials retrieved"
+  }, HTTP_STATUS_CODES.OK);
+}));
+
 app.post("/logout", rateLimitMiddleware(), async c => {
   try {
     const response: ApiResponse = {
