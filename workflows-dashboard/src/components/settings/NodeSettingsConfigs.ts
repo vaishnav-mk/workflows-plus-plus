@@ -95,7 +95,7 @@ function generateFieldsFromSchema(schema: JSONSchema, prefix = '', requiredField
     }
   }
 
-  if ((nodeType === 'kv_get' || nodeType === 'kv_put') && !prefix) {
+  if ((nodeType === 'kv-get' || nodeType === 'kv-put') && !prefix) {
     const namespaceProp = schema.properties.namespace;
     if (namespaceProp) {
       const description = typeof namespaceProp === 'object' 
@@ -107,11 +107,11 @@ function generateFieldsFromSchema(schema: JSONSchema, prefix = '', requiredField
           key: 'kv-namespace-config',
         });
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { namespace: _namespace, ...otherProps } = schema.properties;
+        const { namespace: _namespace, key: _key, ...otherProps } = schema.properties;
         const otherFields = generateFieldsFromSchema(
           { ...schema, properties: otherProps },
           prefix,
-          requiredFields.filter(r => r !== 'namespace'),
+          requiredFields.filter(r => r !== 'namespace' && r !== 'key'),
           nodeType
         );
         return [...fields, ...otherFields];

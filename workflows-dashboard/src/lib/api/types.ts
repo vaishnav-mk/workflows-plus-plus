@@ -193,6 +193,18 @@ export interface CreateKVNamespaceRequest {
   title: string;
 }
 
+export interface KVKey {
+  key: string;
+  expiration?: number;
+  metadata?: unknown;
+}
+
+export interface KVKeysResponse {
+  keys: KVKey[];
+  truncated: boolean;
+  cursor: string | null;
+}
+
 export interface R2Bucket {
   name: string;
   location: string;

@@ -24,6 +24,7 @@ import startersRoutes from "./api/routes/starters.routes";
 import deploymentRoutes from "./api/routes/deployment.routes";
 import d1Routes from "./api/routes/d1.routes";
 import r2Routes from "./api/routes/r2.routes";
+import kvRoutes from "./api/routes/kv.routes";
 
 import { DeploymentDurableObject } from "./services/deployment/deployment-durable-object";
 import { AppContext } from "./core/types";
@@ -79,6 +80,7 @@ app.route("/api/nodes", nodeExecutionRoutes);
 app.route("/api/deployments", deploymentRoutes);
 app.route("/api/d1", d1Routes);
 app.route("/api/r2", r2Routes);
+app.route("/api/kv", kvRoutes);
 
 app.onError(errorHandler);
 app.notFound(notFoundHandler);

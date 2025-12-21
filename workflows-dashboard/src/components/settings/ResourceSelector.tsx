@@ -51,7 +51,7 @@ export function ResourceSelector({
         }
       }
     }
-  }, [selectedResourceId, selectedResourceName, resources, nodeId, onNodeUpdate, nodeData?.config, config]);
+  }, [selectedResourceId, selectedResourceName, resources, nodeId, onNodeUpdate, nodeData?.config]);
 
   const loadResources = async () => {
     setLoading(true);

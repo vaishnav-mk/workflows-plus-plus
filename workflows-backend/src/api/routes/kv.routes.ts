@@ -117,4 +117,57 @@ app.post("/", zValidator('json', CreateNamespaceSchema), safe(async (c) => {
   return c.json(apiResponse, HTTP_STATUS_CODES.CREATED);
 }));
 
+app.get("/:id/keys", zValidator('param', NamespaceIdParamSchema), safe(async (c) => {
+  const credentials = c.var.credentials;
+  const { id: namespaceId } = c.req.valid('param') as z.infer<typeof NamespaceIdParamSchema>;
+  
+  const prefix = c.req.query("prefix") || "";
+  const limit = Math.min(Math.max(parseInt(c.req.query("limit") || "1000", 10), 10), 1000);
+  const cursor = c.req.query("cursor") || "";
+
+  const params = new URLSearchParams();
+  params.append("limit", String(limit));
+  if (prefix) {
+    params.append("prefix", prefix);
+  }
+  if (cursor) {
+    params.append("cursor", cursor);
+  }
+
+  const data = await fetchCloudflare(
+    `${CLOUDFLARE.API_BASE}/accounts/${credentials.accountId}/storage/kv/namespaces/${namespaceId}/keys?${params.toString()}`,
+    {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${credentials.apiToken}`,
+        "Content-Type": "application/json",
+      },
+    }
+  ) as { 
+    result?: Array<{ name: string; expiration?: number; metadata?: unknown }>;
+    result_info?: {
+      cursor?: string;
+      count?: number;
+    };
+  };
+
+  const keys = data.result || [];
+  const resultInfo = data.result_info || {};
+  const apiResponse: ApiResponse = {
+    success: true,
+    data: {
+      keys: keys.map(key => ({
+        key: key.name,
+        expiration: key.expiration,
+        metadata: key.metadata
+      })),
+      truncated: !!resultInfo.cursor,
+      cursor: resultInfo.cursor || null,
+    },
+    message: "KV keys listed successfully",
+  };
+
+  return c.json(apiResponse, HTTP_STATUS_CODES.OK);
+}));
+
 export default app;

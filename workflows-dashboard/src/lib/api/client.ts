@@ -18,6 +18,8 @@ import type {
   R2Bucket,
   R2Object,
   R2ObjectsResponse,
+  KVKey,
+  KVKeysResponse,
   CompileWorkflowRequest,
   CompileWorkflowResponse,
   ReverseCodegenRequest,
@@ -185,6 +187,17 @@ class ApiClient {
       method: "POST",
       body: JSON.stringify({ title }),
     });
+  }
+
+  async listKVKeys(
+    namespaceId: string,
+    prefix: string = "",
+    limit: number = 1000,
+    cursor: string = ""
+  ): Promise<ApiResponse<KVKeysResponse>> {
+    return this.fetch<KVKeysResponse>(
+      endpoints.kv.listKeys(namespaceId, prefix, limit, cursor)
+    );
   }
 
   async getR2Buckets(): Promise<ApiResponse<R2Bucket[]>> {

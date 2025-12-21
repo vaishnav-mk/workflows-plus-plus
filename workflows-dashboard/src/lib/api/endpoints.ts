@@ -79,6 +79,18 @@ export const endpoints = {
     },
     get: (namespaceId: string) => `${API_BASE}/kv/${namespaceId}`,
     create: `${API_BASE}/kv`,
+    listKeys: (
+      namespaceId: string,
+      prefix: string = "",
+      limit: number = 1000,
+      cursor: string = ""
+    ) => {
+      const params = new URLSearchParams();
+      params.append("limit", String(limit));
+      if (prefix) params.append("prefix", prefix);
+      if (cursor) params.append("cursor", cursor);
+      return `${API_BASE}/kv/${namespaceId}/keys?${params.toString()}`;
+    },
   },
   r2: {
     list: (page: number = PAGINATION.DEFAULT_PAGE, perPage: number = PAGINATION.DATABASE_PER_PAGE) => {

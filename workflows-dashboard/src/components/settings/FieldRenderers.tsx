@@ -222,9 +222,9 @@ export function renderFieldByType({
           {field.description && (
             <p className="text-xs text-gray-500 mb-1">{field.description}</p>
           )}
-          {field.key.includes(".content") ||
-          field.key.includes("key") ||
-          field.key.includes("query") ? (
+          {(field.key.includes(".content") ||
+          (field.key.includes("key") && !nodeData?.type?.includes("kv")) ||
+          field.key.includes("query")) ? (
             <TemplateTextarea
               label=""
               placeholder={
