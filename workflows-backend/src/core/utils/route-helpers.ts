@@ -59,6 +59,7 @@ export const safe = <
       error instanceof Error ? error : new Error(String(error))
     );
 
+    const statusCode = Math.max(200, Math.min(599, parsedError.statusCode));
     return c.json(
       {
         success: false,
@@ -66,7 +67,7 @@ export const safe = <
         message: parsedError.message,
         code: parsedError.errorCode
       },
-      parsedError.statusCode as ContentfulStatusCode
+      statusCode as ContentfulStatusCode
     );
   }
 };

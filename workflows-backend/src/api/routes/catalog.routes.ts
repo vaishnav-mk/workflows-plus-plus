@@ -21,7 +21,9 @@ app.get(
   "/",
   safe(async c => {
     const json = NodeRegistry.getCatalogJSON();
-    return c.json(JSON.parse(json));
+    return c.json(
+      createSuccessResponse(JSON.parse(json), "Catalog retrieved successfully")
+    );
   })
 );
 
