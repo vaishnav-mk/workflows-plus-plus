@@ -13,28 +13,21 @@ interface TemplateBadgeProps {
 export function TemplateBadge({ expression, onRemove, onClick }: TemplateBadgeProps) {
   const { nodes } = useWorkflowStore();
   
-  // Extract the readable part (remove {{ and }})
   const readable = expression.replace(/\{\{|\}\}/g, '');
   const originalPath = readable;
   
-  // Resolve node IDs to node names
-  // Handle both state.nodeId.path and nodeId.path formats
   const resolveNodeName = (path: string): string => {
-    // Check if it starts with "state."
     const isStateFormat = path.startsWith('state.');
     const pathWithoutState = isStateFormat ? path.substring(6) : path;
     
-    // Split by dots to get parts
     const parts = pathWithoutState.split('.');
     if (parts.length === 0) return path;
     
-    // First part is the node ID (could be a node ID like "node-1763152904779-v5ommzu2w")
     const nodeId = parts[0];
     const node = nodes.find(n => n.id === nodeId);
     
     if (node) {
       const nodeName = node.data?.label || node.type || nodeId;
-      // Replace node ID with node name in the path
       const restOfPath = parts.slice(1).join('.');
       const resolvedPath = isStateFormat 
         ? `state.${nodeName}${restOfPath ? '.' + restOfPath : ''}`
@@ -42,22 +35,17 @@ export function TemplateBadge({ expression, onRemove, onClick }: TemplateBadgePr
       return resolvedPath;
     }
     
-    // If node not found, return original path
     return path;
   };
   
   const resolvedPath = resolveNodeName(readable);
   
-  // Extract variable name (last part of path)
-  // Handle both state.nodeId.output.body and nodeId.output.body formats
   const isStateFormat = originalPath.startsWith('state.');
   const pathWithoutState = isStateFormat ? originalPath.substring(6) : originalPath;
   const pathParts = pathWithoutState.split('.');
   const varName = pathParts[pathParts.length - 1] || 'output';
   
-  // Determine type based on path and node definition
   const getTypeIcon = (): React.ReactNode => {
-    // Try to find the node and its output port
     const pathWithoutStateForType = isStateFormat ? originalPath.substring(6) : originalPath;
     const parts = pathWithoutStateForType.split('.');
     
@@ -66,7 +54,6 @@ export function TemplateBadge({ expression, onRemove, onClick }: TemplateBadgePr
       const node = nodes.find(n => n.id === nodeId);
       
       if (node) {
-        // Infer type from variable name for display
         const varNameLower = varName.toLowerCase();
         if (varNameLower.includes('string') || varNameLower.includes('text') || varNameLower.includes('name') || varNameLower.includes('message')) {
           return <Type className="w-3 h-3 text-blue-600" />;
@@ -82,7 +69,6 @@ export function TemplateBadge({ expression, onRemove, onClick }: TemplateBadgePr
       }
     }
     
-    // Default to any/unknown type
     return <FileJson className="w-3 h-3 text-gray-600" />;
   };
   

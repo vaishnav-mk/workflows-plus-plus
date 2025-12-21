@@ -124,7 +124,6 @@ export function CodePreview({ workflow, isOpen, onClose, code, bindings, nodes =
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      // Clipboard access denied or not available
     }
   };
 

@@ -7,7 +7,15 @@ import { oneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
 
 interface TableInfo {
   name: string;
-  sql: string;
+  sql?: string;
+  schema?: string;
+}
+
+function normalizeTableInfo(table: TableInfo): { name: string; sql: string } {
+  return {
+    name: table.name,
+    sql: table.sql || table.schema || ""
+  };
 }
 
 interface SchemaViewerProps {
@@ -35,15 +43,15 @@ export function SchemaViewer({
     setExpandedTables(newExpanded);
   };
 
-  // Parse SQL to extract column information
-  const parseTableSchema = (sql: string) => {
+  const parseTableSchema = (sql: string | undefined) => {
     const columns: Array<{
       name: string;
       type: string;
       constraints: string[];
     }> = [];
 
-    // Extract column definitions from CREATE TABLE statement
+    if (!sql) return columns;
+
     const columnMatch = sql.match(/CREATE TABLE\s+\w+\s*\(([\s\S]*)\)/i);
     if (columnMatch) {
       const columnDefs = columnMatch[1]
@@ -81,13 +89,14 @@ export function SchemaViewer({
         </div>
       ) : (
         tables.map((table) => {
-          const isExpanded = expandedTables.has(table.name);
-          const isSelected = selectedTable === table.name;
-          const columns = parseTableSchema(table.sql);
+          const normalized = normalizeTableInfo(table);
+          const isExpanded = expandedTables.has(normalized.name);
+          const isSelected = selectedTable === normalized.name;
+          const columns = parseTableSchema(normalized.sql);
 
           return (
             <div
-              key={table.name}
+              key={normalized.name}
               className={`border rounded-lg overflow-hidden transition-all ${
                 isSelected
                   ? "border-blue-500 bg-blue-50"
@@ -97,8 +106,8 @@ export function SchemaViewer({
               <div
                 className="flex items-center justify-between p-3 cursor-pointer bg-white"
                 onClick={() => {
-                  toggleTable(table.name);
-                  onTableSelect?.(table.name);
+                  toggleTable(normalized.name);
+                  onTableSelect?.(normalized.name);
                 }}
               >
                 <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -109,7 +118,7 @@ export function SchemaViewer({
                   )}
                   <Database className="w-4 h-4 text-blue-600 flex-shrink-0" />
                   <span className="text-sm font-semibold text-gray-900 font-mono truncate">
-                    {table.name}
+                    {normalized.name}
                   </span>
                   {columns.length > 0 && (
                     <span className="text-xs text-gray-500 ml-2">
@@ -163,7 +172,7 @@ export function SchemaViewer({
                           borderRadius: "4px"
                         }}
                       >
-                        {table.sql}
+                        {normalized.sql}
                       </SyntaxHighlighter>
                     </div>
                   </div>

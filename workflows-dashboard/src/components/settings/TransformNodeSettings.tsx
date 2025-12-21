@@ -130,7 +130,6 @@ export function TransformNodeSettings({ nodeData, onNodeUpdate, nodeId }: Transf
 
   return (
     <div className="space-y-4">
-      {/* Header */}
       <div>
         <h3 className="text-base font-semibold text-gray-900 mb-1">
           Transform Code
@@ -140,7 +139,6 @@ export function TransformNodeSettings({ nodeData, onNodeUpdate, nodeId }: Transf
         </p>
       </div>
 
-      {/* Tabs */}
       <Tabs activeTab={activeTab === 'code' ? 0 : activeTab === 'examples' ? 1 : 2} onTabChange={(index) => {
         if (index === 0) setActiveTab('code');
         else if (index === 1) setActiveTab('examples');
@@ -166,7 +164,6 @@ export function TransformNodeSettings({ nodeData, onNodeUpdate, nodeId }: Transf
         </Tab>
       </Tabs>
 
-      {/* Tab Content */}
       <div className="mt-4">
         {activeTab === 'code' && (
           <div className="space-y-3">

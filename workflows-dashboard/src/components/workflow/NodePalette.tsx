@@ -9,12 +9,10 @@ export function NodePalette({ onAddNode, disabled = false }: NodePaletteProps) {
   const { catalog, loading } = useNodeRegistry();
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Filter out entry/return nodes
   const availableNodes = catalog.filter(
     node => node.type !== 'entry' && node.type !== 'return'
   );
 
-  // Filter by search
   const filteredNodes = searchTerm
     ? availableNodes.filter(node =>
         node.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -22,7 +20,6 @@ export function NodePalette({ onAddNode, disabled = false }: NodePaletteProps) {
       )
     : availableNodes;
 
-  // Group by category
   const nodesByCategory = filteredNodes.reduce((acc, node) => {
     const category = node.category || 'other';
     if (!acc[category]) acc[category] = [];

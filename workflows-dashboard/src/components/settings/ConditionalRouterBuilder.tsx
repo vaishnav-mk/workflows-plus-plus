@@ -81,7 +81,6 @@ export function ConditionalRouterBuilder({ nodeData, onNodeUpdate, nodeId }: Con
 
   return (
     <div className="space-y-4">
-      {/* Condition Path */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
           Condition Path
@@ -97,7 +96,6 @@ export function ConditionalRouterBuilder({ nodeData, onNodeUpdate, nodeId }: Con
         </p>
       </div>
 
-      {/* Cases */}
       <div>
         <div className="flex items-center justify-between mb-2">
           <label className="block text-sm font-medium text-gray-700">
@@ -122,7 +120,6 @@ export function ConditionalRouterBuilder({ nodeData, onNodeUpdate, nodeId }: Con
               >
                 <div className="flex items-start justify-between mb-2">
                   <div className="flex-1 space-y-2">
-                    {/* Case Name */}
                     <div>
                       <label className="block text-xs font-medium text-gray-600 mb-1">
                         Case Name
@@ -137,7 +134,6 @@ export function ConditionalRouterBuilder({ nodeData, onNodeUpdate, nodeId }: Con
                       />
                     </div>
 
-                    {/* Case Value (only if not default) */}
                     {!caseItem.isDefault && (
                       <div>
                         <label className="block text-xs font-medium text-gray-600 mb-1">
@@ -153,7 +149,6 @@ export function ConditionalRouterBuilder({ nodeData, onNodeUpdate, nodeId }: Con
                           }
                           onChange={(e) => {
                             let value: any = e.target.value;
-                            // Try to parse as JSON if it looks like JSON
                             if (
                               (value.startsWith('{') && value.endsWith('}')) ||
                               (value.startsWith('[') && value.endsWith(']')) ||
@@ -164,7 +159,6 @@ export function ConditionalRouterBuilder({ nodeData, onNodeUpdate, nodeId }: Con
                               try {
                                 value = JSON.parse(value);
                               } catch {
-                                // Keep as string if parsing fails
                               }
                             } else if (!isNaN(Number(value)) && value !== '') {
                               value = Number(value);
@@ -177,7 +171,6 @@ export function ConditionalRouterBuilder({ nodeData, onNodeUpdate, nodeId }: Con
                       </div>
                     )}
 
-                    {/* Default Toggle */}
                     <div className="flex items-center">
                       <input
                         type="checkbox"
@@ -191,7 +184,6 @@ export function ConditionalRouterBuilder({ nodeData, onNodeUpdate, nodeId }: Con
                     </div>
                   </div>
 
-                  {/* Remove Button */}
                   <button
                     onClick={() => removeCase(index)}
                     className="ml-2 p-1 text-red-600 hover:text-red-800 hover:bg-red-50 rounded transition-colors"

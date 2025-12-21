@@ -11,8 +11,6 @@ export function SampleWorkflows() {
   const { data: starters, isLoading } = useWorkflowStartersQuery();
 
   const handleStarterClick = (starterId: string) => {
-    // Generate workflow ID and create URL with proper format
-    // Format: ?type=starter&template_type=ai-processing&id=workflow-ghost-beneficiary-bed
     const workflowId = generateWorkflowId();
     router.push(`/builder?type=starter&template_type=${starterId}&id=${workflowId}`);
   };

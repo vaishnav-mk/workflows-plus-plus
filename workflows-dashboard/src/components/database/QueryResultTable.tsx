@@ -15,10 +15,8 @@ interface QueryResultTableProps {
 }
 
 export function QueryResultTable({ results, meta }: QueryResultTableProps) {
-  // Parse results - handle both string and object formats
   const parsedResults = useMemo(() => {
     if (!Array.isArray(results)) {
-      // If results is not an array, try to extract it
       if (
         results &&
         typeof results === "object" &&
@@ -31,7 +29,6 @@ export function QueryResultTable({ results, meta }: QueryResultTableProps) {
       return [];
     }
 
-    // Check if the first row has a nested "results" array (Cloudflare API format)
     if (
       results.length > 0 &&
       results[0] &&
@@ -44,7 +41,6 @@ export function QueryResultTable({ results, meta }: QueryResultTableProps) {
         meta?: any;
       };
       if (Array.isArray(firstRow.results)) {
-        // Extract the nested results array
         return firstRow.results;
       }
     }
@@ -61,14 +57,12 @@ export function QueryResultTable({ results, meta }: QueryResultTableProps) {
         }
       }
 
-      // If row is an object, parse any string values that look like JSON
       if (typeof row === "object" && row !== null) {
         const parsed: Record<string, any> = {};
         for (const [key, value] of Object.entries(row)) {
           if (value === null || value === undefined) {
             parsed[key] = value;
           } else if (typeof value === "string") {
-            // Try to parse if it looks like JSON
             const trimmed = value.trim();
             if (
               (trimmed.startsWith("{") || trimmed.startsWith("[")) &&
@@ -93,7 +87,6 @@ export function QueryResultTable({ results, meta }: QueryResultTableProps) {
     });
   }, [results]);
 
-  // Generate columns dynamically from the first row
   const columns = useMemo<ColumnDef<any>[]>(() => {
     if (parsedResults.length === 0) return [];
 

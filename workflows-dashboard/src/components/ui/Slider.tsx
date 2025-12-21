@@ -90,10 +90,8 @@ export function Slider({
         }}
         onMouseDown={handleMouseDown}
       >
-        {/* Rail */}
         <div className="absolute top-[5px] left-0 right-0 h-[4px] bg-gray-200 rounded-full" />
 
-        {/* Track */}
         <div
           className="absolute top-[5px] left-0 h-[4px] rounded-full"
           style={{
@@ -102,7 +100,6 @@ export function Slider({
           }}
         />
 
-        {/* Steps/Dots */}
         <div className="absolute top-[5px] left-0 right-0 h-[4px]">
           {defaultMarks.map((mark, idx) => {
             const markPercent = ((mark.value - min) / (max - min)) * 100;
@@ -121,7 +118,6 @@ export function Slider({
           })}
         </div>
 
-        {/* Handle */}
         <div
           ref={handleRef}
           tabIndex={0}
@@ -138,7 +134,6 @@ export function Slider({
         />
       </div>
 
-      {/* Marks/Labels */}
       <div className="relative mt-1 h-6">
         {defaultMarks.map((mark, idx) => {
           const markPercent = ((mark.value - min) / (max - min)) * 100;

@@ -1,4 +1,3 @@
-// Export Cloudflare UI components
 export { Button, type ButtonProps } from "./Button";
 export { Input, type InputProps } from "./Input";
 export { Card, CardHeader, CardContent, type CardProps, type CardHeaderProps, type CardContentProps } from "./Card";
@@ -54,7 +53,6 @@ export { Slider, type SliderProps } from "./Slider";
 export { MarkdownRenderer } from "./MarkdownRenderer";
 export { TextHighlighter } from "./TextHighlighter";
 
-// Export local UI components
 export { JsonViewer } from "./JsonViewer";
 export { WorkflowLoader } from "./Loader";
 export { SettingButton } from "./SettingButton";

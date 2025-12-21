@@ -20,7 +20,6 @@ export function ConditionalEdge({
   markerEnd,
   data,
 }: EdgeProps & { data?: ConditionalEdgeData }) {
-  // Use smooth step path for straight/square edges
   const [edgePath, labelX, labelY] = getSmoothStepPath({
     sourceX,
     sourceY,
@@ -28,22 +27,19 @@ export function ConditionalEdge({
     targetX,
     targetY,
     targetPosition,
-    borderRadius: 0, // Make it completely straight/square
+    borderRadius: 0,
   });
 
   const caseLabel = data?.caseLabel || 'default';
   const isDefault = data?.isDefault || false;
   const caseValue = data?.caseValue;
 
-  // Color based on case type
   const edgeColor = isDefault ? '#6b7280' : '#3b82f6';
   const labelBg = isDefault ? '#f3f4f6' : '#dbeafe';
   const labelTextColor = isDefault ? '#6b7280' : '#1e40af';
 
-  // Build label text - show case name and value if available
   let labelTextContent = caseLabel;
   if (caseValue !== undefined && caseValue !== null && !isDefault) {
-    // Format the value nicely
     const valueStr = typeof caseValue === 'string' ? caseValue : JSON.stringify(caseValue);
     labelTextContent = `${caseLabel}: ${valueStr}`;
   } else if (isDefault) {

@@ -11,7 +11,6 @@ import type { WorkflowSettingsPanelProps } from '@/types/components';
 export function WorkflowSettingsPanel({ selectedNode, onNodeUpdate, onClose: _onClose }: WorkflowSettingsPanelProps) {
   const nodeSettingsConfigs = useNodeSettingsConfigs();
 
-  // Get the configuration for this node type
   const nodeType = selectedNode?.data?.type || 'default';
   const settingsConfig = nodeSettingsConfigs[nodeType as string] || nodeSettingsConfigs['default'];
 
@@ -21,7 +20,6 @@ export function WorkflowSettingsPanel({ selectedNode, onNodeUpdate, onClose: _on
         <div className="space-y-4">
           <WorkflowStateView />
 
-          {/* Only show node settings if a node is selected */}
           {selectedNode ? (
             <>
               <div className="space-y-6">
@@ -50,7 +48,6 @@ export function WorkflowSettingsPanel({ selectedNode, onNodeUpdate, onClose: _on
                 />
               </div>
 
-              {/* Node Execution Panel */}
               <div className="mt-6">
                 <NodeExecutionPanel node={selectedNode} />
               </div>
