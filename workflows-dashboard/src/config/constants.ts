@@ -70,3 +70,13 @@ export const STRINGS = {
   EMPTY: "",
   VIEW_INSTANCE: "View instance"
 } as const;
+
+export const TEST_CREDENTIALS = {
+  API_TOKEN: "",
+  ACCOUNT_ID: ""
+} as const;
+
+export const GITHUB = {
+  REPO_URL: "https://github.com/vaishnav-mk/workflows-dashboard",
+  ISSUES_URL: "https://github.com/vaishnav-mk/workflows-dashboard/issues"
+} as const;

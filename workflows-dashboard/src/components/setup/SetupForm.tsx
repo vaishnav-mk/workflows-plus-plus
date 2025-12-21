@@ -10,6 +10,10 @@ import {
   AlertTitle,
   CrossHatchBackground
 } from "@/components";
+import { Sparkles } from "lucide-react";
+import { apiClient } from "@/lib/api-client";
+import { isSuccessResponse, getResponseData } from "@/lib/api/utils";
+import { useState, useEffect } from "react";
 import type { SetupErrors } from "@/types/setup";
 
 interface SetupFormProps {
@@ -31,6 +35,50 @@ export function SetupForm({
   onAccountIdChange,
   onSubmit
 }: SetupFormProps) {
+  const [testCredentials, setTestCredentials] = useState<{
+    apiToken: string;
+    accountId: string;
+  } | null>(null);
+  const [loadingTestCreds, setLoadingTestCreds] = useState(false);
+
+  useEffect(() => {
+    const fetchTestCredentials = async () => {
+      setLoadingTestCreds(true);
+      try {
+        const result = await (apiClient as any).getTestCredentials();
+        if (isSuccessResponse(result)) {
+          try {
+            const data = getResponseData(result) as {
+              apiToken: string;
+              accountId: string;
+            };
+            setTestCredentials({
+              apiToken: data.apiToken,
+              accountId: data.accountId
+            });
+          } catch {}
+        }
+      } catch (error) {
+      } finally {
+        setLoadingTestCreds(false);
+      }
+    };
+
+    fetchTestCredentials();
+  }, []);
+
+  const handleUseTestToken = () => {
+    if (testCredentials?.apiToken) {
+      onApiTokenChange(testCredentials.apiToken);
+    }
+  };
+
+  const handleUseTestAccountId = () => {
+    if (testCredentials?.accountId) {
+      onAccountIdChange(testCredentials.accountId);
+    }
+  };
+
   return (
     <Card className="bg-white/80 backdrop-blur-sm relative overflow-hidden">
       <CrossHatchBackground pattern="large" opacity={0.02} />
@@ -49,9 +97,24 @@ export function SetupForm({
           className="space-y-5"
         >
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">
-              API Token
-            </label>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-sm font-medium text-gray-700">
+                API Token
+              </label>
+              {testCredentials?.apiToken && (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={handleUseTestToken}
+                  disabled={isLoading || loadingTestCreds}
+                  className="flex items-center gap-1.5 text-xs"
+                >
+                  <Sparkles className="w-3 h-3" />
+                  Use Test Token
+                </Button>
+              )}
+            </div>
             <Input
               type="password"
               value={apiToken}
@@ -70,9 +133,24 @@ export function SetupForm({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">
-              Account ID
-            </label>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-sm font-medium text-gray-700">
+                Account ID
+              </label>
+              {testCredentials?.accountId && (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={handleUseTestAccountId}
+                  disabled={isLoading || loadingTestCreds}
+                  className="flex items-center gap-1.5 text-xs"
+                >
+                  <Sparkles className="w-3 h-3" />
+                  Use Test ID
+                </Button>
+              )}
+            </div>
             <Input
               type="text"
               value={accountId}

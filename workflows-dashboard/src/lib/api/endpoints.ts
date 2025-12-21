@@ -119,5 +119,6 @@ export const endpoints = {
     base: `${API_BASE}/setup`,
     stream: `${API_BASE}/setup/stream`,
     logout: `${API_BASE}/setup/logout`,
+    testCredentials: `${API_BASE}/setup/test-credentials`,
   },
 } as const;
