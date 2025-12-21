@@ -94,24 +94,52 @@ export const CLOUDFLARE_PRODUCTS: CloudflareProduct[] = [
 
 export const REQUIRED_PERMISSIONS: RequiredPermission[] = [
   {
-    permission: "Account:Read",
-    reason: "To access your Cloudflare account information"
+    permission: "AI Search:Edit",
+    reason: "To use AI-powered search capabilities"
   },
   {
-    permission: "Workers:Edit",
-    reason: "To deploy and manage Cloudflare Workers"
+    permission: "Workers R2 SQL:Read",
+    reason: "To read R2 SQL data"
   },
   {
-    permission: "Workflows:Edit",
-    reason: "To create and manage Cloudflare Workflows"
+    permission: "Workers Observability:Edit",
+    reason: "To monitor and observe worker performance"
+  },
+  {
+    permission: "Browser Rendering:Edit",
+    reason: "To use browser automation features"
+  },
+  {
+    permission: "AI Gateway:Edit",
+    reason: "To manage AI request routing"
+  },
+  {
+    permission: "Workers AI:Edit",
+    reason: "To use Workers AI models"
+  },
+  {
+    permission: "Vectorize:Edit",
+    reason: "To manage vector databases"
   },
   {
     permission: "D1:Edit",
     reason: "To manage D1 databases"
   },
   {
-    permission: "KV Storage:Edit",
+    permission: "Workers R2 Storage:Edit",
+    reason: "To manage R2 object storage"
+  },
+  {
+    permission: "Workers Tail:Read",
+    reason: "To read worker logs and tail output"
+  },
+  {
+    permission: "Workers KV Storage:Edit",
     reason: "To manage KV namespaces"
+  },
+  {
+    permission: "Workers Scripts:Edit",
+    reason: "To deploy and manage Cloudflare Workers"
   }
 ];
 

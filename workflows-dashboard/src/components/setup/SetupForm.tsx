@@ -67,14 +67,9 @@ export function SetupForm({
     fetchTestCredentials();
   }, []);
 
-  const handleUseTestToken = () => {
-    if (testCredentials?.apiToken) {
+  const handleUseTestCredentials = () => {
+    if (testCredentials?.apiToken && testCredentials?.accountId) {
       onApiTokenChange(testCredentials.apiToken);
-    }
-  };
-
-  const handleUseTestAccountId = () => {
-    if (testCredentials?.accountId) {
       onAccountIdChange(testCredentials.accountId);
     }
   };
@@ -89,6 +84,39 @@ export function SetupForm({
         </p>
       </CardHeader>
       <CardContent className="relative z-10">
+        {testCredentials && (
+          <div className="mb-5 p-4 bg-gradient-to-br from-orange-50 to-orange-50/50 border border-orange-200 rounded-lg shadow-sm relative overflow-hidden">
+            <CrossHatchBackground pattern="small" opacity={0.03} />
+            <div className="relative z-10">
+              <div className="mb-3">
+                <h3 className="text-sm font-semibold text-orange-900 mb-2">
+                  Quick Start with Test Credentials
+                </h3>
+                <ul className="text-xs text-orange-800 leading-relaxed space-y-1 list-disc list-inside">
+                  <li>
+                    Test credentials are available for quick exploration and
+                    development
+                  </li>
+                  <li>
+                    These are shared resources please use responsibly and avoid
+                    abuse
+                  </li>
+                </ul>
+              </div>
+              <Button
+                type="button"
+                variant="primary"
+                size="sm"
+                onClick={handleUseTestCredentials}
+                disabled={isLoading || loadingTestCreds}
+                className="w-full flex items-center justify-center gap-2"
+              >
+                <Sparkles className="w-4 h-4" />
+                Use Test Credentials
+              </Button>
+            </div>
+          </div>
+        )}
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -97,24 +125,9 @@ export function SetupForm({
           className="space-y-5"
         >
           <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <label className="block text-sm font-medium text-gray-700">
-                API Token
-              </label>
-              {testCredentials?.apiToken && (
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="sm"
-                  onClick={handleUseTestToken}
-                  disabled={isLoading || loadingTestCreds}
-                  className="flex items-center gap-1.5 text-xs"
-                >
-                  <Sparkles className="w-3 h-3" />
-                  Use Test Token
-                </Button>
-              )}
-            </div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              API Token
+            </label>
             <Input
               type="password"
               value={apiToken}
@@ -133,24 +146,9 @@ export function SetupForm({
           </div>
 
           <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <label className="block text-sm font-medium text-gray-700">
-                Account ID
-              </label>
-              {testCredentials?.accountId && (
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="sm"
-                  onClick={handleUseTestAccountId}
-                  disabled={isLoading || loadingTestCreds}
-                  className="flex items-center gap-1.5 text-xs"
-                >
-                  <Sparkles className="w-3 h-3" />
-                  Use Test ID
-                </Button>
-              )}
-            </div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              Account ID
+            </label>
             <Input
               type="text"
               value={accountId}

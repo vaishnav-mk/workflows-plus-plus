@@ -12,7 +12,8 @@ import {
   SetupForm,
   SetupProgress,
   OverviewTab,
-  CloudflareProducts
+  CloudflareProducts,
+  TweetsEmbed
 } from "@/components/setup";
 import { Cloud } from "lucide-react";
 import type { SetupStep, StepStatus } from "@/types/setup";
@@ -102,7 +103,6 @@ export default function SetupPage() {
     setIsLoading
   });
 
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-orange-50/30 relative">
       <CrossHatchBackground pattern="large" />
@@ -128,8 +128,9 @@ export default function SetupPage() {
                   Experimental Project
                 </AlertTitle>
                 <p className="text-sm text-yellow-800">
-                  This project is still very experimental and I'm still learning things properly. 
-                  If you encounter any errors or issues, please report them at{" "}
+                  This project is still very experimental and I'm still learning
+                  things properly. If you encounter any errors or issues, please
+                  report them at{" "}
                   <a
                     href={GITHUB.ISSUES_URL}
                     target="_blank"
@@ -137,8 +138,8 @@ export default function SetupPage() {
                     className="text-yellow-900 underline font-medium hover:text-yellow-700"
                   >
                     {GITHUB.ISSUES_URL}
-                  </a>
-                  {" "}and I'll take a look at it shortly.
+                  </a>{" "}
+                  and I'll take a look at it shortly.
                 </p>
               </div>
             </div>
@@ -189,18 +190,29 @@ export default function SetupPage() {
           </Card>
         </div>
 
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-8">
-            <h3 className="text-2xl font-bold text-gray-900 mb-2">
-              Cloudflare Products
-            </h3>
-            <p className="text-gray-600 max-w-2xl mx-auto">
-              This platform integrates with Cloudflare products, giving you a
-              unified interface to build, deploy, and manage your edge
-              applications.
-            </p>
+        <div className="max-w-6xl mx-auto space-y-12">
+          <div>
+            <div className="text-center mb-8">
+              <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                Cloudflare Products
+              </h3>
+              <p className="text-gray-600 max-w-2xl mx-auto">
+                This platform integrates with Cloudflare products, giving you a
+                unified interface to build, deploy, and manage your edge
+                applications.
+              </p>
+            </div>
+            <CloudflareProducts />
           </div>
-          <CloudflareProducts />
+
+          <TweetsEmbed
+            tweetIds={[
+              "1978160610849550406",
+              "1997374008996802756",
+              "1993026478372782453"
+            ]}
+            title="Tweets That Got Traction"
+          />
         </div>
       </div>
     </div>
