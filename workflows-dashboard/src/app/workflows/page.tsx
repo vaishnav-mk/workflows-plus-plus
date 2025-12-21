@@ -18,16 +18,7 @@ import {
 } from "@/components";
 import { type ColumnDef } from "@tanstack/react-table";
 import Link from "next/link";
-
-interface Workflow {
-  id: string;
-  name: string;
-  description?: string;
-  status?: string;
-  created_on?: string;
-  modified_on?: string;
-  version?: number;
-}
+import type { Workflow } from "@/lib/api/types";
 
 export default function WorkflowsPage() {
   const router = useRouter();

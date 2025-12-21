@@ -9,13 +9,7 @@ import { apiClient } from '../../lib/api-client';
 import { PageHeader, SearchBar, DataTable, UsageStatsPanel, Card, Pagination, Alert, AlertTitle } from '@/components';
 import { type ColumnDef } from '@tanstack/react-table';
 import Link from 'next/link';
-
-interface Worker {
-  id: string;
-  name: string;
-  created_on: string;
-  modified_on: string;
-}
+import type { Worker } from '@/lib/api/types';
 
 export default function WorkersPage() {
   const router = useRouter();
@@ -131,11 +125,11 @@ export default function WorkersPage() {
       ),
     },
     {
-      accessorKey: 'modified_on',
+      accessorKey: 'updated_on',
       header: 'Modified',
       cell: ({ row }) => (
         <div className="text-sm text-gray-500">
-          {new Date(row.original.modified_on || row.original.created_on).toLocaleDateString()}
+          {new Date(row.original.updated_on || row.original.created_on).toLocaleDateString()}
         </div>
       ),
     },

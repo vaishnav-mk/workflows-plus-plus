@@ -1,8 +1,4 @@
-/**
- * Pagination Utilities
- */
-
-import { ApiResponse } from "../api-contracts";
+import { ApiResponse } from "../../types/api";
 import { PAGINATION } from "../constants";
 
 export function createPaginationResponse<T>(
@@ -19,7 +15,7 @@ export function createPaginationResponse<T>(
       page,
       per_page: perPage,
       total: actualTotal,
-      total_pages: Math.ceil(actualTotal / perPage),
-    },
+      total_pages: Math.ceil(actualTotal / perPage)
+    }
   };
 }

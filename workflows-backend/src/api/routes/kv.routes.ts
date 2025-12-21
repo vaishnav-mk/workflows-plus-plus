@@ -1,22 +1,12 @@
-/**
- * kv namespace routes
- */
-
 import { Hono } from "hono";
 import { HTTP_STATUS_CODES, CLOUDFLARE } from "../../core/constants";
-import { ApiResponse } from "../../core/api-contracts";
+import { ApiResponse } from "../../types/api";
 import { createPaginationResponse } from "../../core/utils/pagination";
-import { CredentialsContext } from "../../core/types";
 import { PaginationQuerySchema } from "../../core/validation/schemas";
 import { z } from "zod";
 import { safe } from "../../core/utils/route-helpers";
 import { zValidator } from "../../api/middleware/validation.middleware";
-
-interface ContextWithCredentials {
-  Variables: {
-    credentials: CredentialsContext;
-  };
-}
+import { ContextWithCredentials } from "../../types/routes";
 
 const NamespaceIdParamSchema = z.object({
   id: z.string(),
@@ -40,14 +30,12 @@ async function fetchCloudflare(url: string, options: RequestInit) {
       errorData = { message: errorText || `HTTP ${response.status}` };
     }
     
-    // Throw error in format "STATUS_CODE JSON_STRING" for parseCloudflareError to handle
     throw new Error(`${response.status} ${JSON.stringify(errorData)}`);
   }
 
   return response.json();
 }
 
-// list kv namespaces
 app.get("/", zValidator('query', PaginationQuerySchema), safe(async (c) => {
   const credentials = c.var.credentials;
   const { page = 1, per_page: perPage = 1000 } = c.req.valid('query') as z.infer<typeof PaginationQuerySchema>;
@@ -80,7 +68,6 @@ app.get("/", zValidator('query', PaginationQuerySchema), safe(async (c) => {
   return c.json(apiResponse, HTTP_STATUS_CODES.OK);
 }));
 
-// get kv namespace by id
 app.get("/:id", zValidator('param', NamespaceIdParamSchema), safe(async (c) => {
   const credentials = c.var.credentials;
   const { id: namespaceId } = c.req.valid('param') as z.infer<typeof NamespaceIdParamSchema>;
@@ -105,7 +92,6 @@ app.get("/:id", zValidator('param', NamespaceIdParamSchema), safe(async (c) => {
   return c.json(apiResponse, HTTP_STATUS_CODES.OK);
 }));
 
-// create kv namespace
 app.post("/", zValidator('json', CreateNamespaceSchema), safe(async (c) => {
   const { title } = c.req.valid('json') as z.infer<typeof CreateNamespaceSchema>;
   const credentials = c.var.credentials;

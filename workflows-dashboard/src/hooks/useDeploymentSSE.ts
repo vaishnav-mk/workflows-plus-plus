@@ -1,42 +1,16 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { DeploymentStatus, DeploymentStep } from "@/config/enums";
+import type { DeploymentStateResponse, DeploymentProgress } from "@/lib/api/types";
 
-export interface DeploymentProgress {
-  step: string;
-  message: string;
-  progress: number;
-  timestamp: string;
-  data?: Record<string, unknown>;
-}
+export type { DeploymentProgress, DeploymentStateResponse };
 
-export interface DeploymentState {
-  deploymentId: string;
-  workflowId: string;
-  status: 'pending' | 'in_progress' | 'completed' | 'failed';
-  progress: DeploymentProgress[];
-  result?: {
-    workerUrl?: string;
-    mcpUrl?: string;
-    versionId?: string;
-    instanceId?: string;
-    deploymentId?: string;
-    status: string;
-    bindings?: Array<{
-      name: string;
-      type: string;
-    }>;
-  };
-  error?: string;
-  startedAt: string;
-  completedAt?: string;
-}
-
-interface UseDeploymentSSEOptions {
+export interface UseDeploymentSSEOptions {
   deploymentId: string;
   enabled?: boolean;
   onProgress?: (progress: DeploymentProgress) => void;
-  onStateChange?: (state: DeploymentState) => void;
+  onStateChange?: (state: DeploymentStateResponse) => void;
 }
 
 export function useDeploymentSSE({
@@ -45,7 +19,7 @@ export function useDeploymentSSE({
   onProgress,
   onStateChange,
 }: UseDeploymentSSEOptions) {
-  const [state, setState] = useState<DeploymentState | null>(null);
+  const [state, setState] = useState<DeploymentStateResponse | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
@@ -101,7 +75,7 @@ export function useDeploymentSSE({
 
       eventSource.addEventListener('state', (event) => {
         try {
-          const newState: DeploymentState = JSON.parse(event.data);
+          const newState: DeploymentStateResponse = JSON.parse(event.data);
           setState(newState);
           onStateChange?.(newState);
         } catch (e) {

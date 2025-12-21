@@ -8,3 +8,5 @@ export { UsageStatsPanel, type StatItem } from "./UsageStatsPanel";
 export { ExpandableTable, type ExpandableTableProps } from "./ExpandableTable";
 export { PageHeader } from "./PageHeader";
 export { StatsSection } from "./StatsSection";
+export { SectionHeader, type SectionHeaderProps, type SectionHeaderAction } from "./SectionHeader";
+export { BindingItem, type BindingItemProps, type BindingItemData } from "./BindingItem";

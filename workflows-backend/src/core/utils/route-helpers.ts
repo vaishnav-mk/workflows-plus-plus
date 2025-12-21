@@ -3,7 +3,7 @@ import { ContentfulStatusCode } from "hono/utils/http-status";
 import { ErrorCode } from "../enums";
 import { parseCloudflareError } from "./cloudflare-error-handler";
 import { logger } from "../logging/logger";
-import { ApiResponse } from "../api-contracts";
+import { ApiResponse } from "../../types/api";
 
 export const createSuccessResponse = <T>(
   data: T,

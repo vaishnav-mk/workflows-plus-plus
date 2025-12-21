@@ -73,16 +73,16 @@ export function WorkflowStateView() {
     
     return {
       id: nodeId,
-      label: nodeLabel as string,
+      label: nodeLabel,
       value: {
-        nodeType: nodeType as string,
+        nodeType: nodeType,
         inputSource,
         outputPorts,
         presetOutput
       },
       nodeId,
-      nodeLabel: nodeLabel as string,
-      nodeType: nodeType as string,
+      nodeLabel: nodeLabel,
+      nodeType: nodeType,
       inputSource,
       outputPorts,
       presetOutput,

@@ -1,4 +1,3 @@
-// Common words for generating readable IDs
 const WORDS = [
   'sacred', 'tick', 'satisfied', 'ghost', 'beneficiary', 'bed',
   'ancient', 'river', 'crystal', 'forest', 'mountain', 'ocean',
@@ -10,12 +9,12 @@ const WORDS = [
   'temple', 'castle', 'tower', 'bridge', 'gate', 'door',
   'wisdom', 'power', 'magic', 'spirit', 'soul', 'heart',
   'brave', 'noble', 'wise', 'swift', 'strong', 'bright'
-];
+] as const;
 
 export function generateWorkflowId(): string {
-  const word1 = WORDS[Math.floor(Math.random() * WORDS.length)];
-  const word2 = WORDS[Math.floor(Math.random() * WORDS.length)];
-  const word3 = WORDS[Math.floor(Math.random() * WORDS.length)];
+  const word1 = WORDS[Math.floor(Math.random() * WORDS.length)]!;
+  const word2 = WORDS[Math.floor(Math.random() * WORDS.length)]!;
+  const word3 = WORDS[Math.floor(Math.random() * WORDS.length)]!;
   return `workflow-${word1}-${word2}-${word3}`;
 }
 
@@ -38,4 +37,3 @@ export function generateBindingName(
   const bindingName = bindingType.toUpperCase();
   return `binding_${bindingName}_${workflowIdSuffix}`;
 }
-

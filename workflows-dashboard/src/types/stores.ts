@@ -25,13 +25,13 @@ export interface SelectionState {
 
 export interface UIState {
   showCodePreview: boolean;
-  backendCode: string | undefined;
-  backendBindings: unknown[] | undefined;
+  backendCode: string;
+  backendBindings: Array<{ name: string; type: string }>;
   loading: boolean;
   mcpEnabled: boolean;
   setShowCodePreview: (show: boolean) => void;
-  setBackendCode: (code: string | undefined) => void;
-  setBackendBindings: (bindings: unknown[] | undefined) => void;
+  setBackendCode: (code: string) => void;
+  setBackendBindings: (bindings: Array<{ name: string; type: string }>) => void;
   setLoading: (loading: boolean) => void;
   setMCPEnabled: (enabled: boolean) => void;
 }

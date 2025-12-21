@@ -1,37 +1,6 @@
-/**
- * Simple Logging System
- * Basic logging with stack traces for errors
- */
-
 import { LogLevel } from "../enums";
 import { LOGGING } from "../constants";
-
-export interface LogContext {
-  [key: string]: unknown;
-}
-
-export interface LogEntry {
-  timestamp: string;
-  level: LogLevel;
-  message: string;
-  context?: LogContext;
-  error?: {
-    name: string;
-    message: string;
-    stack?: string;
-  };
-  performance?: {
-    duration: number;
-    operation: string;
-  };
-  request?: {
-    method: string;
-    url: string;
-    statusCode?: number;
-    userAgent?: string;
-    ip?: string;
-  };
-}
+import { LogContext, LogEntry } from "../../types/logging";
 
 class Logger {
   private logLevel: LogLevel;
@@ -136,7 +105,6 @@ class Logger {
   }
 
   logRequest(method: string, url: string, context?: LogContext): void {
-    // Only log compiler routes
     if (url.includes("/api/compiler")) {
       this.info(`Request: ${method} ${url}`, context);
     }
@@ -149,7 +117,6 @@ class Logger {
     duration: number,
     context?: LogContext
   ): void {
-    // Only log compiler routes
     if (url.includes("/api/compiler")) {
       const level =
         statusCode >= 500
@@ -168,7 +135,6 @@ class Logger {
     duration: number,
     context?: LogContext
   ): void {
-    // Only log performance for compiler operations
     if (
       operation.includes("compiler") ||
       operation.includes("codegen") ||
@@ -183,7 +149,6 @@ class Logger {
   }
 
   createChild(context?: LogContext): Logger {
-    // Context is stored for potential future use in child logger
     void context;
     const child = new Logger();
     child.logLevel = this.logLevel;

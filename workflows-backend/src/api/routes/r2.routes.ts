@@ -1,23 +1,13 @@
-/**
- * R2 Bucket Routes
- */
-
 import { Hono } from "hono";
 import { HTTP_STATUS_CODES } from "../../core/constants";
-import { ApiResponse } from "../../core/api-contracts";
+import { ApiResponse } from "../../types/api";
 import { createPaginationResponse } from "../../core/utils/pagination";
-import { CredentialsContext } from "../../core/types";
 import { PaginationQuerySchema } from "../../core/validation/schemas";
 import { z } from "zod";
 import { CLOUDFLARE } from "../../core/constants";
 import { safe } from "../../core/utils/route-helpers";
 import { zValidator } from "../../api/middleware/validation.middleware";
-
-interface ContextWithCredentials {
-  Variables: {
-    credentials: CredentialsContext;
-  };
-}
+import { ContextWithCredentials } from "../../types/routes";
 
 const BucketNameParamSchema = z.object({
   name: z.string().min(1),
@@ -42,14 +32,12 @@ async function fetchCloudflare(url: string, options: RequestInit) {
       errorData = { message: errorText || `HTTP ${response.status}` };
     }
     
-    // Throw error in format "STATUS_CODE JSON_STRING" for parseCloudflareError to handle
     throw new Error(`${response.status} ${JSON.stringify(errorData)}`);
   }
 
   return response.json();
 }
 
-// List R2 buckets
 app.get("/", zValidator('query', PaginationQuerySchema), safe(async (c) => {
   const credentials = c.var.credentials;
   const { page = 1, per_page: perPage = 1000 } = c.req.valid('query') as z.infer<typeof PaginationQuerySchema>;
@@ -82,7 +70,6 @@ app.get("/", zValidator('query', PaginationQuerySchema), safe(async (c) => {
   return c.json(apiResponse, HTTP_STATUS_CODES.OK);
 }));
 
-// Create R2 bucket
 app.post("/", zValidator('json', CreateBucketSchema), safe(async (c) => {
   const { name, location } = c.req.valid('json') as z.infer<typeof CreateBucketSchema>;
   const credentials = c.var.credentials;
@@ -115,7 +102,6 @@ app.post("/", zValidator('json', CreateBucketSchema), safe(async (c) => {
   return c.json(apiResponse, HTTP_STATUS_CODES.CREATED);
 }));
 
-// List objects in R2 bucket
 app.get("/:name/objects", zValidator('param', BucketNameParamSchema), safe(async (c) => {
   const credentials = c.var.credentials;
   const { name: bucketName } = c.req.valid('param') as z.infer<typeof BucketNameParamSchema>;
@@ -123,7 +109,6 @@ app.get("/:name/objects", zValidator('param', BucketNameParamSchema), safe(async
   const prefix = c.req.query("prefix") || "";
   const perPage = Math.min(Math.max(parseInt(c.req.query("per_page") || "25", 10), 1), 1000);
 
-  // Build query parameters
   const params = new URLSearchParams({
     per_page: String(perPage),
   });

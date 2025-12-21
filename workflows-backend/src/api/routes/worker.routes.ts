@@ -1,27 +1,14 @@
-/**
- * Worker Routes
- */
-
 import { Hono } from "hono";
 import { z } from "zod";
 import { HTTP_STATUS_CODES, MESSAGES } from "../../core/constants";
-import { ApiResponse } from "../../core/api-contracts";
+import { ApiResponse } from "../../types/api";
 import { createPaginationResponse } from "../../core/utils/pagination";
-import { CredentialsContext } from "../../core/types";
 import { PaginationQuerySchema, WorkerIdParamSchema } from "../../core/validation/schemas";
 import { safe } from "../../core/utils/route-helpers";
 import { zValidator } from "../../api/middleware/validation.middleware";
-import { CloudflareContext } from "../../core/types";
-
-interface ContextWithCredentials {
-  Variables: {
-    credentials: CredentialsContext;
-  } & CloudflareContext;
-}
+import { ContextWithCredentials } from "../../types/routes";
 
 const app = new Hono<ContextWithCredentials>();
-
-// List workers
 app.get("/", zValidator('query', PaginationQuerySchema), safe(async (c) => {
   const credentials = c.var.credentials;
   const client = c.var.cloudflare;
@@ -46,7 +33,6 @@ app.get("/", zValidator('query', PaginationQuerySchema), safe(async (c) => {
   return c.json(response, HTTP_STATUS_CODES.OK);
 }));
 
-// Get worker details
 app.get("/:id", zValidator('param', WorkerIdParamSchema), safe(async (c) => {
   const credentials = c.var.credentials;
   const { id: workerId } = c.req.valid('param') as z.infer<typeof WorkerIdParamSchema>;

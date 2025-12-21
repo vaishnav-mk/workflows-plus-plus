@@ -1,32 +1,15 @@
-/**
- * instance routes
- */
-
 import { Hono } from "hono";
 import { z } from "zod";
 import { HTTP_STATUS_CODES, MESSAGES } from "../../core/constants";
-import { ApiResponse } from "../../core/api-contracts";
+import { ApiResponse } from "../../types/api";
 import { createPaginationResponse } from "../../core/utils/pagination";
 import { LogTailService } from "../../services/logging/log-tail.service";
-import { CredentialsContext } from "../../core/types";
 import { PaginationQuerySchema, WorkflowNameParamSchema, InstanceParamsSchema } from "../../core/validation/schemas";
 import { safe } from "../../core/utils/route-helpers";
 import { zValidator } from "../../api/middleware/validation.middleware";
-import { CloudflareContext } from "../../core/types";
-
-interface Env {
-  [key: string]: unknown;
-}
-
-interface ContextWithCredentials {
-  Variables: {
-    credentials: CredentialsContext;
-  } & CloudflareContext;
-}
+import { ContextWithCredentials, Env } from "../../types/routes";
 
 const app = new Hono<{ Bindings: Env } & ContextWithCredentials>();
-
-// list workflow instances
 app.get("/:workflowName/instances", zValidator('param', WorkflowNameParamSchema), zValidator('query', PaginationQuerySchema), safe(async (c) => {
   const { workflowName } = c.req.valid('param') as z.infer<typeof WorkflowNameParamSchema>;
   const credentials = c.var.credentials;
@@ -52,7 +35,6 @@ app.get("/:workflowName/instances", zValidator('param', WorkflowNameParamSchema)
   return c.json(response, HTTP_STATUS_CODES.OK);
 }));
 
-// get instance details
 app.get("/:workflowName/instances/:instanceId", zValidator('param', InstanceParamsSchema), safe(async (c) => {
   const { workflowName, instanceId } = c.req.valid('param') as z.infer<typeof InstanceParamsSchema>;
   const credentials = c.var.credentials;
@@ -75,7 +57,6 @@ app.get("/:workflowName/instances/:instanceId", zValidator('param', InstancePara
   return c.json(response, HTTP_STATUS_CODES.OK);
 }));
 
-// get log tail url
 app.get("/:workflowName/instances/:instanceId/logs/tail-url", zValidator('param', InstanceParamsSchema), safe(async (c) => {
   const { workflowName, instanceId } = c.req.valid('param') as z.infer<typeof InstanceParamsSchema>;
   const credentials = c.var.credentials;

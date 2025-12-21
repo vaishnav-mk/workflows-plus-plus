@@ -1,8 +1,3 @@
-/**
- * Workflow Initialization Store
- * Handles workflow initialization from backend
- */
-
 import { create } from "zustand";
 import type { Node, Edge } from "reactflow";
 import { useNodesStore } from "@/stores/workflow/nodesStore";
@@ -22,17 +17,14 @@ interface InitializationState {
   ensureEntryReturnNodes: () => Promise<void>;
 }
 
-// Track initialization state to prevent re-initialization
 let isInitializing = false;
 
 export const useInitializationStore = create<InitializationState>(() => ({
   initializeWorkflow: async () => {
-    // Prevent multiple simultaneous initializations
     if (isInitializing) {
       return;
     }
     
-    // Check if workflow already has nodes - if so, don't re-initialize
     const { nodes } = useNodesStore.getState();
     if (nodes.length > 0) {
       return;
@@ -42,16 +34,13 @@ export const useInitializationStore = create<InitializationState>(() => ({
     useUIStore.getState().setLoading(true);
     
     try {
-      // Create default workflow nodes from backend
       const { nodes: newNodes, edges } = await createDefaultWorkflowNodes();
       
-      // Set nodes and edges
       useNodesStore.getState().setNodes(newNodes);
       useNodesStore.getState().setEdges(edges);
       
       useUIStore.getState().setLoading(false);
       
-      // Force a re-render by triggering a custom event
       setTimeout(() => {
         const canvas = document.querySelector('.workflow-canvas');
         if (canvas) {
@@ -78,7 +67,6 @@ export const useInitializationStore = create<InitializationState>(() => ({
     useUIStore.getState().setLoading(true);
     
     try {
-      // Fetch catalog to get node metadata
       const catalogResult = await apiClient.getCatalog();
       const nodeRegistry: Record<string, { icon: string; name: string }> = {};
       
@@ -90,46 +78,68 @@ export const useInitializationStore = create<InitializationState>(() => ({
           };
         });
       }
+
+      const uniqueNodeTypes = new Set(
+        (workflow.nodes || [])
+          .map((n: any) => n.type || n.data?.type)
+          .filter(Boolean)
+      );
       
-      // Map workflow nodes to ReactFlow nodes
-      const mappedNodes: Node[] = (workflow.nodes || []).map((node: any) => {
-        const registryInfo = nodeRegistry[node.type] || { icon: "Code", name: node.type };
+      const nodeDefinitions: Record<string, any> = {};
+
+      await Promise.all(
+        Array.from(uniqueNodeTypes).map(async (nodeType: string) => {
+          try {
+            const result = await apiClient.getNodeDefinition(nodeType);
+            if (result.success && result.data) {
+              nodeDefinitions[nodeType] = result.data;
+            }
+          } catch (error) {
+            console.error(`${LOG_PREFIX} Failed to fetch node definition for ${nodeType}:`, error);
+          }
+        })
+      );
+      
+      const mappedNodes: Node[] = (workflow.nodes || []).map((node: any, index: number) => {
+        const nodeType = node.type || node.data?.type || "unknown";
+        const registryInfo = nodeRegistry[nodeType] || { icon: "Code", name: nodeType };
+        const nodeDef = nodeDefinitions[nodeType];
+        
+        let position = node.position || node.data?.position;
+        if (!position || typeof position.x !== 'number' || typeof position.y !== 'number') {
+          position = { x: 200 + (index * 50), y: 100 + (index * 100) };
+        }
         
         return {
           id: node.id,
-          type: "default", // Use default ReactFlow node type
-          position: node.position || { x: 200, y: 100 },
+          type: "default",
+          position,
           data: {
-            label: node.label || registryInfo.name,
-            type: node.type,
+            label: node.label || node.data?.label || registryInfo.name,
+            type: nodeType,
             icon: registryInfo.icon,
             status: "idle",
-            config: node.config || {},
+            config: node.config || node.data?.config || {},
+            definition: nodeDef || undefined,
           },
         };
       });
       
-      // Map workflow edges to ReactFlow edges
-      // Note: setEdges will enrich them with conditional case data
       const mappedEdges: Edge[] = (workflow.edges || []).map((edge: any) => ({
         id: edge.id || `${edge.source}-${edge.target}`,
         source: edge.source,
         target: edge.target,
-        type: edge.type || "step", // Use step edges for straight horizontal/vertical lines
+        type: edge.type || "step",
         animated: true,
-        // Preserve branch handles for conditional routing
         sourceHandle: edge.sourceHandle,
         targetHandle: edge.targetHandle,
-        // Preserve existing edge data if present
         data: edge.data || {},
       }));
       
       useNodesStore.getState().setNodes(mappedNodes);
-      // setEdges will automatically enrich edges with conditional case data
       useNodesStore.getState().setEdges(mappedEdges);
       useUIStore.getState().setLoading(false);
       
-      // Trigger auto-fit
       setTimeout(() => {
         const canvas = document.querySelector('.workflow-canvas');
         if (canvas) {
@@ -162,4 +172,3 @@ export const useInitializationStore = create<InitializationState>(() => ({
     await useInitializationStore.getState().initializeWorkflow();
   },
 }));
-

@@ -1,13 +1,15 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../lib/api-client';
+import { isSuccessResponse, getResponseError } from '../lib/api/utils';
+import type { CompileWorkflowRequest, DeployWorkflowRequest, GenerateWorkflowFromAIRequest, WorkflowStarterFilter } from '../lib/api/types';
 
 export function useWorkflowsQuery(page = 1, perPage = 10) {
   return useQuery({
     queryKey: ['workflows', page, perPage],
     queryFn: async () => {
       const result = await apiClient.getWorkflows(page, perPage);
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to fetch workflows');
+      if (!isSuccessResponse(result)) {
+        throw new Error(getResponseError(result) || 'Failed to fetch workflows');
       }
       // Return the full response structure (data + pagination)
       return {
@@ -25,8 +27,8 @@ export function useWorkersQuery(page = 1, perPage = 10) {
     queryKey: ['workers', page, perPage],
     queryFn: async () => {
       const result = await apiClient.getWorkers(page, perPage);
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to fetch workers');
+      if (!isSuccessResponse(result)) {
+        throw new Error(getResponseError(result) || 'Failed to fetch workers');
       }
       // Return the full response structure (data + pagination)
       return {
@@ -44,8 +46,8 @@ export function useWorkerQuery(workerId: string) {
     queryKey: ['worker', workerId],
     queryFn: async () => {
       const result = await apiClient.getWorker(workerId);
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to fetch worker');
+      if (!isSuccessResponse(result)) {
+        throw new Error(getResponseError(result) || 'Failed to fetch worker');
       }
       return result.data;
     },
@@ -60,8 +62,8 @@ export function useWorkerVersionsQuery(workerId: string, page = 1, perPage = 10)
     queryKey: ['worker-versions', workerId, page, perPage],
     queryFn: async () => {
       const result = await apiClient.getWorkerVersions(workerId, page, perPage);
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to fetch worker versions');
+      if (!isSuccessResponse(result)) {
+        throw new Error(getResponseError(result) || 'Failed to fetch worker versions');
       }
       // Return the full response structure (data + pagination)
       return {
@@ -80,8 +82,8 @@ export function useWorkerVersionQuery(workerId: string, versionId: string, inclu
     queryKey: ['worker-version', workerId, versionId, include],
     queryFn: async () => {
       const result = await apiClient.getWorkerVersion(workerId, versionId, include);
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to fetch worker version');
+      if (!isSuccessResponse(result)) {
+        throw new Error(getResponseError(result) || 'Failed to fetch worker version');
       }
       return result.data;
     },
@@ -96,12 +98,12 @@ export function useCatalogQuery() {
     queryKey: ['catalog'],
     queryFn: async () => {
       const result = await apiClient.getCatalog();
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to fetch catalog');
+      if (!isSuccessResponse(result)) {
+        throw new Error(getResponseError(result) || 'Failed to fetch catalog');
       }
       return result.data;
     },
-    staleTime: 10 * 60 * 1000, // 10 minutes - catalog rarely changes
+    staleTime: 10 * 60 * 1000,
     refetchOnWindowFocus: false,
   });
 }
@@ -111,8 +113,8 @@ export function useNodeDefinitionQuery(nodeType: string) {
     queryKey: ['node-definition', nodeType],
     queryFn: async () => {
       const result = await apiClient.getNodeDefinition(nodeType);
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to fetch node definition');
+      if (!isSuccessResponse(result)) {
+        throw new Error(getResponseError(result) || 'Failed to fetch node definition');
       }
       return result.data;
     },
@@ -127,10 +129,10 @@ export function useInstancesQuery(workflowName: string) {
     queryKey: ['instances', workflowName],
     queryFn: async () => {
       const result = await apiClient.getInstances(workflowName);
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to fetch instances');
+      if (!isSuccessResponse(result)) {
+        throw new Error(getResponseError(result) || 'Failed to fetch instances');
       }
-      return result.data?.result || result.data || [];
+      return result.data;
     },
     enabled: !!workflowName,
     staleTime: 30 * 1000, // 30 seconds - instances change frequently
@@ -143,10 +145,10 @@ export function useInstanceQuery(workflowName: string, instanceId: string) {
     queryKey: ['instance', workflowName, instanceId],
     queryFn: async () => {
       const result = await apiClient.getInstance(workflowName, instanceId);
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to fetch instance');
+      if (!isSuccessResponse(result)) {
+        throw new Error(getResponseError(result) || 'Failed to fetch instance');
       }
-      return result.data?.result || result.data;
+      return result.data;
     },
     enabled: !!workflowName && !!instanceId,
     staleTime: 10 * 1000,
@@ -157,15 +159,10 @@ export function useInstanceQuery(workflowName: string, instanceId: string) {
 
 export function useCompileWorkflowMutation() {
   return useMutation({
-    mutationFn: async (workflow: {
-      name: string;
-      nodes: any[];
-      edges: any[];
-      options?: any;
-    }) => {
+    mutationFn: async (workflow: CompileWorkflowRequest) => {
       const result = await apiClient.compileWorkflow(workflow);
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to compile workflow');
+      if (!isSuccessResponse(result)) {
+        throw new Error(getResponseError(result) || 'Failed to compile workflow');
       }
       return result.data;
     },
@@ -179,8 +176,8 @@ export function useResolveWorkflowTemplatesMutation() {
       edges: any[];
     }) => {
       const result = await apiClient.resolveWorkflowTemplates(workflow);
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to resolve workflow templates');
+      if (!isSuccessResponse(result)) {
+        throw new Error(getResponseError(result) || 'Failed to resolve workflow templates');
       }
       return result.data;
     },
@@ -195,8 +192,8 @@ export function useValidateWorkflowMutation() {
       edges: any[];
     }) => {
       const result = await apiClient.validateWorkflow(workflow);
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to validate workflow');
+      if (!isSuccessResponse(result)) {
+        throw new Error(getResponseError(result) || 'Failed to validate workflow');
       }
       return result.data;
     },
@@ -209,8 +206,8 @@ export function useCreateWorkflowMutation() {
   return useMutation({
     mutationFn: async (workflow: any) => {
       const result = await apiClient.createWorkflow(workflow);
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to create workflow');
+      if (!isSuccessResponse(result)) {
+        throw new Error(getResponseError(result) || 'Failed to create workflow');
       }
       return result.data;
     },
@@ -230,18 +227,11 @@ export function useDeployWorkflowMutation() {
       options,
     }: {
       workflowId: string;
-      options: {
-        workflowName?: string;
-        subdomain?: string;
-        bindings?: any[];
-        assets?: Record<string, any>;
-        nodes?: any[];
-        edges?: any[];
-      };
+      options: DeployWorkflowRequest;
     }) => {
       const result = await apiClient.deployWorkflow(workflowId, options);
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to deploy workflow');
+      if (!isSuccessResponse(result)) {
+        throw new Error(getResponseError(result) || 'Failed to deploy workflow');
       }
       return result.data;
     },
@@ -264,9 +254,11 @@ export function useDeploymentStatusQuery(deploymentId?: string) {
         throw new Error('Deployment ID is required');
       }
       const result = await apiClient.getDeploymentStatus(deploymentId);
-      // Treat "No deployment found" as a valid (non-throwing) state so the UI can show a friendly message
-      if (!result.success && result.error !== "No deployment found") {
-        throw new Error(result.error || 'Failed to fetch deployment status');
+      if (!isSuccessResponse(result)) {
+        const error = getResponseError(result);
+        if (error !== "No deployment found") {
+          throw new Error(error || 'Failed to fetch deployment status');
+        }
       }
       return result;
     },
@@ -277,8 +269,8 @@ export function useExecuteNodeMutation() {
   return useMutation({
     mutationFn: async (input: any) => {
       const result = await apiClient.executeNode(input);
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to execute node');
+      if (!isSuccessResponse(result)) {
+        throw new Error(getResponseError(result) || 'Failed to execute node');
       }
       return result.data;
     },
@@ -289,14 +281,10 @@ export function useGenerateWorkflowFromAIMutation() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async (options: {
-      image?: string;
-      imageMimeType?: string;
-      text?: string;
-    }) => {
+    mutationFn: async (options: GenerateWorkflowFromAIRequest) => {
       const result = await apiClient.generateWorkflowFromAI(options);
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to generate workflow from AI');
+      if (!isSuccessResponse(result)) {
+        throw new Error(getResponseError(result) || 'Failed to generate workflow from AI');
       }
       return result.data;
     },
@@ -311,8 +299,8 @@ export function useLogoutMutation() {
   return useMutation({
     mutationFn: async () => {
       const result = await apiClient.logout();
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to logout');
+      if (!isSuccessResponse(result)) {
+        throw new Error(getResponseError(result) || 'Failed to logout');
       }
       return result.data;
     },
@@ -320,13 +308,13 @@ export function useLogoutMutation() {
 }
 
 // Workflow Starters
-export function useWorkflowStartersQuery(filter?: { category?: string; difficulty?: string; tags?: string[] }) {
+export function useWorkflowStartersQuery(filter?: WorkflowStarterFilter) {
   return useQuery({
     queryKey: ['workflow-starters', filter],
     queryFn: async () => {
-      const result = await apiClient.getWorkflowStarters(filter);
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to fetch workflow starters');
+      const result = await apiClient.getWorkflowStarters(filter || { category: "", difficulty: "", tags: [] });
+      if (!isSuccessResponse(result)) {
+        throw new Error(getResponseError(result) || 'Failed to fetch workflow starters');
       }
       return result.data;
     },
@@ -338,8 +326,8 @@ export function useWorkflowStarterQuery(id: string) {
     queryKey: ['workflow-starter', id],
     queryFn: async () => {
       const result = await apiClient.getWorkflowStarter(id);
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to fetch workflow starter');
+      if (!isSuccessResponse(result)) {
+        throw new Error(getResponseError(result) || 'Failed to fetch workflow starter');
       }
       return result.data;
     },
@@ -352,8 +340,8 @@ export function useStarterCategoriesQuery() {
     queryKey: ['starter-categories'],
     queryFn: async () => {
       const result = await apiClient.getStarterCategories();
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to fetch starter categories');
+      if (!isSuccessResponse(result)) {
+        throw new Error(getResponseError(result) || 'Failed to fetch starter categories');
       }
       return result.data;
     },

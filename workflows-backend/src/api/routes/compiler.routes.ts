@@ -4,7 +4,7 @@ import { resolveWorkflow, resolveTemplate } from "../../services/compiler/templa
 import { GraphAnalyzer } from "../../services/compiler/graph-analyzer";
 import { runPromise } from "../../core/effect/runtime";
 import { HTTP_STATUS_CODES, MESSAGES } from "../../core/constants";
-import { ApiResponse } from "../../core/api-contracts";
+import { ApiResponse } from "../../types/api";
 import { logger } from "../../core/logging/logger";
 import { z } from "zod";
 import {
@@ -82,7 +82,6 @@ app.post("/validate-bindings", zValidator('json', ValidateBindingsSchema), safe(
   }, HTTP_STATUS_CODES.OK);
 }));
 
-// validate templates
 app.post("/validate-templates", zValidator('json', ValidateTemplatesSchema), safe(async (c) => {
   logger.info("Validating templates");
   

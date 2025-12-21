@@ -13,6 +13,16 @@ export default function WorkerDetailPage() {
   
   const { data: worker, isLoading: loading, error: queryError } = useWorkerQuery(workerId);
   const error = queryError instanceof Error ? queryError.message : (queryError ? String(queryError) : null);
+  
+  const typedWorker = worker as {
+    id?: string;
+    name?: string;
+    created_on?: string;
+    updated_on?: string;
+    subdomain?: { enabled?: boolean };
+    observability?: { enabled?: boolean };
+    [key: string]: unknown;
+  } | undefined;
 
   if (loading) {
     return (
@@ -37,19 +47,19 @@ export default function WorkerDetailPage() {
   }
 
   const workerDetails: Array<{ label: string; value: string | React.ReactNode }> = [
-    { label: 'Worker ID', value: worker?.id || 'N/A' },
-    { label: 'Worker Name', value: worker?.name || 'N/A' },
+    { label: 'Worker ID', value: typedWorker?.id || 'N/A' },
+    { label: 'Worker Name', value: typedWorker?.name || 'N/A' },
     { 
       label: 'Created', 
-      value: worker?.created_on ? new Date(worker.created_on).toLocaleString() : 'N/A' 
+      value: typedWorker?.created_on ? new Date(typedWorker.created_on).toLocaleString() : 'N/A' 
     },
     { 
       label: 'Last Updated', 
-      value: worker?.updated_on ? new Date(worker.updated_on).toLocaleString() : 'N/A' 
+      value: typedWorker?.updated_on ? new Date(typedWorker.updated_on).toLocaleString() : 'N/A' 
     },
     { 
       label: 'Subdomain', 
-      value: worker?.subdomain?.enabled ? (
+      value: typedWorker?.subdomain?.enabled ? (
         <Badge variant="success">Enabled</Badge>
       ) : (
         <Badge variant="info">Disabled</Badge>
@@ -57,7 +67,7 @@ export default function WorkerDetailPage() {
     },
     { 
       label: 'Observability', 
-      value: worker?.observability?.enabled ? (
+      value: typedWorker?.observability?.enabled ? (
         <Badge variant="success">Enabled</Badge>
       ) : (
         <Badge variant="info">Disabled</Badge>
@@ -68,7 +78,7 @@ export default function WorkerDetailPage() {
   return (
     <div className="w-full px-6 py-8">
       <PageHeader
-        title={worker?.name || 'Worker'}
+        title={typedWorker?.name || 'Worker'}
         description="Worker details and configuration"
         primaryAction={{
           label: 'View Versions',
@@ -143,7 +153,7 @@ export default function WorkerDetailPage() {
           <StatCard title="Status" value="Active" />
           <StatCard 
             title="Subdomain" 
-            value={worker?.subdomain?.enabled ? "Enabled" : "Disabled"}
+            value={typedWorker?.subdomain?.enabled ? "Enabled" : "Disabled"}
           />
           <StatCard 
             title="Observability" 

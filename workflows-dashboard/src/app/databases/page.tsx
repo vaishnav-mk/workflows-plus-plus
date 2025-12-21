@@ -3,16 +3,11 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { apiClient } from "@/lib/api-client";
+import { isSuccessResponse, getResponseError } from "@/lib/api/utils";
+import type { D1Database } from "@/lib/api/types";
 import { Card, CardContent, PageHeader, Button } from "@/components";
 import { InlineLoader } from "@/components/ui/Loader";
 import { Database, Plus } from "lucide-react";
-
-interface D1Database {
-  uuid: string;
-  name: string;
-  created_at: string;
-  version: string;
-}
 
 export default function DatabasesPage() {
   const router = useRouter();
@@ -32,10 +27,10 @@ export default function DatabasesPage() {
     setError(null);
     try {
       const response = await apiClient.getD1Databases();
-      if (response.success && response.data) {
+      if (isSuccessResponse(response)) {
         setDatabases(response.data);
       } else {
-        setError(response.error || "Failed to load databases");
+        setError(getResponseError(response) || "Failed to load databases");
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error");
@@ -54,12 +49,12 @@ export default function DatabasesPage() {
     setError(null);
     try {
       const response = await apiClient.createD1Database(newDatabaseName.trim());
-      if (response.success && response.data) {
+      if (isSuccessResponse(response)) {
         await loadDatabases();
         setNewDatabaseName("");
         setShowCreateForm(false);
       } else {
-        setError(response.error || "Failed to create database");
+        setError(getResponseError(response) || "Failed to create database");
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error");

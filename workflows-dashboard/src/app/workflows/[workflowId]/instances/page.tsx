@@ -28,7 +28,8 @@ export default function WorkflowInstancesPage() {
   const workflowName = params.workflowId as string;
   const [activeTab, setActiveTab] = useState(0);
   
-  const { data: instances = [], isLoading: loading, error: queryError } = useInstancesQuery(workflowName);
+  const { data: instancesData = [], isLoading: loading, error: queryError } = useInstancesQuery(workflowName);
+  const instances = instancesData as Instance[];
   const error = queryError instanceof Error ? queryError.message : (queryError ? String(queryError) : null);
 
   const getStatusBadge = (status: string) => {

@@ -4,16 +4,13 @@ import { useState, useEffect, Suspense, useMemo } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { apiClient } from "@/lib/api-client";
+import { isSuccessResponse, getResponseError } from "@/lib/api/utils";
+import type { D1Database, D1DatabaseSchema, D1Table } from "@/lib/api/types";
 import { Card, CardContent, PageHeader, Button } from "@/components";
 import { InlineLoader } from "@/components/ui/Loader";
 import { Table, Play } from "lucide-react";
 import { QueryResultTable } from "@/components/database/QueryResultTable";
 import { SchemaViewer } from "@/components/database/SchemaViewer";
-
-interface TableInfo {
-  name: string;
-  sql: string;
-}
 
 function DatabaseDetailContent() {
   const params = useParams();
@@ -27,8 +24,8 @@ function DatabaseDetailContent() {
   const [originalBuilderParams, setOriginalBuilderParams] =
     useState<URLSearchParams | null>(null);
 
-  const [database, setDatabase] = useState<any>(null);
-  const [tables, setTables] = useState<TableInfo[]>([]);
+  const [database, setDatabase] = useState<D1Database | null>(null);
+  const [tables, setTables] = useState<D1Table[]>([]);
   const [loadingSchema, setLoadingSchema] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
@@ -71,8 +68,10 @@ function DatabaseDetailContent() {
   const loadDatabase = async () => {
     try {
       const response = await apiClient.getD1Database(databaseId);
-      if (response.success && response.data) {
+      if (isSuccessResponse(response)) {
         setDatabase(response.data);
+      } else {
+        setError(getResponseError(response) || "Failed to load database");
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error");
@@ -84,10 +83,10 @@ function DatabaseDetailContent() {
     setError(null);
     try {
       const response = await apiClient.getD1DatabaseSchema(databaseId);
-      if (response.success && response.data) {
-        setTables(response.data.tables || []);
+      if (isSuccessResponse(response)) {
+        setTables(response.data.tables);
       } else {
-        setError(response.error || "Failed to load schema");
+        setError(getResponseError(response) || "Failed to load schema");
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error");
@@ -106,10 +105,10 @@ function DatabaseDetailContent() {
     setError(null);
     try {
       const response = await apiClient.executeD1Query(databaseId, query);
-      if (response.success && response.data) {
+      if (isSuccessResponse(response)) {
         setQueryResult(response.data);
       } else {
-        setError(response.error || "Failed to execute query");
+        setError(getResponseError(response) || "Failed to execute query");
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error");

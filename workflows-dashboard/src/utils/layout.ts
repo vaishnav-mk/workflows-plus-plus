@@ -1,8 +1,8 @@
 import dagre from 'dagre';
 import type { Node, Edge } from 'reactflow';
 
-const NODE_WIDTH = 260;
-const NODE_HEIGHT = 100;
+const NODE_WIDTH = 260 as const;
+const NODE_HEIGHT = 100 as const;
 
 export function getLayoutedNodes(nodes: Node[], edges: Edge[]): Node[] {
   if (nodes.length === 0) return nodes;
@@ -29,7 +29,6 @@ export function getLayoutedNodes(nodes: Node[], edges: Edge[]): Node[] {
     try {
       dagreGraph.setEdge(edge.source, edge.target);
     } catch (error) {
-      // Skip invalid edges
       console.warn('[Layout] Skipping invalid edge:', edge, error);
     }
   });
@@ -115,4 +114,3 @@ export function getLayoutedNodes(nodes: Node[], edges: Edge[]): Node[] {
     return node;
   });
 }
-

@@ -1,29 +1,16 @@
-/**
- * Version Routes
- */
-
 import { Hono } from "hono";
 import { HTTP_STATUS_CODES, MESSAGES } from "../../core/constants";
-import { ApiResponse } from "../../core/api-contracts";
+import { ApiResponse } from "../../types/api";
 import { createPaginationResponse } from "../../core/utils/pagination";
-import { CredentialsContext } from "../../core/types";
 import { z } from "zod";
 import { PaginationQuerySchema, WorkerVersionParamsSchema } from "../../core/validation/schemas";
 import { safe } from "../../core/utils/route-helpers";
 import { zValidator } from "../../api/middleware/validation.middleware";
-import { CloudflareContext } from "../../core/types";
-
-interface ContextWithCredentials {
-  Variables: {
-    credentials: CredentialsContext;
-  } & CloudflareContext;
-}
+import { ContextWithCredentials } from "../../types/routes";
 
 const app = new Hono<ContextWithCredentials>();
 
 const WorkerIdParamSchema = z.object({ workerId: z.string().min(1, "Worker ID is required") });
-
-// List worker versions
 app.get("/:workerId/versions", 
   zValidator('param', WorkerIdParamSchema), 
   zValidator('query', PaginationQuerySchema), 
@@ -51,7 +38,6 @@ app.get("/:workerId/versions",
   })
 );
 
-// Get worker version details
 app.get("/:workerId/versions/:versionId", 
   zValidator('param', WorkerVersionParamsSchema), 
   safe(async (c) => {
@@ -60,7 +46,6 @@ app.get("/:workerId/versions/:versionId",
     const client = c.var.cloudflare;
 
     const include = c.req.query("include");
-    // Cloudflare API expects "modules" or undefined
     const includeParam = include === "modules" ? "modules" as const : undefined;
 
     const version = await client.workers.beta.workers.versions.get(

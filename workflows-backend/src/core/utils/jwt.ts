@@ -1,13 +1,8 @@
 import { CloudflareCredentials } from "../types";
+import { JWTPayload } from "../../types/auth";
 
 const JWT_ALGORITHM = "HS256";
 const JWT_TTL = 30 * 24 * 60 * 60;
-
-interface JWTPayload {
-  credentials: string;
-  iat: number;
-  exp: number;
-}
 
 function base64UrlEncode(data: ArrayBuffer | Uint8Array): string {
   const uint8Array = data instanceof Uint8Array ? data : new Uint8Array(data);

@@ -1,19 +1,13 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { apiClient } from "@/lib/api-client";
+import { ResourceSelector } from "./ResourceSelector";
+import { createD1DatabaseConfig } from "@/config/resource-selectors";
 import { SettingButton } from "@/components/ui/SettingButton";
-import { SettingSelect } from "@/components/ui/SettingSelect";
-import { SettingInput } from "@/components/ui/SettingInput";
+import { apiClient } from "@/lib/api-client";
+import { isSuccessResponse, getResponseError } from "@/lib/api/utils";
 import { SchemaViewer } from "@/components/database/SchemaViewer";
-
-interface D1Database {
-  uuid: string;
-  name: string;
-  created_at: string;
-  version: string;
-}
 
 interface D1DatabaseSelectorProps {
   nodeData: any;
@@ -27,219 +21,59 @@ export function D1DatabaseSelector({
   nodeId
 }: D1DatabaseSelectorProps) {
   const searchParams = useSearchParams();
-  const workflowId = searchParams.get("id");
-  const [databases, setDatabases] = useState<D1Database[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [showCreateForm, setShowCreateForm] = useState(false);
-  const [newDatabaseName, setNewDatabaseName] = useState("");
-  const [creating, setCreating] = useState(false);
-  const [selectedDatabaseId, setSelectedDatabaseId] = useState<string>(
-    nodeData?.config?.database_id || ""
-  );
-  const [selectedDatabaseName, setSelectedDatabaseName] = useState<string>(
-    nodeData?.config?.database || ""
-  );
   const [schema, setSchema] = useState<any>(null);
   const [loadingSchema, setLoadingSchema] = useState(false);
+  const [schemaError, setSchemaError] = useState<string | null>(null);
 
-  // Load databases on mount
-  useEffect(() => {
-    loadDatabases();
-  }, []);
-
-  // Update node config when selection changes
-  useEffect(() => {
-    if (selectedDatabaseId && selectedDatabaseName) {
-      const db = databases.find((d) => d.uuid === selectedDatabaseId);
-      if (db) {
-        // Only update if values are different to avoid infinite loops
-        if (
-          nodeData?.config?.database_id !== selectedDatabaseId ||
-          nodeData?.config?.database !== db.name
-        ) {
-          onNodeUpdate(nodeId, {
-            config: {
-              ...nodeData?.config,
-              database_id: selectedDatabaseId,
-              database: db.name
-            }
-          });
-        }
-      }
-    }
-  }, [selectedDatabaseId, selectedDatabaseName, databases, nodeId, onNodeUpdate, nodeData?.config]);
-
-  const loadDatabases = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const response = await apiClient.getD1Databases();
-      if (response.success && response.data) {
-        setDatabases(response.data);
-      } else {
-        setError(response.error || "Failed to load databases");
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown error");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleCreateDatabase = async () => {
-    if (!newDatabaseName.trim()) {
-      setError("Database name is required");
-      return;
-    }
-
-    setCreating(true);
-    setError(null);
-    try {
-      const response = await apiClient.createD1Database(newDatabaseName.trim());
-      if (response.success && response.data) {
-        const newDb = response.data;
-        setDatabases([...databases, newDb]);
-        setSelectedDatabaseId(newDb.uuid);
-        setSelectedDatabaseName(newDb.name);
-        setNewDatabaseName("");
-        setShowCreateForm(false);
-      } else {
-        setError(response.error || "Failed to create database");
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown error");
-    } finally {
-      setCreating(false);
-    }
-  };
-
-  const handleSelectDatabase = (databaseId: string) => {
-    const db = databases.find((d) => d.uuid === databaseId);
-    if (db) {
-      setSelectedDatabaseId(databaseId);
-      setSelectedDatabaseName(db.name);
-    }
-  };
+  const selectedDatabaseId = nodeData?.config?.database_id || "";
 
   const handleLoadSchema = async () => {
     if (!selectedDatabaseId) {
-      setError("Please select a database first");
+      setSchemaError("Please select a database first");
       return;
     }
 
     setLoadingSchema(true);
-    setError(null);
+    setSchemaError(null);
     try {
       const response = await apiClient.getD1DatabaseSchema(selectedDatabaseId);
-      if (response.success && response.data) {
+      if (isSuccessResponse(response)) {
         setSchema(response.data);
       } else {
-        setError(response.error || "Failed to load schema");
+        setSchemaError(getResponseError(response) || "Failed to load schema");
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown error");
+      setSchemaError(err instanceof Error ? err.message : "Unknown error");
     } finally {
       setLoadingSchema(false);
     }
   };
 
+  const config = createD1DatabaseConfig(nodeId, searchParams);
+  const enhancedConfig = {
+    ...config,
+    additionalActions: [
+      {
+        label: "Get Schema",
+        onClick: handleLoadSchema,
+        disabled: () => !selectedDatabaseId,
+        loading: loadingSchema
+      }
+    ]
+  };
+
   return (
     <div className="space-y-4">
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          D1 Database
-        </label>
-
-        {loading ? (
-          <div className="text-sm text-gray-500">Loading databases...</div>
-        ) : (
-          <>
-            <SettingSelect
-              value={selectedDatabaseId}
-              onChange={(e) => handleSelectDatabase(e.target.value)}
-              options={[
-                { value: "", label: "Select a database..." },
-                ...databases.map((db) => ({
-                  value: db.uuid,
-                  label: `${db.name} (${db.uuid.slice(0, 8)}...)`
-                }))
-              ]}
-            />
-
-            {selectedDatabaseId && (
-              <div className="mt-2 text-xs text-gray-500">
-                Selected: {selectedDatabaseName}
-              </div>
-            )}
-          </>
-        )}
-
-        {error && <div className="mt-2 text-sm text-red-600">{error}</div>}
-      </div>
-
-      {selectedDatabaseId && (
-        <div className="mb-3">
-          <a
-            href={`/databases/${selectedDatabaseId}?${(() => {
-              // Preserve all existing URL parameters
-              const params = new URLSearchParams(searchParams.toString());
-              params.set("returnToBuilder", "true");
-              params.set("returnNodeId", nodeId);
-              if (workflowId) {
-                params.set("workflowId", workflowId);
-              }
-              return params.toString();
-            })()}`}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <SettingButton className="bg-blue-600 hover:bg-blue-700 text-white">
-              Open Database Manager
-            </SettingButton>
-          </a>
-        </div>
+      <ResourceSelector 
+        nodeData={nodeData} 
+        onNodeUpdate={onNodeUpdate} 
+        nodeId={nodeId} 
+        config={enhancedConfig} 
+      />
+      {schemaError && (
+        <div className="text-sm text-red-600">{schemaError}</div>
       )}
-
-      <div className="flex gap-2">
-        <SettingButton onClick={loadDatabases} disabled={loading}>
-          {loading ? "Loading..." : "Refresh"}
-        </SettingButton>
-
-        <SettingButton onClick={() => setShowCreateForm(!showCreateForm)}>
-          {showCreateForm ? "Cancel" : "+ Create Database"}
-        </SettingButton>
-
-        {selectedDatabaseId && (
-          <SettingButton onClick={handleLoadSchema} disabled={loadingSchema}>
-            {loadingSchema ? "Loading..." : "Get Schema"}
-          </SettingButton>
-        )}
-      </div>
-
-      {showCreateForm && (
-        <div className="border border-gray-200 rounded-md p-4 bg-gray-50">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            New Database Name
-          </label>
-          <div className="flex gap-2">
-            <SettingInput
-              value={newDatabaseName}
-              onChange={(e) => setNewDatabaseName(e.target.value)}
-              placeholder="my-database"
-              className="flex-1"
-            />
-            <SettingButton
-              onClick={handleCreateDatabase}
-              disabled={creating || !newDatabaseName.trim()}
-            >
-              {creating ? "Creating..." : "Create"}
-            </SettingButton>
-          </div>
-        </div>
-      )}
-
-      {schema && schema.tables && (
+      {schema && schema.tables && selectedDatabaseId && (
         <div className="border border-gray-200 rounded-md p-4 bg-gray-50">
           <h4 className="text-sm font-medium text-gray-700 mb-3">
             Database Schema

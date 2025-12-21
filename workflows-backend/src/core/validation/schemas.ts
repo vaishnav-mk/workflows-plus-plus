@@ -1,11 +1,4 @@
-/**
- * Centralized Zod Validation Schemas
- * All request/response validation schemas for API endpoints
- */
-
 import { z } from "zod";
-
-// Common schemas
 export const PaginationQuerySchema = z.object({
   page: z.string().optional().transform(val => (val ? parseInt(val, 10) : 1)),
   per_page: z
@@ -48,13 +41,11 @@ export const DatabaseIdParamSchema = z.object({
   id: z.string().min(1, "Database ID is required")
 });
 
-// Setup routes
 export const SetupRequestSchema = z.object({
   apiToken: z.string().min(1, "API token is required"),
   accountId: z.string().min(1, "Account ID is required")
 });
 
-// Workflow schemas
 export const WorkflowNodeSchema = z.object({
   id: z.string().min(1),
   type: z.string().min(1),
@@ -119,7 +110,6 @@ export const WorkflowDeploySchema = z.object({
   assets: z.record(z.any()).optional()
 });
 
-// Compiler schemas
 export const CompileRequestSchema = z.object({
   name: z.string().min(1).optional(),
   nodes: z.array(WorkflowNodeSchema).default([]),
@@ -163,7 +153,6 @@ export const ValidateTemplatesSchema = z.object({
   edges: z.array(WorkflowEdgeSchema).default([])
 });
 
-// Node execution schemas
 export const ExecuteNodeSchema = z.object({
   type: z.string().min(1, "Node type is required"),
   config: z.record(z.any()).default({}),
@@ -175,7 +164,6 @@ export const ValidateNodeSchema = z.object({
   config: z.record(z.any()).default({})
 });
 
-// AI Workflow schemas
 export const GenerateWorkflowSchema = z
   .object({
     text: z.string().optional(),
@@ -186,9 +174,7 @@ export const GenerateWorkflowSchema = z
     message: "Either text or image is required"
   });
 
-// Reverse codegen schema
 export const ReverseCodegenSchema = z.object({
   code: z.string().min(1, "Workflow code is required")
 });
 
-// Instance schemas (no body schemas needed, just params)

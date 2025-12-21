@@ -1,15 +1,10 @@
-/**
- * Workflow UI Store
- * Manages UI-related state (code preview, loading, etc.)
- */
-
 import { create } from "zustand";
 import type { UIState } from "@/types/stores";
 
 export const useUIStore = create<UIState>((set) => ({
   showCodePreview: false,
-  backendCode: undefined,
-  backendBindings: undefined,
+  backendCode: "",
+  backendBindings: [],
   loading: false,
   mcpEnabled: false,
   
@@ -33,4 +28,3 @@ export const useUIStore = create<UIState>((set) => ({
     set({ mcpEnabled: enabled });
   },
 }));
-

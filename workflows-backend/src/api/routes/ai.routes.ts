@@ -1,26 +1,15 @@
-/**
- * AI Workflow Routes
- */
-
 import { Hono } from "hono";
 import { z } from "zod";
 import { HTTP_STATUS_CODES, MESSAGES, AI_GATEWAY } from "../../core/constants";
-import { ApiResponse } from "../../core/api-contracts";
+import { ApiResponse } from "../../types/api";
 import { AIGatewayService } from "../../services/ai/ai-gateway.service";
 import { logger } from "../../core/logging/logger";
 import { GenerateWorkflowSchema } from "../../core/validation/schemas";
 import { safe } from "../../core/utils/route-helpers";
 import { zValidator } from "../../api/middleware/validation.middleware";
-
-interface Env {
-  AI_GATEWAY_URL?: string;
-  AI_GATEWAY_TOKEN?: string;
-  [key: string]: unknown;
-}
+import { Env } from "../../types/routes";
 
 const app = new Hono<{ Bindings: Env }>();
-
-// generate workflow from ai
 app.post(
   "/generate",
   zValidator("json", GenerateWorkflowSchema),

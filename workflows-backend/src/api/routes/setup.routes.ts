@@ -2,19 +2,14 @@ import { Hono } from "hono";
 import { z } from "zod";
 import { HTTP_STATUS_CODES, CLOUDFLARE } from "../../core/constants";
 import { ErrorCode } from "../../core/enums";
-import { ApiResponse } from "../../core/api-contracts";
+import { ApiResponse } from "../../types/api";
 import { logger } from "../../core/logging/logger";
 import { createAuthToken } from "../../core/utils/jwt";
 import { SetupRequestSchema } from "../../core/validation/schemas";
 import { getSSECorsHeaders } from "../../core/cors.config";
 import { zValidator } from "../../api/middleware/validation.middleware";
 import { safe } from "../../core/utils/route-helpers";
-
-interface SetupEnv {
-  ENVIRONMENT?: string;
-  CREDENTIALS_MASTER_KEY?: string;
-  [key: string]: unknown;
-}
+import { SetupEnv } from "../../types/routes";
 
 async function verifyCloudflareToken(apiToken: string, accountId: string): Promise<boolean> {
   try {
@@ -32,28 +27,20 @@ async function verifyCloudflareToken(apiToken: string, accountId: string): Promi
   }
 }
 
-/**
- * send sse message
- */
 function sendSSEMessage(controller: ReadableStreamDefaultController, event: string, data: unknown): void {
   try {
     const message = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
     controller.enqueue(new TextEncoder().encode(message));
   } catch (e) {
-    // connection closed
   }
 }
 
-/**
- * stream setup progress via sse
- */
 async function streamSetupProgress(
   controller: ReadableStreamDefaultController,
   apiToken: string,
   accountId: string
 ): Promise<void> {
   try {
-    // step 1: validate token
     logger.info("[setup] step 1: validating token");
     sendSSEMessage(controller, "progress", {
       step: "validate-token",
@@ -68,6 +55,7 @@ async function streamSetupProgress(
         "Content-Type": "application/json"
       }
     });
+    
 
     if (!verifyResponse.ok) {
       logger.warn("[setup] token validation failed");
@@ -92,7 +80,6 @@ async function streamSetupProgress(
       message: "Token validated successfully"
     });
 
-    // step 2: get databases
     logger.info("[setup] step 2: getting list of databases");
     sendSSEMessage(controller, "progress", {
       step: "databases",
@@ -133,7 +120,6 @@ async function streamSetupProgress(
       });
     }
 
-    // step 3: list kv namespaces
     logger.info("[setup] step 3: listing kv namespaces");
     sendSSEMessage(controller, "progress", {
       step: "kv-namespaces",
@@ -174,7 +160,6 @@ async function streamSetupProgress(
       });
     }
 
-    // step 4: list workflows
     logger.info("[setup] step 4: listing workflows");
     sendSSEMessage(controller, "progress", {
       step: "workflows",
@@ -216,7 +201,6 @@ async function streamSetupProgress(
       });
     }
 
-    // step 5: list workers
     logger.info("[setup] step 5: listing workers");
     sendSSEMessage(controller, "progress", {
       step: "workers",
@@ -258,7 +242,6 @@ async function streamSetupProgress(
       });
     }
 
-    // final step: send completion
     logger.info("[setup] all checks completed successfully");
     sendSSEMessage(controller, "complete", {
       success: true,
@@ -280,14 +263,12 @@ async function streamSetupProgress(
 
 const app = new Hono<{ Bindings: SetupEnv }>();
 
-// setup credentials with sse streaming
 app.post("/stream", zValidator('json', SetupRequestSchema), safe(async c => {
   try {
     logger.info("setting up cloudflare credentials with sse streaming");
 
     const { apiToken, accountId } = c.req.valid('json' as never) as z.infer<typeof SetupRequestSchema>;
 
-    // create sse stream
     const stream = new ReadableStream({
       async start(controller) {
         await streamSetupProgress(controller, apiToken, accountId);
@@ -319,14 +300,12 @@ app.post("/stream", zValidator('json', SetupRequestSchema), safe(async c => {
   }
 }));
 
-// setup credentials (legacy endpoint, kept for backward compatibility)
 app.post("/", zValidator('json', SetupRequestSchema), safe(async c => {
   try {
     logger.info("setting up cloudflare credentials");
 
     const { apiToken, accountId } = c.req.valid('json' as never) as z.infer<typeof SetupRequestSchema>;
 
-    // verify credentials with cloudflare
     logger.info("verifying cloudflare credentials");
     const isValid = await verifyCloudflareToken(apiToken, accountId);
 
@@ -374,7 +353,6 @@ app.post("/", zValidator('json', SetupRequestSchema), safe(async c => {
   }
 }));
 
-// Logout
 app.post("/logout", async c => {
   try {
     const response: ApiResponse = {

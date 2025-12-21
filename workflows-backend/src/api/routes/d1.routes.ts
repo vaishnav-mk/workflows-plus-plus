@@ -1,22 +1,12 @@
-/**
- * d1 database routes
- */
-
 import { Hono } from "hono";
 import { z } from "zod";
 import { HTTP_STATUS_CODES, MESSAGES, CLOUDFLARE } from "../../core/constants";
-import { ApiResponse } from "../../core/api-contracts";
+import { ApiResponse } from "../../types/api";
 import { createPaginationResponse } from "../../core/utils/pagination";
-import { CredentialsContext } from "../../core/types";
 import { PaginationQuerySchema, DatabaseIdParamSchema } from "../../core/validation/schemas";
 import { safe } from "../../core/utils/route-helpers";
 import { zValidator } from "../../api/middleware/validation.middleware";
-
-interface ContextWithCredentials {
-  Variables: {
-    credentials: CredentialsContext;
-  };
-}
+import { ContextWithCredentials } from "../../types/routes";
 
 const app = new Hono<ContextWithCredentials>();
 
@@ -32,14 +22,12 @@ async function fetchCloudflare(url: string, options: RequestInit) {
       errorData = { message: errorText || `HTTP ${response.status}` };
     }
     
-    // Throw error in format "STATUS_CODE JSON_STRING" for parseCloudflareError to handle
     throw new Error(`${response.status} ${JSON.stringify(errorData)}`);
   }
 
   return response.json();
 }
 
-// list d1 databases
 app.get("/", zValidator('query', PaginationQuerySchema), safe(async (c) => {
   const credentials = c.var.credentials;
   const { page = 1, per_page: perPage = 10 } = c.req.valid('query') as z.infer<typeof PaginationQuerySchema>;
@@ -72,7 +60,6 @@ app.get("/", zValidator('query', PaginationQuerySchema), safe(async (c) => {
   return c.json(response, HTTP_STATUS_CODES.OK);
 }));
 
-// get d1 database by id
 app.get("/:id", zValidator('param', DatabaseIdParamSchema), safe(async (c) => {
   const credentials = c.var.credentials;
   const { id: databaseId } = c.req.valid('param') as z.infer<typeof DatabaseIdParamSchema>;
@@ -97,7 +84,6 @@ app.get("/:id", zValidator('param', DatabaseIdParamSchema), safe(async (c) => {
   return c.json(apiResponse, HTTP_STATUS_CODES.OK);
 }));
 
-// create d1 database
 const CreateDatabaseSchema = z.object({
   name: z.string().min(1, "Database name is required")
 });
@@ -127,7 +113,6 @@ app.post("/", zValidator('json', CreateDatabaseSchema), safe(async (c) => {
   return c.json(apiResponse, HTTP_STATUS_CODES.CREATED);
 }));
 
-// validate d1 query
 const ValidateQuerySchema = z.object({
   query: z.string().min(1)
 });
@@ -137,7 +122,6 @@ app.post("/:id/validate-query", zValidator('param', DatabaseIdParamSchema), zVal
   const { id: databaseId } = c.req.valid('param') as z.infer<typeof DatabaseIdParamSchema>;
   const { query } = c.req.valid('json') as z.infer<typeof ValidateQuerySchema>;
 
-  // First get schema to extract table names
   const schemaData = await fetchCloudflare(
     `${CLOUDFLARE.API_BASE}/accounts/${credentials.accountId}/d1/database/${databaseId}/query`,
     {
@@ -164,7 +148,6 @@ app.post("/:id/validate-query", zValidator('param', DatabaseIdParamSchema), zVal
   
   for (const word of possibleTables) {
     if (!keywords.has(word) && !tableNames.includes(word)) {
-      // Logic for checking table names
     }
   }
 
@@ -186,7 +169,6 @@ app.post("/:id/validate-query", zValidator('param', DatabaseIdParamSchema), zVal
   return c.json(response, HTTP_STATUS_CODES.OK);
 }));
 
-// execute d1 query
 const ExecuteQuerySchema = z.object({
   sql: z.string().min(1, "SQL query is required"),
   params: z.array(z.any()).optional()
@@ -218,12 +200,10 @@ app.post("/:id/query", zValidator('param', DatabaseIdParamSchema), zValidator('j
   return c.json(apiResponse, HTTP_STATUS_CODES.OK);
 }));
 
-// get database schema
 app.get("/:id/schema", zValidator('param', DatabaseIdParamSchema), safe(async (c) => {
   const credentials = c.var.credentials;
   const { id: databaseId } = c.req.valid('param') as z.infer<typeof DatabaseIdParamSchema>;
 
-  // We get schema by querying sqlite_master
   const data = await fetchCloudflare(
     `${CLOUDFLARE.API_BASE}/accounts/${credentials.accountId}/d1/database/${databaseId}/query`,
     {

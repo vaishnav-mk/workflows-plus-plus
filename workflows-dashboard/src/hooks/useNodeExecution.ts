@@ -28,10 +28,12 @@ export function useNodeExecution(): UseNodeExecutionReturn {
   > => {
     try {
       const result = await executeNodeMutation.mutateAsync(input);
+      const output = (result && typeof result === "object" && "output" in result ? result.output : null);
+      const logs = (result && typeof result === "object" && "logs" in result && Array.isArray(result.logs) ? result.logs : []);
       return {
         success: true,
-        output: result.output,
-        logs: result.logs || []
+        output: output,
+        logs: logs
       };
     } catch (err) {
       const errorMessage =
