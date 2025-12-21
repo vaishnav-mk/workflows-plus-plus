@@ -26,7 +26,9 @@ export enum NodeType {
   MCP_TOOL_OUTPUT = "mcp-tool-output",
   WORKERS_AI = "workers-ai",
   FOR_EACH = "for-each",
-  VALIDATE = "validate"
+  VALIDATE = "validate",
+  PARALLEL = "parallel",
+  JOIN = "join"
 }
 
 export enum BindingType {
