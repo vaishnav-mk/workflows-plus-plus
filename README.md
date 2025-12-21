@@ -1,5 +1,10 @@
 # workflows ++
 
+> [!NOTE]
+> This project is **experimental** and may break at any time.  
+> APIs, workflows and behavior are subject to change without notice.  
+> If you encounter an issue, please **open a GitHub issue** so it can be tracked.
+
 build deploy and manage cloudflare workflows with a visual drag-and-drop interface.
 
 <img width="1873" height="954" alt="image" src="https://github.com/user-attachments/assets/592f1870-a46f-4c54-b173-d7b5b4e9aecf" />
