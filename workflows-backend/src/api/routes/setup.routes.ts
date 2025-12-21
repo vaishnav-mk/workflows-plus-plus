@@ -57,9 +57,6 @@ async function streamSetupProgress(
       }
     });
 
-    console.log("verifyResponse", await verifyResponse.json());
-    
-
     if (!verifyResponse.ok) {
       logger.warn("[setup] token validation failed");
       sendSSEMessage(controller, "progress", {
