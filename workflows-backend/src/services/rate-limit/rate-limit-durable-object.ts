@@ -1,11 +1,8 @@
 export class RateLimitDurableObject {
   private state: DurableObjectState;
-  private env: { [key: string]: unknown };
-  private counters: Map<string, { count: number; resetAt: number }> = new Map();
 
-  constructor(state: DurableObjectState, env: { [key: string]: unknown }) {
+  constructor(state: DurableObjectState, _env: { [key: string]: unknown }) {
     this.state = state;
-    this.env = env;
   }
 
   async fetch(request: Request): Promise<Response> {

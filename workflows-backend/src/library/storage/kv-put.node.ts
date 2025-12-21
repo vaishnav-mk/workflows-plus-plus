@@ -47,14 +47,17 @@ function resolveKeyExpression(
 }
 
 function resolveValueContent(
-  value: KVPutConfig["value"],
+  value: KVPutConfig["value"] | undefined,
   graphContext: CodeGenContext["graphContext"]
 ): string {
+  if (!value) {
+    return "null";
+  }
   if (value.type === "static") {
-    return JSON.stringify(value.content);
+    return JSON.stringify(value.content ?? null);
   } else if (value.type === "variable" || value.type === "expression") {
     const content = value.content;
-    if (typeof content === "string" && content.includes("{{")) {
+    if (content && typeof content === "string" && content.includes("{{")) {
       return content.replace(TEMPLATE_PATTERNS.TEMPLATE_REGEX, (_match, innerExpr) => {
         const trimmed = innerExpr.trim();
         if (trimmed.startsWith(TEMPLATE_PATTERNS.STATE_PREFIX)) {
@@ -73,9 +76,9 @@ function resolveValueContent(
         return `_workflowState['${nodeRef}']${tail}`;
       });
     }
-    return content;
+    return content ?? "null";
   }
-  return JSON.stringify(value.content);
+  return JSON.stringify(value.content ?? null);
 }
 
 export const KVPutNode: WorkflowNodeDefinition<KVPutConfig> = {

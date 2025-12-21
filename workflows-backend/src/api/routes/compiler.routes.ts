@@ -19,8 +19,19 @@ import { parseWorkflowCode } from "../../services/compiler/reverse-codegen";
 import { safe } from "../../core/utils/route-helpers";
 import { zValidator } from "../../api/middleware/validation.middleware";
 import { rateLimitMiddleware } from "../../api/middleware/rate-limit.middleware";
+import type { WorkflowEdge } from "../../core/types";
 
 const app = new Hono();
+
+function normalizeEdges(edges: Array<{ id: string; source: string; target: string; sourceHandle?: string | null; targetHandle?: string | null }>): WorkflowEdge[] {
+  return edges.map(edge => ({
+    id: edge.id,
+    source: edge.source,
+    target: edge.target,
+    sourceHandle: edge.sourceHandle ?? undefined,
+    targetHandle: edge.targetHandle ?? undefined
+  }));
+}
 
 app.post("/compile", rateLimitMiddleware(), zValidator('json', CompileRequestSchema), safe(async (c) => {
   const { name, nodes, edges, options = {} } = c.req.valid('json') as z.infer<typeof CompileRequestSchema>;
@@ -29,7 +40,7 @@ app.post("/compile", rateLimitMiddleware(), zValidator('json', CompileRequestSch
     WorkflowCompiler.compile({
       name: name || "Untitled Workflow",
       nodes,
-      edges
+      edges: normalizeEdges(edges || [])
     }, options)
   );
 
@@ -47,7 +58,7 @@ app.post("/preview", rateLimitMiddleware(), zValidator('json', CompileRequestSch
     WorkflowCompiler.compile({
       name: name || "Untitled Workflow",
       nodes,
-      edges
+      edges: normalizeEdges(edges || [])
     }, options)
   );
 
@@ -65,7 +76,7 @@ app.post("/validate-bindings", rateLimitMiddleware(), zValidator('json', Validat
     WorkflowCompiler.compile({
       name: workflow.name || "Untitled Workflow",
       nodes: workflow.nodes,
-      edges: workflow.edges
+      edges: normalizeEdges(workflow.edges)
     }, {})
   );
 
@@ -89,7 +100,7 @@ app.post("/validate-templates", rateLimitMiddleware(), zValidator('json', Valida
   const workflow = c.req.valid('json') as z.infer<typeof ValidateTemplatesSchema>;
 
   const graphContext = await runPromise(
-    GraphAnalyzer.buildGraphContext(workflow.nodes, workflow.edges)
+    GraphAnalyzer.buildGraphContext(workflow.nodes, normalizeEdges(workflow.edges))
   );
 
   const result = await runPromise(
@@ -124,7 +135,7 @@ app.post("/validate-templates", rateLimitMiddleware(), zValidator('json', Valida
 
 app.post("/resolve-workflow", rateLimitMiddleware(), zValidator('json', ResolveWorkflowSchema), safe(async (c) => {
   const { nodes, edges } = c.req.valid('json') as z.infer<typeof ResolveWorkflowSchema>;
-  const graphContext = await runPromise(GraphAnalyzer.buildGraphContext(nodes, edges));
+  const graphContext = await runPromise(GraphAnalyzer.buildGraphContext(nodes, normalizeEdges(edges)));
   const result = await runPromise(resolveWorkflow(c.req.valid('json') as z.infer<typeof ResolveWorkflowSchema>, graphContext));
 
   return c.json({
@@ -141,7 +152,7 @@ app.post("/resolve-node/:nodeId", rateLimitMiddleware(), zValidator('param', Nod
   const { workflow } = c.req.valid('json') as z.infer<typeof ResolveNodeSchema>;
   
   const graphContext = await runPromise(
-    GraphAnalyzer.buildGraphContext(workflow.nodes, workflow.edges)
+    GraphAnalyzer.buildGraphContext(workflow.nodes, normalizeEdges(workflow.edges))
   );
 
   const node = workflow.nodes.find((n: { id: string }) => n.id === nodeId);

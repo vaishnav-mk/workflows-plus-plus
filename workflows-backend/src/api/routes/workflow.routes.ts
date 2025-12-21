@@ -19,12 +19,22 @@ import {
 import { safe } from "../../core/utils/route-helpers";
 import { zValidator } from "../../api/middleware/validation.middleware";
 import { rateLimitMiddleware } from "../../api/middleware/rate-limit.middleware";
-import { CloudflareContext } from "../../core/types";
+import { CloudflareContext, WorkflowEdge } from "../../core/types";
 
 interface WorkflowEnv {
   ENVIRONMENT?: string;
   DEPLOYMENT_DO?: DurableObjectNamespace;
   [key: string]: unknown;
+}
+
+function normalizeEdges(edges: Array<{ id: string; source: string; target: string; sourceHandle?: string | null; targetHandle?: string | null }>): WorkflowEdge[] {
+  return edges.map(edge => ({
+    id: edge.id,
+    source: edge.source,
+    target: edge.target,
+    sourceHandle: edge.sourceHandle ?? undefined,
+    targetHandle: edge.targetHandle ?? undefined
+  }));
 }
 
 function processWorkflowBindings(
@@ -163,7 +173,7 @@ app.post("/:id/deploy", rateLimitMiddleware(), zValidator('param', IdParamSchema
     id: id || generateWorkflowId(),
     name: body.workflowName || DEFAULT_VALUES.DEFAULT_WORKFLOW_NAME,
     nodes: Array.isArray(body.nodes) ? body.nodes : [],
-    edges: Array.isArray(body.edges) ? body.edges : []
+    edges: normalizeEdges(Array.isArray(body.edges) ? body.edges : [])
   };
 
   const compilationResult = await runPromise(
