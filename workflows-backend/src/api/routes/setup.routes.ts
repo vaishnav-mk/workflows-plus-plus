@@ -310,7 +310,7 @@ app.post("/", rateLimitMiddleware(), zValidator('json', SetupRequestSchema), saf
     const { apiToken, accountId } = c.req.valid('json' as never) as z.infer<typeof SetupRequestSchema>;
 
     logger.info("verifying cloudflare credentials");
-    const isValid = await verifyCloudflareToken(apiToken, accountId);
+    const isValid = await verifyCloudflareToken(apiToken);
 
     if (!isValid) {
       logger.warn("invalid cloudflare credentials provided");
