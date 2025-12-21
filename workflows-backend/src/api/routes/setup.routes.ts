@@ -49,13 +49,15 @@ async function streamSetupProgress(
       label: "Validating token"
     });
 
-    const verifyResponse = await fetch(`${CLOUDFLARE.API_BASE}/accounts/${accountId}/tokens/verify`, {
+    const verifyResponse = await fetch(`${CLOUDFLARE.API_BASE}/user/tokens/verify`, {
       method: "GET",
       headers: {
         Authorization: `Bearer ${apiToken}`,
         "Content-Type": "application/json"
       }
     });
+
+    console.log("verifyResponse", await verifyResponse.json());
     
 
     if (!verifyResponse.ok) {

@@ -88,7 +88,9 @@ export default function HomePage() {
                 >
                   <div className="border border-gray-200 rounded-md bg-white hover:border-orange-300 hover:bg-orange-50/20 transition-all p-3">
                     <div className="flex items-center gap-2.5">
-                      <div className={`p-1.5 rounded flex-shrink-0 ${feature.color}`}>
+                      <div
+                        className={`p-1.5 rounded flex-shrink-0 ${feature.color}`}
+                      >
                         <Icon className="w-4 h-4" />
                       </div>
                       <div className="flex-1 min-w-0">

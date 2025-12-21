@@ -271,10 +271,6 @@ class ApiClient {
     });
   }
 
-  async getTestCredentials(): Promise<ApiResponse<{ apiToken: string; accountId: string }>> {
-    return this.fetch<{ apiToken: string; accountId: string }>(endpoints.setup.testCredentials);
-  }
-
   async validateWorkflow(
     request: ValidateWorkflowRequest
   ): Promise<ApiResponse<unknown>> {
@@ -300,6 +296,12 @@ class ApiClient {
     return this.fetch<unknown>(endpoints.nodes.execute, {
       method: "POST",
       body: JSON.stringify(request),
+    });
+  }
+
+  async getTestCredentials(): Promise<ApiResponse<{ apiToken: string; accountId: string }>> {
+    return this.fetch<{ apiToken: string; accountId: string }>(endpoints.setup.testCredentials, {
+      method: "GET",
     });
   }
 }

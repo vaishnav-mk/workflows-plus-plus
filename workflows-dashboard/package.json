@@ -20,6 +20,7 @@
     "agents": "^0.2.26",
     "clsx": "^2.1.1",
     "dagre": "^0.8.5",
+    "embla-carousel-react": "^8.6.0",
     "esbuild-wasm": "^0.27.0",
     "framer-motion": "^12.23.24",
     "lucide-react": "^0.545.0",
@@ -30,6 +31,7 @@
     "react-force-graph-2d": "^1.29.0",
     "react-markdown": "^10.1.0",
     "react-syntax-highlighter": "^15.6.6",
+    "react-tweet": "^3.3.0",
     "reactflow": "^11.11.4",
     "tailwind-merge": "^3.3.1",
     "zustand": "^5.0.8"
