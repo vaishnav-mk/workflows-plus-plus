@@ -1,9 +1,10 @@
 "use client";
 
 import { PageHeader, CrossHatchBackground } from "@/components";
-import { Workflow, Server, Plus, Database } from "lucide-react";
+import { Workflow, Server, Plus, Database, Github } from "lucide-react";
 import Link from "next/link";
 import { WorkflowDetails, SampleWorkflows } from "@/components";
+import { GITHUB } from "@/config/constants";
 import {
   useWorkflowsQuery,
   useWorkersQuery,
@@ -58,10 +59,23 @@ export default function HomePage() {
       <CrossHatchBackground pattern="large" />
       <div className="relative z-10 w-full px-6 py-8">
         <div className="max-w-6xl mx-auto">
-          <PageHeader
-            title="Workflows Dashboard"
-            description="Build, deploy, and manage Cloudflare Workflows with an intuitive drag-and-drop interface"
-          />
+          <div className="flex items-start justify-between mb-6 gap-4">
+            <div className="flex-1">
+              <PageHeader
+                title="Workflows Dashboard"
+                description="Build, deploy, and manage Cloudflare Workflows with an intuitive drag-and-drop interface"
+              />
+            </div>
+            <a
+              href={GITHUB.REPO_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 hover:border-gray-400 transition-colors flex-shrink-0"
+            >
+              <Github className="w-4 h-4" />
+              View on GitHub
+            </a>
+          </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
             {features.map((feature) => {
