@@ -8,11 +8,9 @@ import { generateWorkflowId } from "@/utils/id-generator";
 import { Sparkles } from "lucide-react";
 import {
   PageHeader,
-  Card,
-  CardContent,
-  CardHeader,
   Button,
-  Spinner
+  Spinner,
+  CrossHatchBackground
 } from "@/components";
 import { useGenerateWorkflowFromAIMutation } from "@/hooks/useWorkflowsQuery";
 import type { GenerateWorkflowFromAIRequest } from "@/lib/api/types";
@@ -188,22 +186,26 @@ export default function CreateWorkflowPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white" ref={containerRef}>
-      <div className="w-full px-6 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-orange-50/30 relative" ref={containerRef}>
+      <CrossHatchBackground pattern="large" />
+      <div className="relative z-10 w-full px-6 py-8">
         <PageHeader
           title="Create Workflow with AI"
           description="Upload, paste, or describe your workflow, and AI will generate it for you"
         />
 
-        <Card className="mt-6">
-          <CardHeader>
-            <h3 className="text-lg font-semibold text-gray-900">
-              Generate Workflow
-            </h3>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="border border-gray-200 rounded-md bg-white mt-4 max-w-5xl mx-auto">
+          <div className="p-3 border-b border-gray-200">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-orange-600" />
+              <h3 className="text-sm font-semibold text-gray-900">
+                Generate Workflow
+              </h3>
+            </div>
+          </div>
+          <div className="p-4">
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <ImageUploadSection
                   image={image}
                   imagePreview={imagePreview}
@@ -215,10 +217,11 @@ export default function CreateWorkflowPage() {
                 <TextInputSection text={text} onTextChange={setText} />
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-gray-200">
                 <Button
                   type="button"
                   variant="secondary"
+                  size="sm"
                   onClick={() => router.push(ROUTES.BUILDER)}
                 >
                   Cancel
@@ -226,6 +229,7 @@ export default function CreateWorkflowPage() {
                 <Button
                   type="submit"
                   variant="primary"
+                  size="sm"
                   disabled={
                     isGenerating ||
                     generateWorkflowMutation.isPending ||
@@ -234,20 +238,20 @@ export default function CreateWorkflowPage() {
                 >
                   {isGenerating || generateWorkflowMutation.isPending ? (
                     <>
-                      <Spinner size="sm" className="mr-2" />
+                      <Spinner size="sm" className="mr-1.5" />
                       Generating...
                     </>
                   ) : (
                     <>
-                      <Sparkles className="w-4 h-4 mr-2" />
+                      <Sparkles className="w-3.5 h-3.5 mr-1.5" />
                       Generate Workflow
                     </>
                   )}
                 </Button>
               </div>
             </form>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         <MissingFieldsForm
           missingFields={missingFields}
@@ -260,6 +264,7 @@ export default function CreateWorkflowPage() {
             setFieldValues({});
           }}
         />
+        </div>
       </div>
     </div>
   );

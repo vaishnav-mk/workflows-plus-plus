@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import type { Node } from 'reactflow';
-import { Card, CardContent, Button, Spinner, Alert, AlertTitle } from '@/components';
+import { Button, Spinner, Alert, AlertTitle } from '@/components';
 import { JsonViewer } from '@/components/ui/JsonViewer';
 import { useNodeExecution } from '@/hooks/useNodeExecution';
 import { useWorkflowStore } from '@/stores/workflowStore';
@@ -120,21 +120,21 @@ export function NodeExecutionPanel({ node }: NodeExecutionPanelProps) {
   };
 
   return (
-    <Card className="w-full">
-      <CardContent className="p-4 space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-gray-900">
-            Test Node Execution
-          </h3>
-          {executionResult && (
-            <button
-              onClick={handleClear}
-              className="text-xs text-gray-500 hover:text-gray-700"
-            >
-              Clear
-            </button>
-          )}
-        </div>
+    <div className="w-full border-t border-gray-200 pt-4 mt-4">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-xs font-semibold text-gray-900">
+          Test Node Execution
+        </h3>
+        {executionResult && (
+          <button
+            onClick={handleClear}
+            className="text-[10px] text-gray-500 hover:text-gray-700"
+          >
+            Clear
+          </button>
+        )}
+      </div>
+      <div className="space-y-3">
 
         <div className="space-y-2">
           <label className="text-xs font-medium text-gray-700">
@@ -215,7 +215,7 @@ export function NodeExecutionPanel({ node }: NodeExecutionPanelProps) {
             </div>
           </div>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

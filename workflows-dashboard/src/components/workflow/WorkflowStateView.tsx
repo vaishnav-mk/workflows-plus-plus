@@ -3,7 +3,6 @@
 import React, { useState } from "react";
 import { useWorkflowStore } from "@/stores/workflowStore";
 import { useNodeExecutionStore } from "@/stores/workflow/nodeExecutionStore";
-import { Card, CardContent } from "@/components";
 import {
   ChevronRight,
   ChevronDown,
@@ -191,12 +190,11 @@ export function WorkflowStateView() {
   };
 
   return (
-    <Card className="w-full mb-4">
-      <CardContent className="p-4">
-        <h3 className="text-sm font-semibold text-gray-900 mb-3">
-          Workflow State
-        </h3>
-        <div className="space-y-1 max-h-96 overflow-y-auto">
+    <div className="w-full">
+      <h3 className="text-xs font-semibold text-gray-900 mb-2 px-1">
+        Workflow State
+      </h3>
+      <div className="space-y-1 max-h-96 overflow-y-auto">
           {stateTree.length === 0 ? (
             <p className="text-xs text-gray-500">No nodes in workflow</p>
           ) : (
@@ -326,7 +324,6 @@ export function WorkflowStateView() {
             })
           )}
         </div>
-      </CardContent>
-    </Card>
+    </div>
   );
 }

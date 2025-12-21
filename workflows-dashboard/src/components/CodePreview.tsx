@@ -8,6 +8,7 @@ import type { CodePreviewProps, ParsedNode } from '@/types/components';
 import { Badge } from '@/components/ui/Badge';
 import { Tabs, Tab } from '@/components/ui/Tabs';
 import { Button } from '@/components/ui/Button';
+import { Card, CardContent } from '@/components';
 import { useNodeRegistry } from '@/hooks/useNodeRegistry';
 
 const DEFAULT_COLOR = '#6b7280';
@@ -141,34 +142,34 @@ export function CodePreview({ workflow, isOpen, onClose, code, bindings, nodes =
 
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-7xl h-[85vh] flex flex-col">
-        <div className="flex items-center justify-between p-3 border-b border-gray-200">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white/95 backdrop-blur-md rounded-xl shadow-2xl w-full max-w-7xl h-[85vh] flex flex-col border border-gray-200/50">
+        <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-white/90 backdrop-blur-sm rounded-t-xl">
           <div className="flex items-center space-x-2">
-            <Code className="w-4 h-4 text-orange-500" />
-            <h2 className="text-base font-semibold text-gray-900">Generated Code</h2>
+            <Code className="w-5 h-5 text-orange-600" />
+            <h2 className="text-lg font-semibold text-gray-900">Generated Code</h2>
           </div>
           <div className="flex items-center gap-2">
             {activeTab === 'code' && (
               <>
-                <Button variant="ghost" size="sm" onClick={() => setShowLineNumbers(!showLineNumbers)}>
+                <Button variant="ghost" size="sm" onClick={() => setShowLineNumbers(!showLineNumbers)} className="hover:bg-gray-100">
                   {showLineNumbers ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </Button>
-                <Button variant="ghost" size="sm" onClick={copyToClipboard}>
-                  {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+                <Button variant="ghost" size="sm" onClick={copyToClipboard} className="hover:bg-gray-100">
+                  {copied ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
                 </Button>
-                <Button variant="ghost" size="sm" onClick={downloadCode}>
+                <Button variant="ghost" size="sm" onClick={downloadCode} className="hover:bg-gray-100">
                   <Download className="w-4 h-4" />
                 </Button>
               </>
             )}
-            <Button variant="ghost" size="sm" onClick={onClose}>
+            <Button variant="ghost" size="sm" onClick={onClose} className="hover:bg-gray-100">
               <X className="w-4 h-4" />
             </Button>
           </div>
         </div>
 
-        <div className="border-b border-gray-200">
+        <div className="border-b border-gray-200 bg-white/90 backdrop-blur-sm">
           <Tabs activeTab={activeTab === 'code' ? 0 : 1} onTabChange={(idx) => setActiveTab(idx === 0 ? 'code' : 'bindings')}>
             <Tab>
               <div className="flex items-center gap-1.5">
@@ -192,12 +193,12 @@ export function CodePreview({ workflow, isOpen, onClose, code, bindings, nodes =
           {activeTab === 'code' ? (
             <div className="h-full flex">
               {parsedNodes.length > 0 && (
-                <div className="w-64 border-r border-gray-200 bg-gray-50 overflow-y-auto">
-                  <div className="p-4 border-b border-gray-200 bg-white sticky top-0 z-10">
+                <div className="w-64 border-r border-gray-200 bg-gray-50/80 backdrop-blur-sm overflow-y-auto">
+                  <div className="p-4 border-b border-gray-200 bg-white/90 backdrop-blur-sm sticky top-0 z-10">
                     <h3 className="text-sm font-semibold text-gray-900">Nodes ({parsedNodes.length})</h3>
                     <p className="text-xs text-gray-500 mt-1">Click to navigate to node</p>
                   </div>
-                  <div className="p-2">
+                  <div className="p-3">
                     {parsedNodes.map((node) => {
                       const displayName = node.nodeName || node.nodeType || node.nodeId;
                       const isSelected = selectedNodeId === node.nodeId;
@@ -208,8 +209,8 @@ export function CodePreview({ workflow, isOpen, onClose, code, bindings, nodes =
                           onClick={() => scrollToNode(node.nodeId)}
                           className={`w-full text-left p-3 rounded-lg mb-2 transition-all ${
                             isSelected
-                              ? 'bg-blue-50 border-2 border-blue-300'
-                              : 'bg-white border border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                              ? 'bg-orange-50 border-2 border-orange-300 shadow-sm'
+                              : 'bg-white border border-gray-200 hover:border-orange-200 hover:bg-orange-50/50'
                           }`}
                           style={{
                             borderLeftWidth: '4px',
@@ -220,7 +221,7 @@ export function CodePreview({ workflow, isOpen, onClose, code, bindings, nodes =
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 mb-1">
                                 <div
-                                  className="w-3 h-3 rounded-full flex-shrink-0"
+                                  className="w-3 h-3 rounded-full flex-shrink-0 shadow-sm"
                                   style={{ backgroundColor: node.color || '#6b7280' }}
                                 />
                                 <span className="text-sm font-medium text-gray-900 truncate">
@@ -243,8 +244,8 @@ export function CodePreview({ workflow, isOpen, onClose, code, bindings, nodes =
                 </div>
               )}
               
-              <div className="flex-1 overflow-auto">
-                <div className="code-preview-container p-4 min-w-full">
+              <div className="flex-1 overflow-auto bg-gray-50/30">
+                <div className="code-preview-container p-6 min-w-full">
                   <SyntaxHighlighter
                     language="typescript"
                     style={oneLight}
@@ -255,9 +256,10 @@ export function CodePreview({ workflow, isOpen, onClose, code, bindings, nodes =
                       margin: 0,
                       padding: 0,
                       fontSize: '0.875rem',
-                      lineHeight: '1.5',
+                      lineHeight: '1.6',
                       fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace',
-                      background: 'transparent'
+                      background: 'transparent',
+                      borderRadius: '0.5rem'
                     }}
                   lineProps={(lineNumber) => {
                     const node = getNodeForLine(lineNumber);
@@ -300,92 +302,105 @@ export function CodePreview({ workflow, isOpen, onClose, code, bindings, nodes =
               </div>
             </div>
           ) : (
-            <div className="h-full overflow-auto p-6">
-              <div className="mb-6">
-                <div className="flex items-center space-x-2">
-                  <Database className="w-5 h-5 text-blue-500" />
-                  <h3 className="text-lg font-semibold text-gray-900">Required Bindings</h3>
-                  <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
-                    {bindings?.length || 0} binding{(bindings?.length || 0) !== 1 ? 's' : ''}
-                  </span>
+            <div className="h-full overflow-auto p-4">
+              <div className="max-w-4xl mx-auto">
+                <div className="mb-4">
+                  <div className="flex items-center gap-2">
+                    <Database className="w-4 h-4 text-orange-600" />
+                    <h3 className="text-base font-semibold text-gray-900">Required Bindings</h3>
+                    {bindings && bindings.length > 0 && (
+                      <span className="px-1.5 py-0.5 text-[10px] bg-orange-100 text-orange-700 rounded font-medium">
+                        {bindings.length}
+                      </span>
+                    )}
+                  </div>
                 </div>
-              </div>
-              
-              {bindings && bindings.length > 0 ? (
-                <div className="space-y-3">
-                  {bindings.map((binding, index) => (
-                    <div key={index} className="border border-gray-200 rounded-lg p-3 bg-white">
-                      <div className="grid grid-cols-[auto_1fr_auto] gap-4 items-start">
-                        <div className="flex flex-col gap-1 min-w-[80px]">
-                          <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                            Binding {index + 1}
-                          </span>
-                          <div className="flex flex-wrap gap-1">
-                            <span className="px-1.5 py-0.5 text-xs bg-blue-100 text-blue-800 rounded font-medium">
-                              {binding.type}
-                            </span>
-                            {binding.required !== false && (
-                              <span className="px-1.5 py-0.5 text-xs bg-red-100 text-red-800 rounded font-medium">
-                                Required
-                              </span>
-                            )}
+                
+                {bindings && bindings.length > 0 ? (
+                  <div className="space-y-2">
+                    {bindings.map((binding, index) => (
+                      <div
+                        key={index}
+                        className="border border-gray-200 rounded-md bg-white hover:border-orange-300 hover:bg-orange-50/20 transition-all p-3"
+                      >
+                        <div className="flex items-start gap-2.5">
+                          <div className="p-1.5 rounded bg-orange-100 flex-shrink-0 mt-0.5">
+                            <Database className="w-3.5 h-3.5 text-orange-600" />
                           </div>
-                        </div>
-
-                        <div className="min-w-0">
-                          <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">
-                            Used by Nodes
-                          </span>
-                          {binding.usage && binding.usage.length > 0 ? (
-                            <div className="flex flex-wrap gap-2">
-                              {binding.usage.map((usage, usageIndex) => (
-                                <span key={usageIndex} className="text-xs text-gray-700">
-                                  <span className="font-medium">{usage.nodeLabel || usage.nodeType}</span>
-                                  <span className="text-gray-400 ml-1">({usage.nodeType})</span>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1.5">
+                              <span className="text-xs font-semibold text-gray-900">
+                                {binding.type}
+                              </span>
+                              {binding.required !== false && (
+                                <span className="px-1.5 py-0.5 text-[10px] bg-red-100 text-red-700 rounded font-medium">
+                                  Required
                                 </span>
-                              ))}
+                              )}
                             </div>
-                          ) : binding.usedBy && binding.usedBy.length > 0 ? (
-                            <div className="text-xs text-gray-700">
-                              {binding.usedBy.join(', ')}
+                            <div className="mb-2">
+                              <div className="font-mono text-xs font-medium text-gray-900 bg-gray-50 px-2 py-1 rounded border border-gray-200 break-all">
+                                {binding.name}
+                              </div>
                             </div>
-                          ) : (
-                            <div className="text-xs text-gray-400 italic">No nodes specified</div>
-                          )}
-                        </div>
-
-                        <div className="min-w-[200px]">
-                          <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">
-                            Binding Name
-                          </span>
-                          <div className="font-mono text-xs font-semibold text-gray-900 bg-gray-50 px-2 py-1.5 rounded border border-gray-200 break-all">
-                            {binding.name}
+                            {(binding.usage && binding.usage.length > 0) || (binding.usedBy && binding.usedBy.length > 0) ? (
+                              <div className="flex flex-wrap gap-1.5">
+                                {binding.usage && binding.usage.length > 0 ? (
+                                  binding.usage.map((usage, usageIndex) => (
+                                    <span 
+                                      key={usageIndex} 
+                                      className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] bg-gray-100 text-gray-600 rounded border border-gray-200"
+                                    >
+                                      <span className="font-medium">{usage.nodeLabel || usage.nodeType}</span>
+                                      <span className="text-gray-400">({usage.nodeType})</span>
+                                    </span>
+                                  ))
+                                ) : (
+                                  binding.usedBy?.map((nodeName, idx) => (
+                                    <span 
+                                      key={idx}
+                                      className="inline-flex items-center px-1.5 py-0.5 text-[10px] bg-gray-100 text-gray-600 rounded border border-gray-200"
+                                    >
+                                      {nodeName}
+                                    </span>
+                                  ))
+                                )}
+                              </div>
+                            ) : null}
                           </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-12">
-                  <Database className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">No Bindings Required</h3>
-                  <p className="text-gray-500">This workflow doesn't require any Cloudflare bindings.</p>
-                </div>
-              )}
+                    ))}
+                  </div>
+                ) : (
+                  <div className="border border-gray-200 rounded-md bg-gray-50/50 p-8 text-center">
+                    <Database className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+                    <p className="text-xs text-gray-500">No bindings required</p>
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>
 
-        <div className="border-t border-gray-200 p-4 bg-gray-50">
-          <div className="flex items-center justify-between">
-            <div className="text-sm text-gray-600">
-              <strong>Workflow:</strong> {workflow.name} | 
-              <strong> Nodes:</strong> {workflow.nodes.length} | 
-              <strong> Connections:</strong> {workflow.edges.length}
+        <div className="border-t border-gray-200 p-3 bg-white/90 backdrop-blur-sm rounded-b-xl">
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <div className="flex items-center gap-4 text-xs">
+              <div className="flex items-center gap-1.5">
+                <span className="text-gray-500">Workflow:</span>
+                <span className="font-medium text-gray-900">{workflow.name}</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-gray-500">Nodes:</span>
+                <span className="font-medium text-gray-900 bg-orange-50 px-1.5 py-0.5 rounded">{workflow.nodes.length}</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-gray-500">Connections:</span>
+                <span className="font-medium text-gray-900 bg-orange-50 px-1.5 py-0.5 rounded">{workflow.edges.length}</span>
+              </div>
             </div>
-            <div className="text-sm text-gray-500">
-              Generated for Cloudflare Workers with TypeScript
+            <div className="text-xs text-gray-500">
+              Cloudflare Workers • TypeScript
             </div>
           </div>
         </div>

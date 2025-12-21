@@ -1,6 +1,5 @@
 'use client';
 
-import { Card, CardContent, CardHeader } from '@/components';
 import { Copy } from 'lucide-react';
 import { useState } from 'react';
 
@@ -56,29 +55,27 @@ bindings
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-gray-900">what are workflows?</h2>
-          <button
-            onClick={handleCopy}
-            className="flex items-center gap-2 px-3 py-1.5 text-xs text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors"
-          >
-            <Copy className="w-3 h-3" />
-            {copied ? 'copied!' : 'copy'}
-          </button>
-        </div>
-      </CardHeader>
-      <CardContent>
+    <div className="border border-gray-200 rounded-md bg-white">
+      <div className="p-3 border-b border-gray-200 flex items-center justify-between">
+        <h2 className="text-xs font-semibold text-gray-900">what are workflows?</h2>
+        <button
+          onClick={handleCopy}
+          className="flex items-center gap-1.5 px-2 py-1 text-[10px] text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded transition-colors"
+        >
+          <Copy className="w-3 h-3" />
+          {copied ? 'copied!' : 'copy'}
+        </button>
+      </div>
+      <div className="p-3">
         <div className="relative">
-          <pre className="bg-gray-50 border border-gray-200 text-gray-800 p-4 rounded-lg overflow-x-auto font-mono text-xs leading-relaxed whitespace-pre-wrap">
+          <pre className="bg-gray-50 border border-gray-200 text-gray-800 p-3 rounded-md overflow-x-auto font-mono text-[10px] leading-relaxed whitespace-pre-wrap">
             <code>{content}</code>
           </pre>
-          <div className="absolute top-3 right-3 flex gap-2">
-            <span className="px-2 py-0.5 bg-white border border-gray-200 text-gray-600 text-xs rounded">text</span>
+          <div className="absolute top-2 right-2 flex gap-1.5">
+            <span className="px-1.5 py-0.5 bg-white border border-gray-200 text-gray-600 text-[10px] rounded">text</span>
           </div>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

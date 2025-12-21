@@ -24,15 +24,7 @@ export function SetupForm({
 }: SetupFormProps) {
   return (
     <Card className="bg-white/80 backdrop-blur-sm relative overflow-hidden">
-      <div
-        className="absolute inset-0 opacity-[0.02] pointer-events-none"
-        style={{
-          backgroundImage: `
-            repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(0,0,0,1) 10px, rgba(0,0,0,1) 11px),
-            repeating-linear-gradient(-45deg, transparent, transparent 10px, rgba(0,0,0,1) 10px, rgba(0,0,0,1) 11px)
-          `
-        }}
-      />
+      <CrossHatchBackground pattern="large" opacity={0.02} />
       <CardHeader className="relative z-10">
         <h2 className="text-xl font-semibold text-gray-900">Credentials</h2>
         <p className="mt-1 text-sm text-gray-600">
@@ -102,15 +94,7 @@ export function SetupForm({
           </div>
 
           <Alert className="relative overflow-hidden">
-            <div
-              className="absolute inset-0 opacity-[0.02] pointer-events-none"
-              style={{
-                backgroundImage: `
-                  repeating-linear-gradient(45deg, transparent, transparent 8px, rgba(0,0,0,1) 8px, rgba(0,0,0,1) 9px),
-                  repeating-linear-gradient(-45deg, transparent, transparent 8px, rgba(0,0,0,1) 8px, rgba(0,0,0,1) 9px)
-                `
-              }}
-            />
+            <CrossHatchBackground pattern="small" opacity={0.02} />
             <AlertTitle className="relative z-10 text-sm">
               Where to find these:
             </AlertTitle>

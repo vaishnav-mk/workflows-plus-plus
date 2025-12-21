@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { apiClient } from "@/lib/api-client";
 import { isSuccessResponse, getResponseError } from "@/lib/api/utils";
 import type { D1Database } from "@/lib/api/types";
-import { Card, CardContent, PageHeader, Button } from "@/components";
+import { PageHeader, Button, CrossHatchBackground } from "@/components";
 import { InlineLoader } from "@/components/ui/Loader";
 import { Database, Plus } from "lucide-react";
 
@@ -68,18 +68,19 @@ export default function DatabasesPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white">
-      <div className="w-full px-6 py-12">
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-orange-50/30 relative">
+      <CrossHatchBackground pattern="large" />
+      <div className="relative z-10 w-full px-6 py-8">
         <PageHeader
           title="D1 Databases"
           description="Manage your Cloudflare D1 databases"
         />
 
-        <div className="mt-6">
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-gray-900">
+        <div className="mt-4">
+          <div className="border border-gray-200 rounded-md bg-white">
+            <div className="p-4">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-sm font-semibold text-gray-900">
                   Databases
                 </h2>
                 <div className="flex gap-2">
@@ -142,36 +143,35 @@ export default function DatabasesPage() {
                   No databases found. Create your first database to get started.
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                   {databases.map((db) => (
-                    <div
+                    <button
                       key={db.uuid}
                       onClick={() => handleDatabaseClick(db.uuid)}
-                      className="p-4 border border-gray-200 rounded-lg hover:border-blue-500 hover:shadow-md cursor-pointer transition-all"
+                      className="p-3 border border-gray-200 rounded-md bg-white hover:border-orange-300 hover:bg-orange-50/20 cursor-pointer transition-all text-left"
                     >
-                      <div className="flex items-start gap-3">
-                        <div className="p-2 bg-blue-50 rounded-lg">
-                          <Database className="w-5 h-5 text-blue-600" />
+                      <div className="flex items-start gap-2.5">
+                        <div className="p-1.5 bg-indigo-50 rounded flex-shrink-0">
+                          <Database className="w-4 h-4 text-indigo-600" />
                         </div>
                         <div className="flex-1 min-w-0">
                           <h3 className="text-sm font-semibold text-gray-900 truncate">
                             {db.name}
                           </h3>
-                          <p className="text-xs text-gray-500 mt-1 font-mono">
+                          <p className="text-xs text-gray-500 mt-0.5 font-mono">
                             {db.uuid.slice(0, 8)}...
                           </p>
                           <p className="text-xs text-gray-400 mt-1">
-                            Created:{" "}
                             {new Date(db.created_at).toLocaleDateString()}
                           </p>
                         </div>
                       </div>
-                    </div>
+                    </button>
                   ))}
                 </div>
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </div>
       </div>
     </div>

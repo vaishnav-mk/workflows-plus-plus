@@ -13,8 +13,8 @@ export function TextInputSection({
 }: TextInputSectionProps) {
   return (
     <div>
-      <label className="block text-sm font-medium text-gray-700 mb-2">
-        <FileText className="w-4 h-4 inline mr-1" />
+      <label className="block text-xs font-semibold text-gray-900 mb-2">
+        <FileText className="w-3.5 h-3.5 inline mr-1.5" />
         Describe Your Workflow (Optional)
       </label>
       <textarea
@@ -22,10 +22,9 @@ export function TextInputSection({
         onChange={(e) => onTextChange(e.target.value)}
         placeholder="Example: Create a workflow that fetches data from an API, stores it in KV, and returns the result..."
         rows={12}
-        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#056DFF] focus:border-[#056DFF] resize-none text-sm"
+        className="w-full px-3 py-2.5 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-orange-500 focus:border-orange-500 resize-none bg-white"
       />
-      <p className="text-xs text-gray-500 mt-2">{text.length} characters</p>
+      <p className="text-[10px] text-gray-500 mt-1.5">{text.length} characters</p>
     </div>
   );
 }
-

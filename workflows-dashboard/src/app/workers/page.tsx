@@ -6,7 +6,7 @@ import { InlineLoader } from '../../components/ui/Loader';
 import { useWorkersQuery } from '../../hooks/useWorkflowsQuery';
 import { useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../../lib/api-client';
-import { PageHeader, SearchBar, DataTable, UsageStatsPanel, Card, Pagination, Alert, AlertTitle, Button } from '@/components';
+import { PageHeader, SearchBar, DataTable, UsageStatsPanel, Pagination, Alert, AlertTitle, Button, CrossHatchBackground } from '@/components';
 import { type ColumnDef } from '@tanstack/react-table';
 import Link from 'next/link';
 import type { Worker } from '@/lib/api/types';
@@ -152,17 +152,19 @@ export default function WorkersPage() {
   }
 
   return (
-    <div className="w-full px-6 py-8">
-      <PageHeader
-        title="Workers"
-        description="Cloudflare Workers for serverless computing"
-      />
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-orange-50/30 relative">
+      <CrossHatchBackground pattern="large" />
+      <div className="relative z-10 w-full px-6 py-8">
+        <PageHeader
+          title="Workers"
+          description="Cloudflare Workers for serverless computing"
+        />
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* Workers Table (3/4 width) */}
-        <div className="lg:col-span-3">
-          <Card>
-            <div className="p-4">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+          {/* Workers Table (3/4 width) */}
+          <div className="lg:col-span-3">
+            <div className="border border-gray-200 rounded-md bg-white">
+              <div className="p-3">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
                   <SearchBar
@@ -204,17 +206,18 @@ export default function WorkersPage() {
                   )}
                 </>
               )}
+              </div>
             </div>
-          </Card>
-        </div>
+          </div>
 
-        {/* Usage Section (1/4 width) */}
-        <div className="lg:col-span-1">
-          <UsageStatsPanel
-            title="Usage"
-            dateRange="October 8 - October 15"
-            stats={usageStats}
-          />
+          {/* Usage Section (1/4 width) */}
+          <div className="lg:col-span-1">
+            <UsageStatsPanel
+              title="Usage"
+              dateRange="October 8 - October 15"
+              stats={usageStats}
+            />
+          </div>
         </div>
       </div>
     </div>

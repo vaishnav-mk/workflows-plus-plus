@@ -110,7 +110,7 @@ export function useSetupSSE({
                     tokenStorage.setToken(saveData.data.token);
                     toast.success("Credentials configured successfully");
                     await new Promise((resolve) => setTimeout(resolve, 500));
-                    router.push(ROUTES.BUILDER);
+                    router.push(ROUTES.HOME);
                   } else {
                     toast.error(
                       saveData.message || "Failed to save credentials"

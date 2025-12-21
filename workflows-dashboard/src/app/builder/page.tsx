@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { PageHeader } from "@/components";
+import { PageHeader, CrossHatchBackground } from "@/components";
 import { WorkflowToolbar } from "@/components/WorkflowToolbar";
 import { CodePreview } from "@/components/CodePreview";
 import type { Binding } from "@/types/components";
@@ -104,27 +104,29 @@ function WorkflowBuilderContent() {
   });
 
   return (
-    <div className="flex flex-col h-screen bg-white">
-      <div className="border-b border-gray-200 bg-white px-6 py-4">
-        <div className="w-full flex items-center justify-between">
-          <PageHeader
-            title="Workflow Builder"
-            description="Build and deploy workflows with drag and drop"
-          />
-          <WorkflowToolbar
-            onCodePreview={handleCodePreviewClick}
-            onDeploy={handleDeployClick}
-            isDeploying={isDeploying || isCompiling}
-            mcpEnabled={mcpEnabled}
-            onMCPToggle={handleMCPToggle}
-          />
+    <div className="flex flex-col h-screen bg-gradient-to-br from-orange-50 via-white to-orange-50/30 relative">
+      <CrossHatchBackground pattern="large" />
+      <div className="relative z-10 flex flex-col h-screen">
+        <div className="border-b border-gray-200 bg-white/80 backdrop-blur-sm px-6 py-4 shadow-sm">
+          <div className="w-full flex items-center justify-between">
+            <PageHeader
+              title="Workflow Builder"
+              description="Build and deploy workflows with drag and drop"
+            />
+            <WorkflowToolbar
+              onCodePreview={handleCodePreviewClick}
+              onDeploy={handleDeployClick}
+              isDeploying={isDeploying || isCompiling}
+              mcpEnabled={mcpEnabled}
+              onMCPToggle={handleMCPToggle}
+            />
+          </div>
         </div>
-      </div>
 
-      <div
-        className="flex flex-1 overflow-hidden"
-        style={{ height: "calc(100vh - 80px)" }}
-      >
+        <div
+          className="flex flex-1 overflow-hidden relative z-10"
+          style={{ height: "calc(100vh - 80px)" }}
+        >
         <WorkflowSidebar
           onAddNode={(nodeType: string) => {
             if (selectedEdge) {
@@ -141,7 +143,7 @@ function WorkflowBuilderContent() {
         />
 
         <div
-          className="flex-1 flex flex-col overflow-hidden"
+          className="flex-1 flex flex-col overflow-hidden bg-white/40 backdrop-blur-sm"
           style={{ height: "100%", width: "100%" }}
         >
           <WorkflowCanvas
@@ -230,6 +232,7 @@ function WorkflowBuilderContent() {
           }
         }}
       />
+      </div>
     </div>
   );
 }

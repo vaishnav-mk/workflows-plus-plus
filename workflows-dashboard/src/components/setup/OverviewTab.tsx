@@ -1,6 +1,6 @@
 "use client";
 
-import { Alert, AlertTitle } from "@/components";
+import { Alert, AlertTitle, CrossHatchBackground } from "@/components";
 import { Zap, Info, Check, Shield } from "lucide-react";
 import { REQUIRED_PERMISSIONS } from "@/config/setup";
 
@@ -78,15 +78,7 @@ export function OverviewTab() {
               key={idx}
               className="p-2 bg-gray-50 rounded border border-gray-200 relative overflow-hidden"
             >
-              <div
-                className="absolute inset-0 opacity-[0.02] pointer-events-none"
-                style={{
-                  backgroundImage: `
-                    repeating-linear-gradient(45deg, transparent, transparent 8px, rgba(0,0,0,1) 8px, rgba(0,0,0,1) 9px),
-                    repeating-linear-gradient(-45deg, transparent, transparent 8px, rgba(0,0,0,1) 8px, rgba(0,0,0,1) 9px)
-                  `
-                }}
-              />
+              <CrossHatchBackground pattern="small" opacity={0.02} />
               <div className="flex items-center gap-2 relative z-10">
                 <Shield className="w-3.5 h-3.5 text-orange-600 flex-shrink-0" />
                 <div>

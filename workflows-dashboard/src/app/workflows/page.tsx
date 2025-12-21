@@ -11,11 +11,11 @@ import {
   SearchBar,
   DataTable,
   UsageStatsPanel,
-  Card,
   Pagination,
   Alert,
   AlertTitle,
-  Button
+  Button,
+  CrossHatchBackground
 } from "@/components";
 import { type ColumnDef } from "@tanstack/react-table";
 import Link from "next/link";
@@ -198,17 +198,19 @@ export default function WorkflowsPage() {
   }
 
   return (
-    <div className="w-full px-6 py-8">
-      <PageHeader
-        title="Workflows"
-        description="Durable Execution Engine for Cloudflare Workers"
-      />
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-orange-50/30 relative">
+      <CrossHatchBackground pattern="large" />
+      <div className="relative z-10 w-full px-6 py-8">
+        <PageHeader
+          title="Workflows"
+          description="Durable Execution Engine for Cloudflare Workers"
+        />
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* Workflows Table (3/4 width) */}
-        <div className="lg:col-span-3">
-          <Card>
-            <div className="p-4">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+          {/* Workflows Table (3/4 width) */}
+          <div className="lg:col-span-3">
+            <div className="border border-gray-200 rounded-md bg-white">
+              <div className="p-3">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
                   <SearchBar
@@ -252,17 +254,18 @@ export default function WorkflowsPage() {
                   )}
                 </>
               )}
+              </div>
             </div>
-          </Card>
-        </div>
+          </div>
 
-        {/* Usage Section (1/4 width) */}
-        <div className="lg:col-span-1">
-          <UsageStatsPanel
-            title="Usage"
-            dateRange="October 8 - October 15"
-            stats={usageStats}
-          />
+          {/* Usage Section (1/4 width) */}
+          <div className="lg:col-span-1">
+            <UsageStatsPanel
+              title="Usage"
+              dateRange="October 8 - October 15"
+              stats={usageStats}
+            />
+          </div>
         </div>
       </div>
     </div>

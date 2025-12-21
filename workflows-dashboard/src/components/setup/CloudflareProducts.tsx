@@ -1,20 +1,12 @@
 "use client";
 
-import { Card, CardContent, Badge } from "@/components";
+import { Card, CardContent, Badge, CrossHatchBackground } from "@/components";
 import { CLOUDFLARE_PRODUCTS } from "@/config/setup";
 
 export function CloudflareProducts() {
   return (
     <Card className="bg-orange-50/30 border-orange-100 relative overflow-hidden">
-      <div
-        className="absolute inset-0 opacity-[0.02] pointer-events-none"
-        style={{
-          backgroundImage: `
-            repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(0,0,0,1) 10px, rgba(0,0,0,1) 11px),
-            repeating-linear-gradient(-45deg, transparent, transparent 10px, rgba(0,0,0,1) 10px, rgba(0,0,0,1) 11px)
-          `
-        }}
-      />
+      <CrossHatchBackground pattern="large" opacity={0.02} />
       <CardContent className="p-6 relative z-10">
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4">
           {CLOUDFLARE_PRODUCTS.map((product, idx) => {
@@ -24,15 +16,7 @@ export function CloudflareProducts() {
                 key={product.name}
                 className={`col-span-1 row-span-1 bg-white rounded-lg border border-orange-200 p-4 relative overflow-hidden ${product.comingSoon ? "opacity-75" : ""}`}
               >
-                <div
-                  className="absolute inset-0 opacity-[0.02] pointer-events-none"
-                  style={{
-                    backgroundImage: `
-                      repeating-linear-gradient(45deg, transparent, transparent 8px, rgba(0,0,0,1) 8px, rgba(0,0,0,1) 9px),
-                      repeating-linear-gradient(-45deg, transparent, transparent 8px, rgba(0,0,0,1) 8px, rgba(0,0,0,1) 9px)
-                    `
-                  }}
-                />
+                <CrossHatchBackground pattern="small" opacity={0.02} />
                 <div className="flex items-center gap-3 relative z-10">
                   <div
                     className={`p-2.5 rounded-lg ${product.comingSoon ? "bg-gray-100" : "bg-orange-100"}`}

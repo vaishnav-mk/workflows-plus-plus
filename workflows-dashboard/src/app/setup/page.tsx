@@ -5,7 +5,8 @@ import {
   Card,
   CardContent,
   Tabs,
-  Tab
+  Tab,
+  CrossHatchBackground
 } from "@/components";
 import {
   SetupForm,
@@ -101,15 +102,7 @@ export default function SetupPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-orange-50/30 relative">
-      <div
-        className="absolute inset-0 opacity-[0.03] pointer-events-none"
-        style={{
-          backgroundImage: `
-            repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(0,0,0,1) 10px, rgba(0,0,0,1) 11px),
-            repeating-linear-gradient(-45deg, transparent, transparent 10px, rgba(0,0,0,1) 10px, rgba(0,0,0,1) 11px)
-          `
-        }}
-      />
+      <CrossHatchBackground pattern="large" />
       <div className="relative z-10 w-full px-6 py-12">
         <div className="max-w-6xl mx-auto mb-12">
           <div className="text-center mb-8">
@@ -125,15 +118,7 @@ export default function SetupPage() {
           </div>
 
           <Card className="mb-8 bg-white/80 backdrop-blur-sm relative overflow-hidden">
-            <div
-              className="absolute inset-0 opacity-[0.02] pointer-events-none"
-              style={{
-                backgroundImage: `
-                  repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(0,0,0,1) 10px, rgba(0,0,0,1) 11px),
-                  repeating-linear-gradient(-45deg, transparent, transparent 10px, rgba(0,0,0,1) 10px, rgba(0,0,0,1) 11px)
-                `
-              }}
-            />
+            <CrossHatchBackground pattern="large" opacity={0.02} />
             <Tabs
               activeTab={activeTab}
               onTabChange={setActiveTab}
