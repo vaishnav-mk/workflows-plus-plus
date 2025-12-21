@@ -2,6 +2,12 @@
 
 build deploy and manage cloudflare workflows with a visual drag-and-drop interface.
 
+<img width="1873" height="954" alt="image" src="https://github.com/user-attachments/assets/592f1870-a46f-4c54-b173-d7b5b4e9aecf" />
+<img width="1876" height="897" alt="image" src="https://github.com/user-attachments/assets/0d63839b-63b7-4640-99fb-5be26687ad42" />
+<img width="1880" height="964" alt="image" src="https://github.com/user-attachments/assets/284edd12-8bd2-4c28-aa56-a4b216970384" />
+<img width="1879" height="959" alt="image" src="https://github.com/user-attachments/assets/e7c00b3a-8cca-4105-89d9-946974ee6e58" />
+<img width="1876" height="963" alt="image" src="https://github.com/user-attachments/assets/29b9880b-fc1a-433d-baa0-db41503aeea6" />
+
 
 ### workflow builder
 
@@ -70,21 +76,15 @@ build deploy and manage cloudflare workflows with a visual drag-and-drop interfa
 - template expressions with double curly braces
 - nested template resolution in complex objects
 
-### developer experience
+### nerdy stuff
 
 - typescript throughout
-- effect library for functional error handling
+- effect for functional error handling
 - zod schema validation
 - hono framework on cloudflare workers
 - next.js with app router
 - react query for data fetching
 - zustand for state management
-
-## technical stack
-
-backend: hono on cloudflare workers with d1 kv and durable objects. effect library for functional programming. graph algorithms for workflow validation. code generation engine with template resolution.
-
-frontend: next.js 14+ with react flow visualization. tailwind css styling. react query for server state. zustand for client state. framer motion animations.
 
 ## moaaarrr capabilities
 
