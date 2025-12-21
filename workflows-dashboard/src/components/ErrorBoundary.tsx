@@ -2,9 +2,10 @@
 
 import React, { Component, ErrorInfo, ReactNode } from "react";
 import { Card, CardContent, CrossHatchBackground } from "@/components";
-import { AlertCircle, RefreshCw, Home } from "lucide-react";
+import { AlertCircle, RefreshCw, Home, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { useRouter } from "next/navigation";
+import { GITHUB } from "@/config/constants";
 
 interface Props {
   children: ReactNode;
@@ -105,6 +106,21 @@ function ErrorFallback({ error, onReset }: ErrorFallbackProps) {
                   </p>
                 </div>
               )}
+
+              <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-sm text-blue-900 mb-2">
+                  If this error persists, please report it on GitHub:
+                </p>
+                <a
+                  href={GITHUB.ISSUES_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 hover:underline font-medium"
+                >
+                  <span>Report Issue</span>
+                  <ExternalLink className="w-4 h-4" />
+                </a>
+              </div>
 
               <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
                 <Button
