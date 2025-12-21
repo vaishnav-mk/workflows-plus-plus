@@ -20,10 +20,16 @@ const app = new Hono();
 app.get(
   "/",
   safe(async c => {
-    const json = NodeRegistry.getCatalogJSON();
-    return c.json(
-      createSuccessResponse(JSON.parse(json), "Catalog retrieved successfully")
-    );
+    try {
+      const json = NodeRegistry.getCatalogJSON();
+      const catalog = JSON.parse(json);
+      return c.json(
+        createSuccessResponse(catalog, "Catalog retrieved successfully"),
+        HTTP_STATUS_CODES.OK
+      );
+    } catch (error) {
+      throw error;
+    }
   })
 );
 
@@ -32,7 +38,8 @@ app.get(
   safe(async c => {
     const catalog = NodeRegistry.getCatalog();
     return c.json(
-      createSuccessResponse(catalog, "Catalog retrieved successfully")
+      createSuccessResponse(catalog, "Catalog retrieved successfully"),
+      HTTP_STATUS_CODES.OK
     );
   })
 );
@@ -68,7 +75,8 @@ app.get(
           configSchema: jsonSchema
         },
         "Node retrieved successfully"
-      )
+      ),
+      HTTP_STATUS_CODES.OK
     );
   })
 );
@@ -98,7 +106,10 @@ app.get(
     const nodes = NodeRegistry.getNodesByCategory(
       categoryUpper as NodeCategory
     );
-    return c.json(createSuccessResponse(nodes, "Nodes retrieved successfully"));
+    return c.json(
+      createSuccessResponse(nodes, "Nodes retrieved successfully"),
+      HTTP_STATUS_CODES.OK
+    );
   })
 );
 
