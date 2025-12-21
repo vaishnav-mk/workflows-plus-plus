@@ -6,30 +6,10 @@ import { cn } from '@/lib/utils';
 export type HatchPattern = 'large' | 'small' | 'custom';
 
 export interface CrossHatchBackgroundProps {
-  /**
-   * Type of hatching pattern
-   * - 'large': 10px spacing (default, used for page backgrounds)
-   * - 'small': 8px spacing (used for cards/components)
-   * - 'custom': Use customSpacing prop
-   */
   pattern?: HatchPattern;
-  /**
-   * Custom spacing for pattern (only used when pattern is 'custom')
-   */
   customSpacing?: number;
-  /**
-   * Opacity of the pattern (0-1)
-   * @default 0.03
-   */
   opacity?: number;
-  /**
-   * Whether pointer events should be disabled
-   * @default true
-   */
   pointerEvents?: boolean;
-  /**
-   * Additional className
-   */
   className?: string;
 }
 
@@ -50,7 +30,7 @@ export function CrossHatchBackground({
   pattern = 'large',
   customSpacing,
   opacity = 0.03,
-  pointerEvents = true,
+  pointerEvents = false,
   className
 }: CrossHatchBackgroundProps) {
   return (
