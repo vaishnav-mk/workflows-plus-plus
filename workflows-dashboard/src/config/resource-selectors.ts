@@ -99,7 +99,7 @@ export function createR2BucketConfig(
     loadResources: async () => {
       const response = await apiClient.getR2Buckets();
       if (isSuccessResponse(response)) {
-        return response.data;
+        return response.data.buckets;
       }
       throw new Error(getResponseError(response) || "Failed to load buckets");
     },

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { ResourceSelector } from "./ResourceSelector";
 import { createR2BucketConfig } from "@/config/resource-selectors";
 import { SettingButton } from "@/components/ui/SettingButton";
@@ -20,7 +20,7 @@ function formatBytes(bytes: number): string {
   const k = 1024;
   const sizes = ["B", "KB", "MB", "GB"];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return Math.round(bytes / Math.pow(k, i) * 100) / 100 + " " + sizes[i];
+  return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + " " + sizes[i];
 }
 
 export function R2BucketSelector({
@@ -38,7 +38,7 @@ export function R2BucketSelector({
 
   const selectedBucketName = nodeData?.config?.bucket || "";
 
-  const handleListObjects = async () => {
+  const handleListObjects = async (useCursor?: string | null) => {
     if (!selectedBucketName) {
       setObjectError("Please select a bucket first");
       return;
@@ -47,11 +47,17 @@ export function R2BucketSelector({
     setLoadingObjects(true);
     setObjectError(null);
     try {
-      const response = await apiClient.listR2Objects(selectedBucketName, prefix, perPage, cursor || "");
+      const currentCursor = useCursor !== undefined ? useCursor : cursor;
+      const response = await apiClient.listR2Objects(
+        selectedBucketName,
+        prefix,
+        perPage,
+        currentCursor || ""
+      );
       if (isSuccessResponse(response)) {
         const newObjects = response.data.objects;
-        if (cursor) {
-          setObjects([...objects, ...newObjects]);
+        if (currentCursor) {
+          setObjects((prev) => [...prev, ...newObjects]);
         } else {
           setObjects(newObjects);
         }
@@ -66,6 +72,14 @@ export function R2BucketSelector({
       setLoadingObjects(false);
     }
   };
+
+  useEffect(() => {
+    if (selectedBucketName) {
+      setCursor(null);
+      setObjects([]);
+      handleListObjects(null);
+    }
+  }, [selectedBucketName]);
 
   const handleLoadMore = () => {
     if (cursor && truncated) {
@@ -104,13 +118,13 @@ export function R2BucketSelector({
 
   return (
     <div className="space-y-4">
-      <ResourceSelector 
-        nodeData={nodeData} 
-        onNodeUpdate={onNodeUpdate} 
-        nodeId={nodeId} 
-        config={enhancedConfig} 
+      <ResourceSelector
+        nodeData={nodeData}
+        onNodeUpdate={onNodeUpdate}
+        nodeId={nodeId}
+        config={enhancedConfig}
       />
-      
+
       {selectedBucketName && (
         <div className="border border-gray-200 rounded-md p-4 bg-gray-50">
           <div className="flex items-center justify-between mb-3">
@@ -159,7 +173,8 @@ export function R2BucketSelector({
                           {obj.key}
                         </div>
                         <div className="text-xs text-gray-500 mt-1">
-                          {formatBytes(obj.size)} • {new Date(obj.uploaded).toLocaleDateString()}
+                          {formatBytes(obj.size)} •{" "}
+                          {new Date(obj.uploaded).toLocaleDateString()}
                         </div>
                       </div>
                       {nodeData?.config?.key === obj.key && (
@@ -173,14 +188,21 @@ export function R2BucketSelector({
               </div>
               {truncated && cursor && (
                 <div className="mt-2">
-                  <SettingButton onClick={handleLoadMore} disabled={loadingObjects} className="w-full">
+                  <SettingButton
+                    onClick={handleLoadMore}
+                    disabled={loadingObjects}
+                    className="w-full"
+                  >
                     {loadingObjects ? "Loading..." : "Load More"}
                   </SettingButton>
                 </div>
               )}
               {objects.length > 0 && (
                 <div className="mt-2">
-                  <SettingButton onClick={handleResetList} className="w-full text-xs">
+                  <SettingButton
+                    onClick={handleResetList}
+                    className="w-full text-xs"
+                  >
                     Clear List
                   </SettingButton>
                 </div>
