@@ -14,7 +14,11 @@ import {
 } from "@/components";
 import { useGenerateWorkflowFromAIMutation } from "@/hooks/useWorkflowsQuery";
 import type { GenerateWorkflowFromAIRequest } from "@/lib/api/types";
-import { ImageUploadSection, TextInputSection, MissingFieldsForm } from "@/components/create";
+import {
+  ImageUploadSection,
+  TextInputSection,
+  MissingFieldsForm
+} from "@/components/create";
 import { useImagePaste } from "@/hooks/useImagePaste";
 import { convertImageToBase64 } from "@/utils/image";
 import { ROUTES } from "@/config/constants";
@@ -186,84 +190,88 @@ export default function CreateWorkflowPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-orange-50/30 relative" ref={containerRef}>
+    <div
+      className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-orange-50/30 relative"
+      ref={containerRef}
+    >
       <CrossHatchBackground pattern="large" />
       <div className="relative z-10 w-full px-6 py-8">
-        <PageHeader
-          title="Create Workflow with AI"
-          description="Upload, paste, or describe your workflow, and AI will generate it for you"
-        />
+        <div className="max-w-6xl mx-auto">
+          <PageHeader
+            title="Create Workflow with AI"
+            description="Upload, paste, or describe your workflow, and AI will generate it for you"
+          />
 
-        <div className="border border-gray-200 rounded-md bg-white mt-4 max-w-5xl mx-auto">
-          <div className="p-3 border-b border-gray-200">
-            <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-orange-600" />
-              <h3 className="text-sm font-semibold text-gray-900">
-                Generate Workflow
-              </h3>
+          <div className="border border-gray-200 rounded-md bg-white mt-4">
+            <div className="p-3 border-b border-gray-200">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-orange-600" />
+                <h3 className="text-sm font-semibold text-gray-900">
+                  Generate Workflow
+                </h3>
+              </div>
+            </div>
+            <div className="p-4">
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <ImageUploadSection
+                    image={image}
+                    imagePreview={imagePreview}
+                    pasteIndicator={pasteIndicator}
+                    onImageChange={handleImageChange}
+                    onRemoveImage={handleRemoveImage}
+                  />
+
+                  <TextInputSection text={text} onTextChange={setText} />
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-3 border-t border-gray-200">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => router.push(ROUTES.BUILDER)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    variant="primary"
+                    size="sm"
+                    disabled={
+                      isGenerating ||
+                      generateWorkflowMutation.isPending ||
+                      (!image && !text.trim())
+                    }
+                  >
+                    {isGenerating || generateWorkflowMutation.isPending ? (
+                      <>
+                        <Spinner size="sm" className="mr-1.5" />
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-3.5 h-3.5 mr-1.5" />
+                        Generate Workflow
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </form>
             </div>
           </div>
-          <div className="p-4">
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <ImageUploadSection
-                  image={image}
-                  imagePreview={imagePreview}
-                  pasteIndicator={pasteIndicator}
-                  onImageChange={handleImageChange}
-                  onRemoveImage={handleRemoveImage}
-                />
 
-                <TextInputSection text={text} onTextChange={setText} />
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-gray-200">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => router.push(ROUTES.BUILDER)}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  variant="primary"
-                  size="sm"
-                  disabled={
-                    isGenerating ||
-                    generateWorkflowMutation.isPending ||
-                    (!image && !text.trim())
-                  }
-                >
-                  {isGenerating || generateWorkflowMutation.isPending ? (
-                    <>
-                      <Spinner size="sm" className="mr-1.5" />
-                      Generating...
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="w-3.5 h-3.5 mr-1.5" />
-                      Generate Workflow
-                    </>
-                  )}
-                </Button>
-              </div>
-            </form>
-          </div>
-        </div>
-
-        <MissingFieldsForm
-          missingFields={missingFields}
-          fieldValues={fieldValues}
-          onFieldChange={handleFieldChange}
-          onComplete={handleCompleteFields}
-          onCancel={() => {
-            setMissingFields([]);
-            setGeneratedWorkflow(null);
-            setFieldValues({});
-          }}
-        />
+          <MissingFieldsForm
+            missingFields={missingFields}
+            fieldValues={fieldValues}
+            onFieldChange={handleFieldChange}
+            onComplete={handleCompleteFields}
+            onCancel={() => {
+              setMissingFields([]);
+              setGeneratedWorkflow(null);
+              setFieldValues({});
+            }}
+          />
         </div>
       </div>
     </div>
