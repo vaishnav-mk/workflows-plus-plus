@@ -111,9 +111,7 @@ export default function SetupPage() {
           <div className="text-center mb-8">
             <div className="flex items-center justify-center gap-3 mb-4">
               <Cloud className="w-10 h-10 text-orange-600" />
-              <h1 className="text-4xl font-bold text-gray-900">
-                Cloudflare Workflows
-              </h1>
+              <h1 className="text-4xl font-bold text-gray-900">workers++</h1>
             </div>
             <p className="text-lg text-gray-600 mt-2 max-w-2xl mx-auto">
               Build, deploy, and manage workflows using Cloudflare products

@@ -8,7 +8,7 @@ export function OverviewTab() {
     <div className="space-y-6">
       <div>
         <h2 className="text-xl font-bold text-gray-900 mb-2">
-          What is Cloudflare Workflows?
+          What is workers++?
         </h2>
         <p className="text-gray-600 text-sm leading-relaxed">
           A visual workflow builder to create, deploy, and manage serverless
@@ -33,7 +33,8 @@ export function OverviewTab() {
           <li className="flex items-start gap-2">
             <span className="text-orange-600 font-bold">•</span>
             <span>
-              Integrate with D1, KV, R2, Workers AI, Vectorize, and other Cloudflare products
+              Integrate with D1, KV, R2, Workers AI, Vectorize, and other
+              Cloudflare products
             </span>
           </li>
         </ul>
@@ -69,8 +70,8 @@ export function OverviewTab() {
       <Alert>
         <AlertTitle className="text-sm">Security Note</AlertTitle>
         <p className="text-xs text-gray-600 mt-1">
-          Your API token is stored locally in your browser and attached to requests.
-          This is open source -{" "}
+          Your API token is stored locally in your browser and attached to
+          requests. This is open source -{" "}
           <a
             href="https://github.com/vaishnav-mk/workflows-dashboard"
             target="_blank"
@@ -85,4 +86,3 @@ export function OverviewTab() {
     </div>
   );
 }
-

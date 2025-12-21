@@ -12,7 +12,7 @@ import { safe } from "../../core/utils/route-helpers";
 import { rateLimitMiddleware } from "../../api/middleware/rate-limit.middleware";
 import { SetupEnv } from "../../types/routes";
 
-async function verifyCloudflareToken(apiToken: string, accountId: string): Promise<boolean> {
+async function verifyCloudflareToken(apiToken: string): Promise<boolean> {
   try {
     const response = await fetch(`${CLOUDFLARE.API_BASE}/user/tokens/verify`, {
       method: "GET",

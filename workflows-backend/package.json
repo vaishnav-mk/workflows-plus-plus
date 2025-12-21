@@ -1,7 +1,7 @@
 {
 	"name": "workflows-backend",
 	"version": "1.0.0",
-	"description": "Backend API for Cloudflare Workflows Dashboard using Hono",
+	"description": "Backend API for workers++ using Hono",
 	"private": true,
 	"scripts": {
 		"deploy": "node ../scripts/bundle-mcp.js && wrangler deploy",

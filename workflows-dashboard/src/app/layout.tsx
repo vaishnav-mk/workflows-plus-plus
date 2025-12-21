@@ -8,21 +8,21 @@ import { ErrorBoundaryWrapper } from "../components/ErrorBoundaryWrapper";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
-  subsets: ["latin"],
+  subsets: ["latin"]
 });
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
-  subsets: ["latin"],
+  subsets: ["latin"]
 });
 
 export const metadata: Metadata = {
-  title: "Workflows Dashboard",
-  description: "Cloudflare-style workflow builder with drag and drop",
+  title: "workers++",
+  description: "Cloudflare-style workflow builder with drag and drop"
 };
 
 export default function RootLayout({
-  children,
+  children
 }: Readonly<{
   children: React.ReactNode;
 }>) {
@@ -35,9 +35,7 @@ export default function RootLayout({
           <QueryProvider>
             <NodeRegistryProvider>
               <AppHeader />
-              <main className="bg-white min-h-screen">
-                {children}
-              </main>
+              <main className="bg-white min-h-screen">{children}</main>
             </NodeRegistryProvider>
           </QueryProvider>
         </ErrorBoundaryWrapper>

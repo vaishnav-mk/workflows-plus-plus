@@ -62,7 +62,7 @@ export default function HomePage() {
           <div className="flex items-start justify-between mb-6 gap-4">
             <div className="flex-1">
               <PageHeader
-                title="Workflows Dashboard"
+                title="workers++"
                 description="Build, deploy, and manage Cloudflare Workflows with an intuitive drag-and-drop interface"
               />
             </div>

@@ -1,6 +1,6 @@
 # Workflows Backend
 
-A modern backend API for the Cloudflare Workflows Dashboard built with Hono and Cloudflare Workers.
+A modern backend API for workers++ built with Hono and Cloudflare Workers.
 
 ## Features
 
