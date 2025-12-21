@@ -21,9 +21,17 @@ app.get("/", zValidator('query', PaginationQuerySchema), safe(async (c) => {
     per_page: perPage,
   });
 
+  const workersList = workers.result || [];
+  
+  const sortedWorkers = workersList.sort((a: any, b: any) => {
+    const dateA = new Date(a.created_on || 0).getTime();
+    const dateB = new Date(b.created_on || 0).getTime();
+    return dateB - dateA;
+  });
+
   const totalCount = (workers.result_info as { total_count?: number })?.total_count;
   const response = createPaginationResponse(
-    workers.result || [],
+    sortedWorkers,
     page,
     perPage,
     totalCount
