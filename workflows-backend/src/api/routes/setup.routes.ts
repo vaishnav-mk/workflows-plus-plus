@@ -9,6 +9,7 @@ import { SetupRequestSchema } from "../../core/validation/schemas";
 import { getSSECorsHeaders } from "../../core/cors.config";
 import { zValidator } from "../../api/middleware/validation.middleware";
 import { safe } from "../../core/utils/route-helpers";
+import { rateLimitMiddleware } from "../../api/middleware/rate-limit.middleware";
 import { SetupEnv } from "../../types/routes";
 
 async function verifyCloudflareToken(apiToken: string, accountId: string): Promise<boolean> {
@@ -263,7 +264,7 @@ async function streamSetupProgress(
 
 const app = new Hono<{ Bindings: SetupEnv }>();
 
-app.post("/stream", zValidator('json', SetupRequestSchema), safe(async c => {
+app.post("/stream", rateLimitMiddleware(), zValidator('json', SetupRequestSchema), safe(async c => {
   try {
     logger.info("setting up cloudflare credentials with sse streaming");
 
@@ -300,7 +301,7 @@ app.post("/stream", zValidator('json', SetupRequestSchema), safe(async c => {
   }
 }));
 
-app.post("/", zValidator('json', SetupRequestSchema), safe(async c => {
+app.post("/", rateLimitMiddleware(), zValidator('json', SetupRequestSchema), safe(async c => {
   try {
     logger.info("setting up cloudflare credentials");
 
@@ -353,7 +354,7 @@ app.post("/", zValidator('json', SetupRequestSchema), safe(async c => {
   }
 }));
 
-app.post("/logout", async c => {
+app.post("/logout", rateLimitMiddleware(), async c => {
   try {
     const response: ApiResponse = {
       success: true,

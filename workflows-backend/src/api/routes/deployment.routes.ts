@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { safe } from "../../core/utils/route-helpers";
 import { z } from "zod";
 import { zValidator } from "../../api/middleware/validation.middleware";
+import { rateLimitMiddleware } from "../../api/middleware/rate-limit.middleware";
 import { Env, ContextWithCredentials } from "../../types/routes";
 
 const DeploymentIdParamSchema = z.object({
@@ -11,6 +12,7 @@ const DeploymentIdParamSchema = z.object({
 const app = new Hono<{ Bindings: Env } & ContextWithCredentials>();
 app.get(
   "/:deploymentId/stream",
+  rateLimitMiddleware(),
   zValidator("param", DeploymentIdParamSchema),
   safe(async c => {
     const { deploymentId } = c.req.valid("param") as z.infer<
@@ -27,13 +29,13 @@ app.get(
     c.req.raw.headers.forEach((value, key) => {
       headers.set(key, value);
     });
-    
+
     const url = new URL(c.req.url);
     const tokenFromQuery = url.searchParams.get("token");
     if (tokenFromQuery && !headers.has("Authorization")) {
       headers.set("Authorization", `Bearer ${tokenFromQuery}`);
     }
-    
+
     headers.set("accept", "text/event-stream");
     const request = new Request(doUrl, {
       method: "GET",
@@ -46,6 +48,7 @@ app.get(
 
 app.get(
   "/:deploymentId/status",
+  rateLimitMiddleware(),
   zValidator("param", DeploymentIdParamSchema),
   safe(async c => {
     const { deploymentId } = c.req.valid("param") as z.infer<

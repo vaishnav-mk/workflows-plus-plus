@@ -18,10 +18,11 @@ import {
 import { parseWorkflowCode } from "../../services/compiler/reverse-codegen";
 import { safe } from "../../core/utils/route-helpers";
 import { zValidator } from "../../api/middleware/validation.middleware";
+import { rateLimitMiddleware } from "../../api/middleware/rate-limit.middleware";
 
 const app = new Hono();
 
-app.post("/compile", zValidator('json', CompileRequestSchema), safe(async (c) => {
+app.post("/compile", rateLimitMiddleware(), zValidator('json', CompileRequestSchema), safe(async (c) => {
   const { name, nodes, edges, options = {} } = c.req.valid('json') as z.infer<typeof CompileRequestSchema>;
 
   const result = await runPromise(
@@ -39,7 +40,7 @@ app.post("/compile", zValidator('json', CompileRequestSchema), safe(async (c) =>
   }, HTTP_STATUS_CODES.OK);
 }));
 
-app.post("/preview", zValidator('json', CompileRequestSchema), safe(async (c) => {
+app.post("/preview", rateLimitMiddleware(), zValidator('json', CompileRequestSchema), safe(async (c) => {
   const { name, nodes, edges, options = {} } = c.req.valid('json') as z.infer<typeof CompileRequestSchema>;
 
   const result = await runPromise(
@@ -57,7 +58,7 @@ app.post("/preview", zValidator('json', CompileRequestSchema), safe(async (c) =>
   }, HTTP_STATUS_CODES.OK);
 }));
 
-app.post("/validate-bindings", zValidator('json', ValidateBindingsSchema), safe(async (c) => {
+app.post("/validate-bindings", rateLimitMiddleware(), zValidator('json', ValidateBindingsSchema), safe(async (c) => {
   const { workflow, availableBindings } = c.req.valid('json') as z.infer<typeof ValidateBindingsSchema>;
 
   const compilationResult = await runPromise(
@@ -82,7 +83,7 @@ app.post("/validate-bindings", zValidator('json', ValidateBindingsSchema), safe(
   }, HTTP_STATUS_CODES.OK);
 }));
 
-app.post("/validate-templates", zValidator('json', ValidateTemplatesSchema), safe(async (c) => {
+app.post("/validate-templates", rateLimitMiddleware(), zValidator('json', ValidateTemplatesSchema), safe(async (c) => {
   logger.info("Validating templates");
   
   const workflow = c.req.valid('json') as z.infer<typeof ValidateTemplatesSchema>;
@@ -121,7 +122,7 @@ app.post("/validate-templates", zValidator('json', ValidateTemplatesSchema), saf
   return c.json(response, HTTP_STATUS_CODES.OK);
 }));
 
-app.post("/resolve-workflow", zValidator('json', ResolveWorkflowSchema), safe(async (c) => {
+app.post("/resolve-workflow", rateLimitMiddleware(), zValidator('json', ResolveWorkflowSchema), safe(async (c) => {
   const { nodes, edges } = c.req.valid('json') as z.infer<typeof ResolveWorkflowSchema>;
   const graphContext = await runPromise(GraphAnalyzer.buildGraphContext(nodes, edges));
   const result = await runPromise(resolveWorkflow(c.req.valid('json') as z.infer<typeof ResolveWorkflowSchema>, graphContext));
@@ -135,7 +136,7 @@ app.post("/resolve-workflow", zValidator('json', ResolveWorkflowSchema), safe(as
 
 const NodeIdParamSchema = z.object({ nodeId: z.string().min(1, "Node ID is required") });
 
-app.post("/resolve-node/:nodeId", zValidator('param', NodeIdParamSchema), zValidator('json', ResolveNodeSchema), safe(async (c) => {
+app.post("/resolve-node/:nodeId", rateLimitMiddleware(), zValidator('param', NodeIdParamSchema), zValidator('json', ResolveNodeSchema), safe(async (c) => {
   const { nodeId } = c.req.valid('param') as z.infer<typeof NodeIdParamSchema>;
   const { workflow } = c.req.valid('json') as z.infer<typeof ResolveNodeSchema>;
   
@@ -176,7 +177,7 @@ app.post("/resolve-node/:nodeId", zValidator('param', NodeIdParamSchema), zValid
   }, HTTP_STATUS_CODES.OK);
 }));
 
-app.post("/reverse-codegen", zValidator('json', ReverseCodegenSchema), safe(async (c) => {
+app.post("/reverse-codegen", rateLimitMiddleware(), zValidator('json', ReverseCodegenSchema), safe(async (c) => {
   const { code } = c.req.valid('json') as z.infer<typeof ReverseCodegenSchema>;
   const result = await runPromise(parseWorkflowCode(code));
 

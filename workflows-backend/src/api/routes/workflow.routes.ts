@@ -18,6 +18,7 @@ import {
 } from "../../core/validation/schemas";
 import { safe } from "../../core/utils/route-helpers";
 import { zValidator } from "../../api/middleware/validation.middleware";
+import { rateLimitMiddleware } from "../../api/middleware/rate-limit.middleware";
 import { CloudflareContext } from "../../core/types";
 
 interface WorkflowEnv {
@@ -118,7 +119,7 @@ const app = new Hono<{
   Variables: { credentials: CredentialsContext } & CloudflareContext;
 }>();
 
-app.get("/", zValidator('query', PaginationQuerySchema), safe(async (c) => {
+app.get("/", rateLimitMiddleware(), zValidator('query', PaginationQuerySchema), safe(async (c) => {
   const credentials = c.var.credentials;
   const client = c.var.cloudflare;
 
@@ -141,7 +142,7 @@ app.get("/", zValidator('query', PaginationQuerySchema), safe(async (c) => {
   return c.json(response, HTTP_STATUS_CODES.OK);
 }));
 
-app.post("/validate", zValidator('json', WorkflowValidateSchema), safe(async (c) => {
+app.post("/validate", rateLimitMiddleware(), zValidator('json', WorkflowValidateSchema), safe(async (c) => {
   const { nodes, edges } = c.req.valid('json') as z.infer<typeof WorkflowValidateSchema>;
 
   await runPromise(WorkflowValidator.validateWorkflow(nodes, edges));
@@ -153,7 +154,7 @@ app.post("/validate", zValidator('json', WorkflowValidateSchema), safe(async (c)
   }, HTTP_STATUS_CODES.OK);
 }));
 
-app.post("/:id/deploy", zValidator('param', IdParamSchema), zValidator('json', WorkflowDeploySchema), safe(async (c) => {
+app.post("/:id/deploy", rateLimitMiddleware(), zValidator('param', IdParamSchema), zValidator('json', WorkflowDeploySchema), safe(async (c) => {
   const { id } = c.req.valid('param') as z.infer<typeof IdParamSchema>;
   const credentials = c.var.credentials;
   const body = c.req.valid('json') as z.infer<typeof WorkflowDeploySchema>;

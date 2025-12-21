@@ -1,6 +1,15 @@
 "use client";
 
-import { Card, CardHeader, CardContent, Button, Input, Alert, AlertTitle } from "@/components";
+import {
+  Card,
+  CardHeader,
+  CardContent,
+  Button,
+  Input,
+  Alert,
+  AlertTitle,
+  CrossHatchBackground
+} from "@/components";
 import type { SetupErrors } from "@/types/setup";
 
 interface SetupFormProps {
@@ -129,4 +138,3 @@ export function SetupForm({
     </Card>
   );
 }
-

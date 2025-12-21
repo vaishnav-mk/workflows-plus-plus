@@ -14,11 +14,13 @@ import {
   safe
 } from "../../core/utils/route-helpers";
 import { zValidator } from "../../api/middleware/validation.middleware";
+import { rateLimitMiddleware } from "../../api/middleware/rate-limit.middleware";
 
 const app = new Hono();
 
 app.get(
   "/",
+  rateLimitMiddleware(),
   safe(async c => {
     try {
       const json = NodeRegistry.getCatalogJSON();
@@ -35,6 +37,7 @@ app.get(
 
 app.get(
   "/full",
+  rateLimitMiddleware(),
   safe(async c => {
     const catalog = NodeRegistry.getCatalog();
     return c.json(
@@ -46,6 +49,7 @@ app.get(
 
 app.get(
   "/:nodeType",
+  rateLimitMiddleware(),
   zValidator("param", NodeTypeParamSchema),
   safe(async c => {
     const { nodeType } = c.req.valid("param") as z.infer<
@@ -83,6 +87,7 @@ app.get(
 
 app.get(
   "/categories",
+  rateLimitMiddleware(),
   zValidator("query", CategoryQuerySchema),
   safe(async c => {
     const { category } = c.req.valid("query") as z.infer<

@@ -231,7 +231,14 @@ export default function WorkerDetailPage() {
                 />
                 <StatCard 
                   title="Created" 
-                  value={typedWorker?.created_on ? <DateDisplay date={typedWorker.created_on} /> : 'N/A'} 
+                  value={typedWorker?.created_on ? new Date(typedWorker.created_on).toLocaleString("en-US", {
+                    year: "numeric",
+                    month: "short",
+                    day: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    hour12: true
+                  }) : 'N/A'} 
                 />
               </div>
             </div>

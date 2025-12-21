@@ -8,11 +8,12 @@ import { logger } from "../../core/logging/logger";
 import { ExecuteNodeSchema, ValidateNodeSchema } from "../../core/validation/schemas";
 import { safe } from "../../core/utils/route-helpers";
 import { zValidator } from "../../api/middleware/validation.middleware";
+import { rateLimitMiddleware } from "../../api/middleware/rate-limit.middleware";
 
 const app = new Hono();
 
 const executionService = new NodeExecutionService();
-app.post("/execute", zValidator('json', ExecuteNodeSchema), safe(async (c) => {
+app.post("/execute", rateLimitMiddleware(), zValidator('json', ExecuteNodeSchema), safe(async (c) => {
   logger.info("Executing node");
   
   const { type, config, inputData } = c.req.valid('json') as z.infer<typeof ExecuteNodeSchema>;
@@ -38,7 +39,7 @@ app.post("/execute", zValidator('json', ExecuteNodeSchema), safe(async (c) => {
 
   return c.json(response, HTTP_STATUS_CODES.OK);
 }));
-app.post("/validate", zValidator('json', ValidateNodeSchema), safe(async (c) => {
+app.post("/validate", rateLimitMiddleware(), zValidator('json', ValidateNodeSchema), safe(async (c) => {
   logger.info("Validating node configuration");
   
   const { type, config } = c.req.valid('json') as z.infer<typeof ValidateNodeSchema>;

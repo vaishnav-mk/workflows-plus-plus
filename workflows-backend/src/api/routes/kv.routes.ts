@@ -4,8 +4,9 @@ import { ApiResponse } from "../../types/api";
 import { createPaginationResponse } from "../../core/utils/pagination";
 import { PaginationQuerySchema } from "../../core/validation/schemas";
 import { z } from "zod";
-import { safe } from "../../core/utils/route-helpers";
+import { safe, fetchCloudflare } from "../../core/utils/route-helpers";
 import { zValidator } from "../../api/middleware/validation.middleware";
+import { rateLimitMiddleware } from "../../api/middleware/rate-limit.middleware";
 import { ContextWithCredentials } from "../../types/routes";
 
 const NamespaceIdParamSchema = z.object({
@@ -18,25 +19,7 @@ const CreateNamespaceSchema = z.object({
 
 const app = new Hono<ContextWithCredentials>();
 
-async function fetchCloudflare(url: string, options: RequestInit) {
-  const response = await fetch(url, options);
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    let errorData: { message?: string; errors?: Array<{ message?: string }> } = {};
-    try {
-      errorData = JSON.parse(errorText);
-    } catch {
-      errorData = { message: errorText || `HTTP ${response.status}` };
-    }
-    
-    throw new Error(`${response.status} ${JSON.stringify(errorData)}`);
-  }
-
-  return response.json();
-}
-
-app.get("/", zValidator('query', PaginationQuerySchema), safe(async (c) => {
+app.get("/", rateLimitMiddleware(), zValidator('query', PaginationQuerySchema), safe(async (c) => {
   const credentials = c.var.credentials;
   const { page = 1, per_page: perPage = 1000 } = c.req.valid('query') as z.infer<typeof PaginationQuerySchema>;
 
@@ -68,7 +51,7 @@ app.get("/", zValidator('query', PaginationQuerySchema), safe(async (c) => {
   return c.json(apiResponse, HTTP_STATUS_CODES.OK);
 }));
 
-app.get("/:id", zValidator('param', NamespaceIdParamSchema), safe(async (c) => {
+app.get("/:id", rateLimitMiddleware(), zValidator('param', NamespaceIdParamSchema), safe(async (c) => {
   const credentials = c.var.credentials;
   const { id: namespaceId } = c.req.valid('param') as z.infer<typeof NamespaceIdParamSchema>;
 
@@ -92,7 +75,7 @@ app.get("/:id", zValidator('param', NamespaceIdParamSchema), safe(async (c) => {
   return c.json(apiResponse, HTTP_STATUS_CODES.OK);
 }));
 
-app.post("/", zValidator('json', CreateNamespaceSchema), safe(async (c) => {
+app.post("/", rateLimitMiddleware(), zValidator('json', CreateNamespaceSchema), safe(async (c) => {
   const { title } = c.req.valid('json') as z.infer<typeof CreateNamespaceSchema>;
   const credentials = c.var.credentials;
 
@@ -117,7 +100,7 @@ app.post("/", zValidator('json', CreateNamespaceSchema), safe(async (c) => {
   return c.json(apiResponse, HTTP_STATUS_CODES.CREATED);
 }));
 
-app.get("/:id/keys", zValidator('param', NamespaceIdParamSchema), safe(async (c) => {
+app.get("/:id/keys", rateLimitMiddleware(), zValidator('param', NamespaceIdParamSchema), safe(async (c) => {
   const credentials = c.var.credentials;
   const { id: namespaceId } = c.req.valid('param') as z.infer<typeof NamespaceIdParamSchema>;
   

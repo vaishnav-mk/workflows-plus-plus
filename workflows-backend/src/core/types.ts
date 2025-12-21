@@ -26,6 +26,7 @@ export interface AppContext {
     AI_GATEWAY_URL?: string;
     AI_GATEWAY_TOKEN?: string;
     DEPLOYMENT_DO?: DurableObjectNamespace;
+    RATE_LIMIT_DO?: DurableObjectNamespace;
     CREDENTIALS_MASTER_KEY?: string;
     [key: string]: unknown;
   };

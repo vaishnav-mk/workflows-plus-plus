@@ -4,31 +4,14 @@ import { HTTP_STATUS_CODES, MESSAGES, CLOUDFLARE } from "../../core/constants";
 import { ApiResponse } from "../../types/api";
 import { createPaginationResponse } from "../../core/utils/pagination";
 import { PaginationQuerySchema, DatabaseIdParamSchema } from "../../core/validation/schemas";
-import { safe } from "../../core/utils/route-helpers";
+import { safe, fetchCloudflare } from "../../core/utils/route-helpers";
 import { zValidator } from "../../api/middleware/validation.middleware";
+import { rateLimitMiddleware } from "../../api/middleware/rate-limit.middleware";
 import { ContextWithCredentials } from "../../types/routes";
 
 const app = new Hono<ContextWithCredentials>();
 
-async function fetchCloudflare(url: string, options: RequestInit) {
-  const response = await fetch(url, options);
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    let errorData: { message?: string; errors?: Array<{ message?: string }> } = {};
-    try {
-      errorData = JSON.parse(errorText);
-    } catch {
-      errorData = { message: errorText || `HTTP ${response.status}` };
-    }
-    
-    throw new Error(`${response.status} ${JSON.stringify(errorData)}`);
-  }
-
-  return response.json();
-}
-
-app.get("/", zValidator('query', PaginationQuerySchema), safe(async (c) => {
+app.get("/", rateLimitMiddleware(), zValidator('query', PaginationQuerySchema), safe(async (c) => {
   const credentials = c.var.credentials;
   const { page = 1, per_page: perPage = 10 } = c.req.valid('query') as z.infer<typeof PaginationQuerySchema>;
 
@@ -60,7 +43,7 @@ app.get("/", zValidator('query', PaginationQuerySchema), safe(async (c) => {
   return c.json(response, HTTP_STATUS_CODES.OK);
 }));
 
-app.get("/:id", zValidator('param', DatabaseIdParamSchema), safe(async (c) => {
+app.get("/:id", rateLimitMiddleware(), zValidator('param', DatabaseIdParamSchema), safe(async (c) => {
   const credentials = c.var.credentials;
   const { id: databaseId } = c.req.valid('param') as z.infer<typeof DatabaseIdParamSchema>;
 
@@ -88,7 +71,7 @@ const CreateDatabaseSchema = z.object({
   name: z.string().min(1, "Database name is required")
 });
 
-app.post("/", zValidator('json', CreateDatabaseSchema), safe(async (c) => {
+app.post("/", rateLimitMiddleware(), zValidator('json', CreateDatabaseSchema), safe(async (c) => {
   const { name } = c.req.valid('json') as z.infer<typeof CreateDatabaseSchema>;
   const credentials = c.var.credentials;
 
@@ -117,7 +100,7 @@ const ValidateQuerySchema = z.object({
   query: z.string().min(1)
 });
 
-app.post("/:id/validate-query", zValidator('param', DatabaseIdParamSchema), zValidator('json', ValidateQuerySchema), safe(async (c) => {
+app.post("/:id/validate-query", rateLimitMiddleware(), zValidator('param', DatabaseIdParamSchema), zValidator('json', ValidateQuerySchema), safe(async (c) => {
   const credentials = c.var.credentials;
   const { id: databaseId } = c.req.valid('param') as z.infer<typeof DatabaseIdParamSchema>;
   const { query } = c.req.valid('json') as z.infer<typeof ValidateQuerySchema>;
@@ -174,7 +157,7 @@ const ExecuteQuerySchema = z.object({
   params: z.array(z.any()).optional()
 });
 
-app.post("/:id/query", zValidator('param', DatabaseIdParamSchema), zValidator('json', ExecuteQuerySchema), safe(async (c) => {
+app.post("/:id/query", rateLimitMiddleware(), zValidator('param', DatabaseIdParamSchema), zValidator('json', ExecuteQuerySchema), safe(async (c) => {
   const credentials = c.var.credentials;
   const { id: databaseId } = c.req.valid('param') as z.infer<typeof DatabaseIdParamSchema>;
   const body = c.req.valid('json') as z.infer<typeof ExecuteQuerySchema>;
@@ -200,7 +183,7 @@ app.post("/:id/query", zValidator('param', DatabaseIdParamSchema), zValidator('j
   return c.json(apiResponse, HTTP_STATUS_CODES.OK);
 }));
 
-app.get("/:id/schema", zValidator('param', DatabaseIdParamSchema), safe(async (c) => {
+app.get("/:id/schema", rateLimitMiddleware(), zValidator('param', DatabaseIdParamSchema), safe(async (c) => {
   const credentials = c.var.credentials;
   const { id: databaseId } = c.req.valid('param') as z.infer<typeof DatabaseIdParamSchema>;
 

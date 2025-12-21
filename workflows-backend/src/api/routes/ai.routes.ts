@@ -7,11 +7,13 @@ import { logger } from "../../core/logging/logger";
 import { GenerateWorkflowSchema } from "../../core/validation/schemas";
 import { safe } from "../../core/utils/route-helpers";
 import { zValidator } from "../../api/middleware/validation.middleware";
+import { rateLimitMiddleware } from "../../api/middleware/rate-limit.middleware";
 import { Env } from "../../types/routes";
 
 const app = new Hono<{ Bindings: Env }>();
 app.post(
   "/generate",
+  rateLimitMiddleware(),
   zValidator("json", GenerateWorkflowSchema),
   safe(async c => {
     logger.info("Generating workflow with AI");

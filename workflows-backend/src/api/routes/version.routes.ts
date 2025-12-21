@@ -6,12 +6,13 @@ import { z } from "zod";
 import { PaginationQuerySchema, WorkerVersionParamsSchema } from "../../core/validation/schemas";
 import { safe } from "../../core/utils/route-helpers";
 import { zValidator } from "../../api/middleware/validation.middleware";
+import { rateLimitMiddleware } from "../../api/middleware/rate-limit.middleware";
 import { ContextWithCredentials } from "../../types/routes";
 
 const app = new Hono<ContextWithCredentials>();
 
 const WorkerIdParamSchema = z.object({ workerId: z.string().min(1, "Worker ID is required") });
-app.get("/:workerId/versions", 
+app.get("/:workerId/versions", rateLimitMiddleware(), 
   zValidator('param', WorkerIdParamSchema), 
   zValidator('query', PaginationQuerySchema), 
   safe(async (c) => {
@@ -38,7 +39,7 @@ app.get("/:workerId/versions",
   })
 );
 
-app.get("/:workerId/versions/:versionId", 
+app.get("/:workerId/versions/:versionId", rateLimitMiddleware(), 
   zValidator('param', WorkerVersionParamsSchema), 
   safe(async (c) => {
     const credentials = c.var.credentials;

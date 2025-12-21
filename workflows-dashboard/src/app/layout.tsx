@@ -4,6 +4,7 @@ import "./globals.css";
 import { NodeRegistryProvider } from "../contexts/NodeRegistryContext";
 import { AppHeader } from "../components/AppHeader";
 import { QueryProvider } from "../providers/QueryProvider";
+import { ErrorBoundaryWrapper } from "../components/ErrorBoundaryWrapper";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -30,14 +31,16 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-white`}
       >
-        <QueryProvider>
-          <NodeRegistryProvider>
-            <AppHeader />
-            <main className="bg-white min-h-screen">
-              {children}
-            </main>
-          </NodeRegistryProvider>
-        </QueryProvider>
+        <ErrorBoundaryWrapper>
+          <QueryProvider>
+            <NodeRegistryProvider>
+              <AppHeader />
+              <main className="bg-white min-h-screen">
+                {children}
+              </main>
+            </NodeRegistryProvider>
+          </QueryProvider>
+        </ErrorBoundaryWrapper>
       </body>
     </html>
   );

@@ -27,6 +27,7 @@ import r2Routes from "./api/routes/r2.routes";
 import kvRoutes from "./api/routes/kv.routes";
 
 import { DeploymentDurableObject } from "./services/deployment/deployment-durable-object";
+import { RateLimitDurableObject } from "./services/rate-limit/rate-limit-durable-object";
 import { AppContext } from "./core/types";
 
 const app = new Hono<AppContext>();
@@ -85,6 +86,6 @@ app.route("/api/kv", kvRoutes);
 app.onError(errorHandler);
 app.notFound(notFoundHandler);
 
-export { DeploymentDurableObject };
+export { DeploymentDurableObject, RateLimitDurableObject };
 
 export default app;

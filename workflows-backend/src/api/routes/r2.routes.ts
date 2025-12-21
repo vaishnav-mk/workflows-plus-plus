@@ -1,12 +1,12 @@
 import { Hono } from "hono";
-import { HTTP_STATUS_CODES } from "../../core/constants";
+import { HTTP_STATUS_CODES, CLOUDFLARE } from "../../core/constants";
 import { ApiResponse } from "../../types/api";
 import { createPaginationResponse } from "../../core/utils/pagination";
 import { PaginationQuerySchema } from "../../core/validation/schemas";
 import { z } from "zod";
-import { CLOUDFLARE } from "../../core/constants";
-import { safe } from "../../core/utils/route-helpers";
+import { safe, fetchCloudflare } from "../../core/utils/route-helpers";
 import { zValidator } from "../../api/middleware/validation.middleware";
+import { rateLimitMiddleware } from "../../api/middleware/rate-limit.middleware";
 import { ContextWithCredentials } from "../../types/routes";
 
 const BucketNameParamSchema = z.object({
@@ -20,25 +20,7 @@ const CreateBucketSchema = z.object({
 
 const app = new Hono<ContextWithCredentials>();
 
-async function fetchCloudflare(url: string, options: RequestInit) {
-  const response = await fetch(url, options);
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    let errorData: { message?: string; errors?: Array<{ message?: string; code?: number }> } = {};
-    try {
-      errorData = JSON.parse(errorText);
-    } catch {
-      errorData = { message: errorText || `HTTP ${response.status}` };
-    }
-    
-    throw new Error(`${response.status} ${JSON.stringify(errorData)}`);
-  }
-
-  return response.json();
-}
-
-app.get("/", zValidator('query', PaginationQuerySchema), safe(async (c) => {
+app.get("/", rateLimitMiddleware(), zValidator('query', PaginationQuerySchema), safe(async (c) => {
   const credentials = c.var.credentials;
   const { page = 1, per_page: perPage = 1000 } = c.req.valid('query') as z.infer<typeof PaginationQuerySchema>;
 
@@ -70,7 +52,7 @@ app.get("/", zValidator('query', PaginationQuerySchema), safe(async (c) => {
   return c.json(apiResponse, HTTP_STATUS_CODES.OK);
 }));
 
-app.post("/", zValidator('json', CreateBucketSchema), safe(async (c) => {
+app.post("/", rateLimitMiddleware(), zValidator('json', CreateBucketSchema), safe(async (c) => {
   const { name, location } = c.req.valid('json') as z.infer<typeof CreateBucketSchema>;
   const credentials = c.var.credentials;
   
@@ -102,7 +84,7 @@ app.post("/", zValidator('json', CreateBucketSchema), safe(async (c) => {
   return c.json(apiResponse, HTTP_STATUS_CODES.CREATED);
 }));
 
-app.get("/:name/objects", zValidator('param', BucketNameParamSchema), safe(async (c) => {
+app.get("/:name/objects", rateLimitMiddleware(), zValidator('param', BucketNameParamSchema), safe(async (c) => {
   const credentials = c.var.credentials;
   const { name: bucketName } = c.req.valid('param') as z.infer<typeof BucketNameParamSchema>;
   

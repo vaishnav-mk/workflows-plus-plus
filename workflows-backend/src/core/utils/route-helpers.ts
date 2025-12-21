@@ -71,3 +71,24 @@ export const safe = <
     );
   }
 };
+
+export async function fetchCloudflare(
+  url: string,
+  options: RequestInit
+): Promise<unknown> {
+  const response = await fetch(url, options);
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    let errorData: { message?: string; errors?: Array<{ message?: string; code?: number }> } = {};
+    try {
+      errorData = JSON.parse(errorText);
+    } catch {
+      errorData = { message: errorText || `HTTP ${response.status}` };
+    }
+    
+    throw new Error(`${response.status} ${JSON.stringify(errorData)}`);
+  }
+
+  return response.json();
+}

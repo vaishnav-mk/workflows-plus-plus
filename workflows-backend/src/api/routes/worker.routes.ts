@@ -6,10 +6,11 @@ import { createPaginationResponse } from "../../core/utils/pagination";
 import { PaginationQuerySchema, WorkerIdParamSchema } from "../../core/validation/schemas";
 import { safe } from "../../core/utils/route-helpers";
 import { zValidator } from "../../api/middleware/validation.middleware";
+import { rateLimitMiddleware } from "../../api/middleware/rate-limit.middleware";
 import { ContextWithCredentials } from "../../types/routes";
 
 const app = new Hono<ContextWithCredentials>();
-app.get("/", zValidator('query', PaginationQuerySchema), safe(async (c) => {
+app.get("/", rateLimitMiddleware(), zValidator('query', PaginationQuerySchema), safe(async (c) => {
   const credentials = c.var.credentials;
   const client = c.var.cloudflare;
 
@@ -41,7 +42,7 @@ app.get("/", zValidator('query', PaginationQuerySchema), safe(async (c) => {
   return c.json(response, HTTP_STATUS_CODES.OK);
 }));
 
-app.get("/:id", zValidator('param', WorkerIdParamSchema), safe(async (c) => {
+app.get("/:id", rateLimitMiddleware(), zValidator('param', WorkerIdParamSchema), safe(async (c) => {
   const credentials = c.var.credentials;
   const { id: workerId } = c.req.valid('param') as z.infer<typeof WorkerIdParamSchema>;
   const client = c.var.cloudflare;

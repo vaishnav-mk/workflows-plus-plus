@@ -45,7 +45,9 @@ class ApiClient {
       const result = await responseInterceptor<T>(response);
       return result;
     } catch (error) {
-      console.error(`[API] ${options.method || 'GET'} ${endpoint} - Error:`, error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error(`[API] ${options.method || 'GET'} ${endpoint} - Error:`, error);
+      }
       return errorInterceptor(error);
     }
   }
