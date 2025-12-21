@@ -8,9 +8,6 @@
 	"main": "src/index.ts",
 	"compatibility_date": "2025-10-16",
 	"compatibility_flags": ["nodejs_compat"],
-	"assets": {
-		"directory": "./public"
-	},
 	"kv_namespaces": [
 		{
 			"binding": "WORKFLOWS_KV",
