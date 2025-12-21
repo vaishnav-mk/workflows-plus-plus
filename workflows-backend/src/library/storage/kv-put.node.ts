@@ -10,7 +10,7 @@ const KVPutConfigSchema = z.object({
   value: z.object({
     type: z.enum(["static", "variable", "expression"]),
     content: z.any(),
-  }),
+  }).optional(),
   options: z.object({
     expirationTtl: z.number().optional(),
     expiration: z.number().optional(),
@@ -148,10 +148,10 @@ export const KVPutNode: WorkflowNodeDefinition<KVPutConfig> = {
     return Effect.gen(function* (_) {
       const namespace = (config.namespace || BINDING_NAMES.DEFAULT_KV).replace(/[^a-zA-Z0-9_]/g, "_");
       const keyExpr = resolveKeyExpression(config.key, graphContext);
-      const valueContent = resolveValueContent(config.value, graphContext);
       const inputData = graphContext.edges
         .filter(e => e.target === nodeId)
         .map(e => `_workflowState['${e.source}']?.output || event.payload`)[0] || "event.payload";
+      const valueContent = config.value ? resolveValueContent(config.value, graphContext) : inputData;
 
       const optionLines: string[] = [];
       if (config.options?.expirationTtl) {

@@ -63,8 +63,8 @@ export const WorkflowEdgeSchema = z.object({
   id: z.string().min(1),
   source: z.string().min(1),
   target: z.string().min(1),
-  sourceHandle: z.string().optional(),
-  targetHandle: z.string().optional()
+  sourceHandle: z.string().nullable().optional(),
+  targetHandle: z.string().nullable().optional()
 });
 
 export const WorkflowCreateSchema = z.object({
