@@ -5,6 +5,7 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
   variant?: "primary" | "secondary" | "ghost" | "danger";
   size?: "sm" | "md" | "lg";
   children: React.ReactNode;
+  comingSoon?: boolean;
 }
 
 export function Button({
@@ -13,6 +14,8 @@ export function Button({
   className,
   children,
   disabled,
+  comingSoon = false,
+  title,
   ...props
 }: ButtonProps) {
   const baseClasses = "group flex w-max shrink-0 items-center font-medium select-none border-0 shadow-xs cursor-pointer outline-none rounded-lg";
@@ -30,14 +33,18 @@ export function Button({
     lg: "h-10 gap-2 px-4 text-base",
   };
   
+  const isDisabled = disabled || comingSoon;
+  const buttonTitle = comingSoon ? "Coming soon" : title;
+  
   return (
     <button
-      disabled={disabled}
+      disabled={isDisabled}
+      title={buttonTitle}
       className={cn(
         baseClasses,
         variantClasses[variant],
         sizeClasses[size],
-        disabled && "disabled:cursor-not-allowed",
+        isDisabled && "disabled:cursor-not-allowed",
         className
       )}
       {...props}

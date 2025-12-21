@@ -8,13 +8,15 @@ interface SettingButtonProps {
   onClick?: () => void;
   className?: string;
   disabled?: boolean;
+  comingSoon?: boolean;
 }
 
 export function SettingButton({
   children,
   onClick,
   className,
-  disabled
+  disabled,
+  comingSoon
 }: SettingButtonProps) {
   return (
     <Button
@@ -23,6 +25,7 @@ export function SettingButton({
       onClick={onClick}
       className={className}
       disabled={disabled}
+      comingSoon={comingSoon}
     >
       {children}
     </Button>
