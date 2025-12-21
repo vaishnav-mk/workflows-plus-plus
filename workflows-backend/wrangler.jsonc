@@ -45,6 +45,10 @@
 		{
 			"tag": "v1",
 			"new_sqlite_classes": ["DeploymentDurableObject"]
+		},
+		{
+			"tag": "v2",
+			"new_sqlite_classes": ["RateLimitDurableObject"]
 		}
 	],
 	// Environment variables should be set via:
