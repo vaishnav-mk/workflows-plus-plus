@@ -96,7 +96,7 @@ export function SampleWorkflows() {
                         {starter.name}
                       </h3>
                       {starter.difficulty && (
-                        <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium border ${difficultyColor}`}>
+                        <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] uppercase font-bold border ${difficultyColor}`}>
                           {starter.difficulty}
                         </span>
                       )}
@@ -105,26 +105,16 @@ export function SampleWorkflows() {
                       {starter.description}
                     </p>
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      {starter.category && (
-                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-700 border border-gray-200">
-                          {starter.category}
-                        </span>
-                      )}
                       {starter.tags && starter.tags.length > 0 && (
                         <>
-                          {starter.tags.slice(0, 2).map((tag: string, tagIndex: number) => (
+                          {starter.tags.map((tag: string, tagIndex: number) => (
                             <span
                               key={tagIndex}
-                              className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-50 text-gray-600 border border-gray-200"
+                              className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] uppercase font-medium bg-gray-50 text-gray-600 border border-gray-200"
                             >
                               {tag}
                             </span>
                           ))}
-                          {starter.tags.length > 2 && (
-                            <span className="text-[10px] text-gray-500">
-                              +{starter.tags.length - 2}
-                            </span>
-                          )}
                         </>
                       )}
                     </div>

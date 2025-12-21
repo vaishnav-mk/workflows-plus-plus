@@ -130,7 +130,7 @@ export function WorkflowCanvas({
       </ReactFlow>
       
       {preparedNodes.length === 0 && (
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+        <div className="absolute inset-0 flex items-center justify-center">
           <div className="text-center bg-white/90 p-8 rounded-lg shadow-sm">
             <p className="text-lg font-medium text-gray-700 mb-2">No workflow loaded</p>
             <p className="text-sm text-gray-500">Click "Sample" to load a sample workflow</p>
