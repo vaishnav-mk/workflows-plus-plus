@@ -43,7 +43,8 @@ export { Alert, AlertTitle, type AlertProps, type AlertTitleProps } from "./Aler
 export { Dropdown, type DropdownProps, type DropdownOption } from "./Dropdown";
 export { Combobox, type ComboboxProps, type ComboboxOption } from "./Combobox";
 export { Link, type LinkProps } from "./Link";
-export { Spinner, type SpinnerProps } from "./Spinner";
+export { Loader, type LoaderProps, SpinnerComponent as Spinner } from "./Loader";
+export type { LoaderProps as SpinnerProps } from "./Loader";
 export { DocLink, type DocLinkProps } from "./DocLink";
 export { Separator, type SeparatorProps } from "./Separator";
 export { CopyButton, type CopyButtonProps } from "./CopyButton";
@@ -60,7 +61,6 @@ export { SettingButton } from "./SettingButton";
 export { SettingCard } from "./SettingCard";
 export { SettingInput } from "./SettingInput";
 export { SettingSelect } from "./SettingSelect";
-export { SettingText } from "./SettingText";
 export { SettingTextarea } from "./SettingTextarea";
 export { TemplateBadge } from "./TemplateBadge";
 export { TemplateInput } from "./TemplateInput";
