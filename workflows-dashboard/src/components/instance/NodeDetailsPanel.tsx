@@ -7,7 +7,8 @@ import {
   Badge,
   CopyButton,
   JsonViewer,
-  DetailsList
+  DetailsList,
+  DateDisplay
 } from "@/components";
 import type { Node } from "reactflow";
 import type { InstanceStep } from "@/types/instance";
@@ -47,9 +48,17 @@ export function NodeDetailsPanel({
       : "Pending";
   const timeRange =
     step?.start && step?.end
-      ? `${new Date(step.start).toLocaleTimeString()} - ${new Date(step.end).toLocaleTimeString()}`
+      ? (
+          <>
+            <DateDisplay date={step.start} /> - <DateDisplay date={step.end} />
+          </>
+        )
       : step?.start
-        ? `${new Date(step.start).toLocaleTimeString()} - —`
+        ? (
+            <>
+              <DateDisplay date={step.start} /> - —
+            </>
+          )
         : "—";
 
   const detailsItems = [
@@ -211,13 +220,17 @@ export function NodeDetailsPanel({
                           </div>
                         )}
                         <div className="text-gray-500 mt-1">
-                          {attempt.start
-                            ? new Date(attempt.start).toLocaleTimeString()
-                            : "—"}{" "}
+                          {attempt.start ? (
+                            <DateDisplay date={attempt.start} />
+                          ) : (
+                            "—"
+                          )}{" "}
                           -{" "}
-                          {attempt.end
-                            ? new Date(attempt.end).toLocaleTimeString()
-                            : "—"}
+                          {attempt.end ? (
+                            <DateDisplay date={attempt.end} />
+                          ) : (
+                            "—"
+                          )}
                         </div>
                       </div>
                     ))}

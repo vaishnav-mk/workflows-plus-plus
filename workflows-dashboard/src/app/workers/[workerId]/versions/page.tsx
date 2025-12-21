@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Spinner } from '@/components';
 import { useWorkerQuery, useWorkerVersionsQuery } from '../../../../hooks/useWorkflowsQuery';
-import { PageHeader, SearchBar, DataTable, Card, Pagination, Alert, AlertTitle, Button } from '@/components';
+import { PageHeader, SearchBar, DataTable, Card, Pagination, Alert, AlertTitle, Button, DateDisplay } from '@/components';
 import { type ColumnDef } from '@tanstack/react-table';
 import Link from 'next/link';
 
@@ -77,7 +77,7 @@ export default function WorkerVersionsPage() {
       header: 'Created',
       cell: ({ row }) => (
         <div className="text-sm text-gray-500">
-          {new Date(row.original.created_on).toLocaleString()}
+          <DateDisplay date={row.original.created_on} />
         </div>
       ),
     },

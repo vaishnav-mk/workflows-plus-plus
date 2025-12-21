@@ -17,7 +17,8 @@ import {
   Alert,
   AlertTitle,
   CopyButton,
-  Separator
+  Separator,
+  DateDisplay
 } from "@/components";
 import type { WorkerVersion } from "@/lib/api/types";
 import { useVersionEdit } from "@/hooks/useVersionEdit";
@@ -142,7 +143,7 @@ export default function VersionDetailPage() {
     {
       label: "Created",
       value: typedVersion?.created_on
-        ? new Date(typedVersion.created_on).toLocaleString()
+        ? <DateDisplay date={typedVersion.created_on} />
         : "N/A"
     },
     {

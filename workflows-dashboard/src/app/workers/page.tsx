@@ -6,7 +6,7 @@ import { InlineLoader } from '../../components/ui/Loader';
 import { useWorkersQuery } from '../../hooks/useWorkflowsQuery';
 import { useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../../lib/api-client';
-import { PageHeader, SearchBar, DataTable, UsageStatsPanel, Pagination, Alert, AlertTitle, Button, CrossHatchBackground } from '@/components';
+import { PageHeader, SearchBar, DataTable, UsageStatsPanel, Pagination, Alert, AlertTitle, Button, CrossHatchBackground, DateDisplay } from '@/components';
 import { type ColumnDef } from '@tanstack/react-table';
 import Link from 'next/link';
 import type { Worker } from '@/lib/api/types';
@@ -120,7 +120,7 @@ export default function WorkersPage() {
       header: 'Created',
       cell: ({ row }) => (
         <div className="text-sm text-gray-500">
-          {new Date(row.original.created_on).toLocaleDateString()}
+          <DateDisplay date={row.original.created_on} />
         </div>
       ),
     },
@@ -129,7 +129,7 @@ export default function WorkersPage() {
       header: 'Modified',
       cell: ({ row }) => (
         <div className="text-sm text-gray-500">
-          {new Date(row.original.updated_on || row.original.created_on).toLocaleDateString()}
+          <DateDisplay date={row.original.updated_on || row.original.created_on} />
         </div>
       ),
     },

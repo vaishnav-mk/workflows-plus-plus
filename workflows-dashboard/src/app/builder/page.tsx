@@ -108,25 +108,25 @@ function WorkflowBuilderContent() {
       <CrossHatchBackground pattern="large" />
       <div className="relative z-10 flex flex-col h-screen">
         <div className="border-b border-gray-200 bg-white/80 backdrop-blur-sm px-6 py-4 shadow-sm">
-          <div className="w-full flex items-center justify-between">
-            <PageHeader
-              title="Workflow Builder"
-              description="Build and deploy workflows with drag and drop"
-            />
-            <WorkflowToolbar
-              onCodePreview={handleCodePreviewClick}
-              onDeploy={handleDeployClick}
-              isDeploying={isDeploying || isCompiling}
-              mcpEnabled={mcpEnabled}
-              onMCPToggle={handleMCPToggle}
-            />
-          </div>
+        <div className="w-full flex items-center justify-between">
+          <PageHeader
+            title="Workflow Builder"
+            description="Build and deploy workflows with drag and drop"
+          />
+          <WorkflowToolbar
+            onCodePreview={handleCodePreviewClick}
+            onDeploy={handleDeployClick}
+            isDeploying={isDeploying || isCompiling}
+            mcpEnabled={mcpEnabled}
+            onMCPToggle={handleMCPToggle}
+          />
         </div>
+      </div>
 
-        <div
+      <div
           className="flex flex-1 overflow-hidden relative z-10"
-          style={{ height: "calc(100vh - 80px)" }}
-        >
+        style={{ height: "calc(100vh - 80px)" }}
+      >
         <WorkflowSidebar
           onAddNode={(nodeType: string) => {
             if (selectedEdge) {

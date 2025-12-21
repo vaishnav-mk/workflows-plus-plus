@@ -20,18 +20,18 @@ export function WorkflowSettingsPanel({ selectedNode, onNodeUpdate, onClose: _on
   return (
     <div className="w-96 settings-panel flex flex-col h-full overflow-hidden bg-white/80 backdrop-blur-sm border-l border-gray-200 shadow-lg">
       <div className="flex-1 overflow-hidden flex flex-col">
-        {selectedNode ? (
-          <>
+          {selectedNode ? (
+            <>
             <div className="p-4 border-b border-gray-200 bg-white/90 backdrop-blur-sm flex-shrink-0">
-              <h2 className="text-lg font-semibold text-gray-900 mb-1">
-                {typeof selectedNode.data?.label === 'string' ? selectedNode.data.label : (selectedNode.type || 'Node')}
-              </h2>
-              {typeof selectedNode.data?.description === 'string' && selectedNode.data.description && (
+                  <h2 className="text-lg font-semibold text-gray-900 mb-1">
+                    {typeof selectedNode.data?.label === 'string' ? selectedNode.data.label : (selectedNode.type || 'Node')}
+                  </h2>
+                  {typeof selectedNode.data?.description === 'string' && selectedNode.data.description && (
                 <p className="text-sm text-gray-500">
-                  {selectedNode.data.description}
-                </p>
-              )}
-            </div>
+                      {selectedNode.data.description}
+                    </p>
+                  )}
+                </div>
 
             <div className="border-b border-gray-200 bg-white/90 backdrop-blur-sm">
               <Tabs
@@ -59,32 +59,32 @@ export function WorkflowSettingsPanel({ selectedNode, onNodeUpdate, onClose: _on
                 <WorkflowStateView />
               ) : (
                 <div className="space-y-4">
-                  <DynamicSettingsRenderer
-                    fields={settingsConfig}
-                    nodeData={selectedNode.data}
-                    onNodeUpdate={onNodeUpdate}
-                    nodeId={selectedNode.id}
-                  />
-                  
-                  <RetryConfigSection
-                    nodeData={selectedNode.data}
-                    onNodeUpdate={onNodeUpdate}
-                    nodeId={selectedNode.id}
-                  />
+                <DynamicSettingsRenderer
+                  fields={settingsConfig}
+                  nodeData={selectedNode.data}
+                  onNodeUpdate={onNodeUpdate}
+                  nodeId={selectedNode.id}
+                />
+                
+                <RetryConfigSection
+                  nodeData={selectedNode.data}
+                  onNodeUpdate={onNodeUpdate}
+                  nodeId={selectedNode.id}
+                />
 
-                  <NodeExecutionPanel node={selectedNode} />
+                <NodeExecutionPanel node={selectedNode} />
                 </div>
               )}
-            </div>
-          </>
-        ) : (
+              </div>
+            </>
+          ) : (
           <div className="flex items-center justify-center h-full p-4">
-            <EmptyState
-              title="Select a Node"
-              description="Click on a node to configure its settings"
-            />
-          </div>
-        )}
+              <EmptyState
+                title="Select a Node"
+                description="Click on a node to configure its settings"
+              />
+            </div>
+          )}
       </div>
     </div>
   );

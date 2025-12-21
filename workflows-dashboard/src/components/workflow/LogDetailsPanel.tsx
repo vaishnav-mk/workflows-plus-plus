@@ -2,6 +2,7 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import type { LogEntry } from "@/types/workflow-logs";
+import { DateDisplay } from "@/components/ui/DateDisplay";
 
 interface LogDetailsPanelProps {
   selectedLog: LogEntry | null;
@@ -76,7 +77,7 @@ export function LogDetailsPanel({
                 Timestamp
               </div>
               <div className="text-sm text-gray-900 bg-white px-3 py-2 rounded-md border font-mono">
-                {new Date(selectedLog.timestamp).toLocaleString()}
+                <DateDisplay date={selectedLog.timestamp} />
               </div>
             </div>
 

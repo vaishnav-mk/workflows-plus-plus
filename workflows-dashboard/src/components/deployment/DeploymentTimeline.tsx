@@ -1,6 +1,6 @@
 "use client";
 
-import { Card, Badge, Spinner } from "@/components";
+import { Card, Badge, Spinner, DateDisplay } from "@/components";
 import { motion, AnimatePresence } from "framer-motion";
 import { CheckCircle2, XCircle, Rocket } from "lucide-react";
 import type { DeploymentProgress } from "@/hooks/useDeploymentSSE";
@@ -8,7 +8,6 @@ import type { DeploymentStateResponse } from "@/lib/api/types";
 import type { DeploymentErrorInfo } from "@/types/deployment";
 import { DeploymentStatus } from "@/config/enums";
 import { STEP_CONFIG } from "@/config/deployment-steps";
-import { formatTimestamp } from "@/utils/deployment";
 
 interface DeploymentTimelineProps {
   progressEvents: DeploymentProgress[];
@@ -154,7 +153,7 @@ export function DeploymentTimeline({
                       className="mt-1.5 text-[11px] text-gray-500 flex items-center gap-1"
                     >
                       <span className="inline-block w-1.5 h-1.5 bg-gray-400 rounded-full"></span>
-                      {formatTimestamp(progress.timestamp)}
+                      <DateDisplay date={progress.timestamp} />
                     </motion.div>
                     {isFailed && errorInfo?.raw && (
                       <motion.details

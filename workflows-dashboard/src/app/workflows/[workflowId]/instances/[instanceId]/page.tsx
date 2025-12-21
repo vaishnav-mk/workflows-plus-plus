@@ -18,7 +18,8 @@ import {
   Badge,
   Button,
   Alert,
-  AlertTitle
+  AlertTitle,
+  DateDisplay
 } from "@/components";
 import { applyNodeChanges, applyEdgeChanges, type Node, type Edge, type Connection } from "reactflow";
 import type { InstanceDetail } from "@/types/instance";
@@ -158,7 +159,11 @@ export default function InstanceDetailPage() {
                 : "#fbbf24";
 
         const description = step
-          ? `Start: ${step.start ? new Date(step.start).toLocaleTimeString() : "—"} | End: ${step.end ? new Date(step.end).toLocaleTimeString() : "—"}`
+          ? (
+              <>
+                Start: {step.start ? <DateDisplay date={step.start} /> : "—"} | End: {step.end ? <DateDisplay date={step.end} /> : "—"}
+              </>
+            )
           : node.data?.description || "Workflow node";
 
         return {

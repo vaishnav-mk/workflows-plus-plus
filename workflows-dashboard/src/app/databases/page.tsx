@@ -5,7 +5,12 @@ import { useRouter } from "next/navigation";
 import { apiClient } from "@/lib/api-client";
 import { isSuccessResponse, getResponseError } from "@/lib/api/utils";
 import type { D1Database } from "@/lib/api/types";
-import { PageHeader, Button, CrossHatchBackground } from "@/components";
+import {
+  PageHeader,
+  Button,
+  CrossHatchBackground,
+  DateDisplay
+} from "@/components";
 import { InlineLoader } from "@/components/ui/Loader";
 import { Database, Plus } from "lucide-react";
 
@@ -162,7 +167,7 @@ export default function DatabasesPage() {
                             {db.uuid.slice(0, 8)}...
                           </p>
                           <p className="text-xs text-gray-400 mt-1">
-                            {new Date(db.created_at).toLocaleDateString()}
+                            <DateDisplay date={db.created_at} />
                           </p>
                         </div>
                       </div>

@@ -1,10 +1,9 @@
 "use client";
 
-import { Card, Badge, DetailsList } from "@/components";
+import { Card, Badge, DetailsList, DateDisplay } from "@/components";
 import type { DeploymentStateResponse } from "@/lib/api/types";
 import { DeploymentStatus } from "@/config/enums";
 import { STRINGS } from "@/config/constants";
-import { formatTimestamp } from "@/utils/deployment";
 
 interface DeploymentDetailsProps {
   deploymentState: DeploymentStateResponse | null;
@@ -57,11 +56,11 @@ export function DeploymentDetails({
           },
           {
             label: "Started at",
-            value: formatTimestamp(deploymentState?.startedAt || "")
+            value: deploymentState?.startedAt ? <DateDisplay date={deploymentState.startedAt} /> : "-"
           },
           {
             label: "Completed at",
-            value: formatTimestamp(deploymentState?.completedAt || "")
+            value: deploymentState?.completedAt ? <DateDisplay date={deploymentState.completedAt} /> : "-"
           },
           {
             label: "Connection",

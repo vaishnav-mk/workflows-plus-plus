@@ -311,14 +311,14 @@ export function CodePreview({ workflow, isOpen, onClose, code, bindings, nodes =
                     {bindings && bindings.length > 0 && (
                       <span className="px-1.5 py-0.5 text-[10px] bg-orange-100 text-orange-700 rounded font-medium">
                         {bindings.length}
-                      </span>
+                  </span>
                     )}
-                  </div>
                 </div>
-                
-                {bindings && bindings.length > 0 ? (
+              </div>
+              
+              {bindings && bindings.length > 0 ? (
                   <div className="space-y-2">
-                    {bindings.map((binding, index) => (
+                  {bindings.map((binding, index) => (
                       <div
                         key={index}
                         className="border border-gray-200 rounded-md bg-white hover:border-orange-300 hover:bg-orange-50/20 transition-all p-3"
@@ -330,18 +330,18 @@ export function CodePreview({ workflow, isOpen, onClose, code, bindings, nodes =
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-1.5">
                               <span className="text-xs font-semibold text-gray-900">
-                                {binding.type}
-                              </span>
-                              {binding.required !== false && (
+                              {binding.type}
+                            </span>
+                            {binding.required !== false && (
                                 <span className="px-1.5 py-0.5 text-[10px] bg-red-100 text-red-700 rounded font-medium">
-                                  Required
-                                </span>
-                              )}
-                            </div>
+                                Required
+                              </span>
+                            )}
+                          </div>
                             <div className="mb-2">
                               <div className="font-mono text-xs font-medium text-gray-900 bg-gray-50 px-2 py-1 rounded border border-gray-200 break-all">
                                 {binding.name}
-                              </div>
+                        </div>
                             </div>
                             {(binding.usage && binding.usage.length > 0) || (binding.usedBy && binding.usedBy.length > 0) ? (
                               <div className="flex flex-wrap gap-1.5">
@@ -364,20 +364,20 @@ export function CodePreview({ workflow, isOpen, onClose, code, bindings, nodes =
                                       {nodeName}
                                     </span>
                                   ))
-                                )}
-                              </div>
+                          )}
+                        </div>
                             ) : null}
-                          </div>
                         </div>
                       </div>
-                    ))}
-                  </div>
-                ) : (
+                    </div>
+                  ))}
+                </div>
+              ) : (
                   <div className="border border-gray-200 rounded-md bg-gray-50/50 p-8 text-center">
                     <Database className="w-8 h-8 text-gray-300 mx-auto mb-2" />
                     <p className="text-xs text-gray-500">No bindings required</p>
-                  </div>
-                )}
+                </div>
+              )}
               </div>
             </div>
           )}

@@ -2,8 +2,9 @@
 
 import { motion } from "framer-motion";
 import { LogsLoader } from "@/components/ui/Loader";
-import { formatLogTimestamp, getLogColor } from "@/utils/workflow-logs";
+import { getLogColor } from "@/utils/workflow-logs";
 import type { LogEntry } from "@/types/workflow-logs";
+import { DateDisplay } from "@/components/ui/DateDisplay";
 
 interface LogListProps {
   filteredLogs: LogEntry[];
@@ -144,7 +145,7 @@ export function LogList({
                     {log.nodeName || log.type}
                   </span>
                   <span className="text-xs text-gray-500 font-mono">
-                    {formatLogTimestamp(log.timestamp)}
+                    <DateDisplay date={log.timestamp} />
                   </span>
                 </div>
                 <div className="text-sm text-gray-700 mt-1">{log.message}</div>

@@ -2,7 +2,7 @@
 
 import { useParams, useRouter } from 'next/navigation';
 import { useState, useMemo, useEffect } from 'react';
-import { PageHeader, Badge, DetailsList, StatCard, Spinner, CrossHatchBackground, SearchBar, DataTable, Pagination, Alert, AlertTitle, Button } from '@/components';
+import { PageHeader, Badge, DetailsList, StatCard, Spinner, CrossHatchBackground, SearchBar, DataTable, Pagination, Alert, AlertTitle, Button, DateDisplay } from '@/components';
 import { useWorkerQuery, useWorkerVersionsQuery } from '@/hooks/useWorkflowsQuery';
 import { type ColumnDef } from '@tanstack/react-table';
 import Link from 'next/link';
@@ -97,7 +97,7 @@ export default function WorkerDetailPage() {
       header: 'Created',
       cell: ({ row }) => (
         <div className="text-xs text-gray-500">
-          {new Date(row.original.created_on).toLocaleString()}
+          <DateDisplay date={row.original.created_on} />
         </div>
       ),
     },
@@ -131,11 +131,11 @@ export default function WorkerDetailPage() {
     { label: 'Worker Name', value: typedWorker?.name || 'N/A' },
     { 
       label: 'Created', 
-      value: typedWorker?.created_on ? new Date(typedWorker.created_on).toLocaleString() : 'N/A' 
+      value: typedWorker?.created_on ? <DateDisplay date={typedWorker.created_on} /> : 'N/A' 
     },
     { 
       label: 'Last Updated', 
-      value: typedWorker?.updated_on ? new Date(typedWorker.updated_on).toLocaleString() : 'N/A' 
+      value: typedWorker?.updated_on ? <DateDisplay date={typedWorker.updated_on} /> : 'N/A' 
     },
     { 
       label: 'Subdomain', 
@@ -231,7 +231,7 @@ export default function WorkerDetailPage() {
                 />
                 <StatCard 
                   title="Created" 
-                  value={typedWorker?.created_on ? new Date(typedWorker.created_on).toLocaleDateString() : 'N/A'} 
+                  value={typedWorker?.created_on ? <DateDisplay date={typedWorker.created_on} /> : 'N/A'} 
                 />
               </div>
             </div>

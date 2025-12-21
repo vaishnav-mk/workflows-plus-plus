@@ -13,7 +13,8 @@ import {
   Dropdown,
   Alert,
   AlertTitle,
-  Pagination
+  Pagination,
+  DateDisplay
 } from "@/components";
 import { type ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/components/ui";
@@ -100,7 +101,7 @@ export default function WorkflowInstancesPage() {
         cell: ({ row }) => (
           <div className="text-sm text-gray-900">
             {row.original.created_on
-              ? new Date(row.original.created_on).toLocaleString()
+              ? <DateDisplay date={row.original.created_on} />
               : "N/A"}
           </div>
         )
@@ -111,7 +112,7 @@ export default function WorkflowInstancesPage() {
         cell: ({ row }) => (
           <div className="text-sm text-gray-900">
             {row.original.modified_on
-              ? new Date(row.original.modified_on).toLocaleString()
+              ? <DateDisplay date={row.original.modified_on} />
               : "N/A"}
           </div>
         )

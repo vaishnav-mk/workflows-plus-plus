@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, Badge } from "@/components";
+import { Button, Badge, DateDisplay } from "@/components";
 import type { WorkerVersion } from "@/lib/api/types";
 
 interface VersionHeaderProps {
@@ -31,14 +31,7 @@ export function VersionHeader({
             </Badge>
             {version?.created_on && (
               <span className="text-base text-gray-600">
-                Created{" "}
-                {new Date(version.created_on).toLocaleDateString("en-US", {
-                  year: "numeric",
-                  month: "long",
-                  day: "numeric",
-                  hour: "2-digit",
-                  minute: "2-digit"
-                })}
+                Created <DateDisplay date={version.created_on} />
               </span>
             )}
           </div>

@@ -8,6 +8,7 @@ import { SettingInput } from "@/components/ui/SettingInput";
 import { apiClient } from "@/lib/api-client";
 import { isSuccessResponse, getResponseError } from "@/lib/api/utils";
 import type { R2Object } from "@/lib/api/types";
+import { DateDisplay } from "@/components/ui/DateDisplay";
 
 interface R2BucketSelectorProps {
   nodeData: any;
@@ -174,7 +175,7 @@ export function R2BucketSelector({
                         </div>
                         <div className="text-xs text-gray-500 mt-1">
                           {formatBytes(obj.size)} •{" "}
-                          {new Date(obj.uploaded).toLocaleDateString()}
+                          <DateDisplay date={obj.uploaded} />
                         </div>
                       </div>
                       {nodeData?.config?.key === obj.key && (

@@ -1,6 +1,6 @@
 "use client";
 
-import { Card, CardHeader, CardContent, Badge, DataTable } from "@/components";
+import { Card, CardHeader, CardContent, Badge, DataTable, DateDisplay } from "@/components";
 import type { ColumnDef } from "@tanstack/react-table";
 import type { InstanceStep } from "@/types/instance";
 
@@ -57,7 +57,7 @@ export function StepHistoryTable({ steps }: StepHistoryTableProps) {
       cell: ({ row }) => (
         <div className="text-sm text-gray-900">
           {row.original.start
-            ? new Date(row.original.start).toLocaleString()
+            ? <DateDisplay date={row.original.start} />
             : "N/A"}
         </div>
       )
@@ -68,7 +68,7 @@ export function StepHistoryTable({ steps }: StepHistoryTableProps) {
       cell: ({ row }) => (
         <div className="text-sm text-gray-900">
           {row.original.end
-            ? new Date(row.original.end).toLocaleString()
+            ? <DateDisplay date={row.original.end} />
             : "N/A"}
         </div>
       )

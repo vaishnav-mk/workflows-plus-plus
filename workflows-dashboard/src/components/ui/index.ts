@@ -53,6 +53,7 @@ export { DetailsList, type DetailsListProps, type DetailItem } from "./DetailsLi
 export { Slider, type SliderProps } from "./Slider";
 export { MarkdownRenderer } from "./MarkdownRenderer";
 export { TextHighlighter } from "./TextHighlighter";
+export { DateDisplay, type DateDisplayProps } from "./DateDisplay";
 
 export { JsonViewer } from "./JsonViewer";
 export { WorkflowLoader } from "./Loader";
