@@ -135,12 +135,22 @@ export const WorkersAINode: WorkflowNodeDefinition<WorkersAIConfig> = {
                 TEMPLATE_PATTERNS.PATH_SEPARATOR
               );
               const mappedStepName = graphContext.stepNameMap.get(nodeRef);
-              if (mappedStepName) {
-                const tail = rest.length ? "." + rest.join(".") : "";
-                const sanitizedMappedStepName = sanitizeIdentifier(
-                  mappedStepName
-                );
-                jsExpr = `_workflowResults.${sanitizedMappedStepName}${tail}`;
+              const nodeId = graphContext.nodes.find(n => n.data?.label === nodeRef)?.id;
+              
+              if (mappedStepName && nodeId) {
+                const nodeInGraph = graphContext.nodes.find(n => n.id === nodeId);
+                const isEntryNode = nodeInGraph?.type === 'entry';
+                
+                if (isEntryNode) {
+                  const tail = rest.length ? "." + rest.join(".") : ".output";
+                  jsExpr = `_workflowState['${nodeId}']${tail}`;
+                } else {
+                  const tail = rest.length ? "." + rest.join(".") : "";
+                  const sanitizedMappedStepName = sanitizeIdentifier(
+                    mappedStepName
+                  );
+                  jsExpr = `_workflowResults.${sanitizedMappedStepName}${tail}`;
+                }
               } else {
                 const tail = rest.length ? "." + rest.join(".") : ".output";
                 jsExpr = `_workflowState['${nodeRef}']${tail}`;
