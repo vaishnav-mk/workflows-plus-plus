@@ -190,6 +190,17 @@ app.post("/:id/deploy", rateLimitMiddleware(), zValidator('param', IdParamSchema
   const bindingsArray = body.bindings ?? compilationResult.bindings ?? [];
   const bindings = processWorkflowBindings(bindingsArray, workflow.nodes);
 
+  const hasMCPNodes = workflow.nodes.some(n => n.type === "mcp-tool-input" || n.type === "mcp-tool-output");
+  const mcpEnabled = (body as any).mcpEnabled !== undefined ? (body as any).mcpEnabled : hasMCPNodes;
+
+  if (hasMCPNodes) {
+    logger.info("Workflow contains MCP nodes, enabling MCP bundles", {
+      workflowId: id,
+      mcpEnabled,
+      explicitlySet: (body as any).mcpEnabled !== undefined
+    });
+  }
+
   const deploymentId = id.startsWith("workflow-") 
     ? id.replace("workflow-", "deployment-")
     : `deployment-${id}`;
@@ -214,7 +225,7 @@ app.post("/:id/deploy", rateLimitMiddleware(), zValidator('param', IdParamSchema
         scriptContent: compilationResult.tsCode,
         bindings,
         assets: body.assets,
-        mcpEnabled: (body as any).mcpEnabled || false
+        mcpEnabled
       },
       apiToken: credentials.apiToken,
       accountId: credentials.accountId,

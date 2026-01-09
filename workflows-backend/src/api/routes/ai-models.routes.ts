@@ -7,29 +7,33 @@ import { ContextWithCredentials } from "../../types/routes";
 
 const app = new Hono<ContextWithCredentials>();
 
-app.get("/search", rateLimitMiddleware(), safe(async (c) => {
-  const credentials = c.var.credentials;
+app.get(
+  "/search",
+  rateLimitMiddleware(),
+  safe(async c => {
+    const credentials = c.var.credentials;
 
-  const data = await fetchCloudflare(
-    `${CLOUDFLARE.API_BASE}/accounts/${credentials.accountId}/ai/models/search?page=1&per_page=1000`,
-    {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${credentials.apiToken}`,
-        "Content-Type": "application/json"
+    const data = (await fetchCloudflare(
+      `${CLOUDFLARE.API_BASE}/accounts/${credentials.accountId}/ai/models/search?page=1&per_page=1000`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${credentials.apiToken}`,
+          "Content-Type": "application/json"
+        }
       }
-    }
-  ) as { result?: Array<{ name: string }> };
+    )) as { result?: Array<{ name: string }> };
 
-  const models = (data.result || []).map(model => ({ name: model.name }));
+    const models = (data.result || []).map(model => ({ name: model.name }));
 
-  const apiResponse: ApiResponse = {
-    success: true,
-    data: models,
-    message: "AI models retrieved successfully",
-  };
+    const apiResponse: ApiResponse = {
+      success: true,
+      data: models,
+      message: "AI models retrieved successfully"
+    };
 
-  return c.json(apiResponse, HTTP_STATUS_CODES.OK);
-}));
+    return c.json(apiResponse, HTTP_STATUS_CODES.OK);
+  })
+);
 
 export default app;

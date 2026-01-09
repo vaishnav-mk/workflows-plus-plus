@@ -16,7 +16,10 @@ import { SettingSelect } from "@/components/ui/SettingSelect";
 import { SettingTextarea } from "@/components/ui/SettingTextarea";
 import { TemplateTextarea } from "@/components/ui/TemplateTextarea";
 import { SettingButton } from "@/components/ui/SettingButton";
-import { getNestedValue, convertValueToString } from "@/utils/settings-renderer";
+import {
+  getNestedValue,
+  convertValueToString
+} from "@/utils/settings-renderer";
 
 interface FieldRenderersProps {
   field: SettingField;
@@ -50,9 +53,8 @@ export function renderFieldByType({
       const nodeType = nodeData?.type || "default";
       const isNested =
         field.key.includes("-container") && field.key !== `${nodeType}-card`;
-      const description = field.children?.find(
-        (c) => c.key === "description"
-      )?.props?.children;
+      const description = field.children?.find((c) => c.key === "description")
+        ?.props?.children;
 
       return (
         <div key={key} className={isNested ? "mt-6" : ""}>
@@ -151,7 +153,8 @@ export function renderFieldByType({
       );
 
     case "select":
-      const selectValue = typeof currentValue === 'boolean' ? String(currentValue) : currentValue;
+      const selectValue =
+        typeof currentValue === "boolean" ? String(currentValue) : currentValue;
       return (
         <div
           key={key}
@@ -172,8 +175,10 @@ export function renderFieldByType({
             value={selectValue}
             onChange={(e: any) => {
               const value = e.target.value;
-              const isBooleanField = field.options?.some(opt => opt.value === 'true' || opt.value === 'false');
-              const finalValue = isBooleanField ? value === 'true' : value;
+              const isBooleanField = field.options?.some(
+                (opt) => opt.value === "true" || opt.value === "false"
+              );
+              const finalValue = isBooleanField ? value === "true" : value;
               onFieldChange(field.key, finalValue);
               if (field.key.endsWith(".type")) {
                 setTimeout(() => {
@@ -228,9 +233,9 @@ export function renderFieldByType({
           {field.description && (
             <p className="text-xs text-gray-500 mb-1">{field.description}</p>
           )}
-          {(field.key.includes(".content") ||
+          {field.key.includes(".content") ||
           (field.key.includes("key") && !nodeData?.type?.includes("kv")) ||
-          field.key.includes("query")) ? (
+          field.key.includes("query") ? (
             <TemplateTextarea
               label=""
               placeholder={
@@ -277,8 +282,8 @@ export function renderFieldByType({
           )}
           {!isJsonObject && (
             <p className="text-xs text-gray-500 mt-1">
-              Tip: Use {"{{"}nodeId.output{"}}"} or {"{{"}state.nodeId.output{"}}"} to
-              reference other nodes
+              Tip: Use {"{{"}nodeId.output{"}}"} or {"{{"}state.nodeId.output
+              {"}}"} to reference other nodes
             </p>
           )}
         </div>
@@ -286,11 +291,7 @@ export function renderFieldByType({
 
     case "button":
       return (
-        <SettingButton
-          key={key}
-          comingSoon
-          className={field.props?.className}
-        >
+        <SettingButton key={key} comingSoon className={field.props?.className}>
           {field.props?.children || "Button"}
         </SettingButton>
       );
@@ -374,9 +375,10 @@ export function renderFieldByType({
           >
             {field.label}
           </label>
-          {field.description && !field.description.startsWith('searchable:') && (
-            <p className="settings-field-description">{field.description}</p>
-          )}
+          {field.description &&
+            !field.description.startsWith("searchable:") && (
+              <p className="settings-field-description">{field.description}</p>
+            )}
           <AIModelSelect
             value={modelValue}
             onChange={(value: string) => onFieldChange(field.key, value)}
@@ -400,4 +402,3 @@ export function renderFieldByType({
       return null;
   }
 }
-
