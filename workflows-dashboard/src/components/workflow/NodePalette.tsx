@@ -58,7 +58,7 @@ export function NodePalette({ onAddNode, disabled = false }: NodePaletteProps) {
         )}
       </div>
 
-      <div className="flex-1 overflow-y-auto p-2">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden p-2">
         {Object.keys(nodesByCategory).length === 0 ? (
           <div className="text-center text-gray-400 text-xs py-8">
             {searchTerm ? 'No results' : 'No nodes'}
@@ -87,7 +87,7 @@ export function NodePalette({ onAddNode, disabled = false }: NodePaletteProps) {
                         }
                       `}
                     >
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
                         <div
                           className="p-1 rounded flex-shrink-0"
                           style={{ 
@@ -102,7 +102,7 @@ export function NodePalette({ onAddNode, disabled = false }: NodePaletteProps) {
                             {node.name}
                           </div>
                           {node.description && (
-                            <div className="text-[10px] text-gray-500 mt-0.5 line-clamp-1">
+                            <div className="text-[10px] text-gray-500 mt-0.5 line-clamp-1 break-words">
                               {node.description}
                             </div>
                           )}

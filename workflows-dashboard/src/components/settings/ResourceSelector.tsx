@@ -5,7 +5,10 @@ import { useSearchParams } from "next/navigation";
 import { SettingButton } from "@/components/ui/SettingButton";
 import { SettingSelect } from "@/components/ui/SettingSelect";
 import { SettingInput } from "@/components/ui/SettingInput";
-import type { ResourceSelectorConfig, ResourceSelectorProps } from "@/types/resource-selector";
+import type {
+  ResourceSelectorConfig,
+  ResourceSelectorProps
+} from "@/types/resource-selector";
 
 export function ResourceSelector({
   nodeData,
@@ -21,11 +24,15 @@ export function ResourceSelector({
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newResourceName, setNewResourceName] = useState("");
   const [creating, setCreating] = useState(false);
-  
-  const selectedId = (nodeData?.config?.[config.configFields.idField] || "") as string;
-  const selectedName = (nodeData?.config?.[config.configFields.nameField] || "") as string;
-  const [selectedResourceId, setSelectedResourceId] = useState<string>(selectedId);
-  const [selectedResourceName, setSelectedResourceName] = useState<string>(selectedName);
+
+  const selectedId = (nodeData?.config?.[config.configFields.idField] ||
+    "") as string;
+  const selectedName = (nodeData?.config?.[config.configFields.nameField] ||
+    "") as string;
+  const [selectedResourceId, setSelectedResourceId] =
+    useState<string>(selectedId);
+  const [selectedResourceName, setSelectedResourceName] =
+    useState<string>(selectedName);
 
   useEffect(() => {
     loadResources();
@@ -33,7 +40,9 @@ export function ResourceSelector({
 
   useEffect(() => {
     if (selectedResourceId && selectedResourceName) {
-      const resource = resources.find((r) => config.getId(r) === selectedResourceId);
+      const resource = resources.find(
+        (r) => config.getId(r) === selectedResourceId
+      );
       if (resource) {
         const resourceId = config.getId(resource);
         const resourceName = config.getName(resource);
@@ -51,7 +60,14 @@ export function ResourceSelector({
         }
       }
     }
-  }, [selectedResourceId, selectedResourceName, resources, nodeId, onNodeUpdate, nodeData?.config]);
+  }, [
+    selectedResourceId,
+    selectedResourceName,
+    resources,
+    nodeId,
+    onNodeUpdate,
+    nodeData?.config
+  ]);
 
   const loadResources = async () => {
     setLoading(true);
@@ -67,7 +83,7 @@ export function ResourceSelector({
   };
 
   const handleCreateResource = async () => {
-    const nameToCreate = config.transformCreateName 
+    const nameToCreate = config.transformCreateName
       ? config.transformCreateName(newResourceName.trim())
       : newResourceName.trim();
 
@@ -145,7 +161,11 @@ export function ResourceSelector({
       {config.customManagerLink && selectedResourceId && (
         <div className="mb-3">
           <a
-            href={config.customManagerLink.href(selectedResourceId, nodeId, workflowId)}
+            href={config.customManagerLink.href(
+              selectedResourceId,
+              nodeId,
+              workflowId
+            )}
             target="_blank"
             rel="noopener noreferrer"
           >
@@ -168,8 +188,12 @@ export function ResourceSelector({
         {config.additionalActions?.map((action, idx) => (
           <SettingButton
             key={idx}
-            onClick={() => action.onClick(selectedResourceId, selectedResourceName)}
-            disabled={action.disabled?.(selectedResourceId) || action.loading || loading}
+            onClick={() =>
+              action.onClick(selectedResourceId, selectedResourceName)
+            }
+            disabled={
+              action.disabled?.(selectedResourceId) || action.loading || loading
+            }
           >
             {action.loading ? "Loading..." : action.label}
           </SettingButton>
@@ -181,16 +205,17 @@ export function ResourceSelector({
           <label className="block text-sm font-medium text-gray-700 mb-2">
             {config.createLabel}
           </label>
-          <div className="flex gap-2">
+          <div className="flex gap-2 items-start">
             <SettingInput
               value={newResourceName}
               onChange={(e) => setNewResourceName(e.target.value)}
               placeholder={config.createPlaceholder}
-              className="flex-1"
+              className="flex-1 min-w-0"
             />
             <SettingButton
               onClick={handleCreateResource}
               disabled={creating || !newResourceName.trim()}
+              className="flex-shrink-0"
             >
               {creating ? "Creating..." : "Create"}
             </SettingButton>
@@ -206,4 +231,3 @@ export function ResourceSelector({
     </div>
   );
 }
-

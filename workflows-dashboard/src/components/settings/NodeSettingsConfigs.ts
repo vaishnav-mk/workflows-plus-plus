@@ -27,6 +27,12 @@ function generateSettingsFromSchema(
     return DEFAULT_CONFIG;
   }
 
+  const configFields = generateFieldsFromSchema(schema, '', [], nodeType);
+  
+  if (configFields.length === 0) {
+    return DEFAULT_CONFIG;
+  }
+
   fields.push({
       type: "card",
     key: `${nodeType}-card`,
@@ -44,7 +50,7 @@ function generateSettingsFromSchema(
             className: "text-sm text-gray-500 mb-4"
           }
         },
-      ...generateFieldsFromSchema(schema, '', [], nodeType)
+      ...configFields
     ]
   });
 
@@ -52,7 +58,9 @@ function generateSettingsFromSchema(
 }
 
 function generateFieldsFromSchema(schema: JSONSchema, prefix = '', requiredFields: string[] = [], nodeType?: string): SettingField[] {
-  if (!schema.properties) return [];
+  if (!schema || !schema.properties) {
+    return [];
+  }
 
   const fields: SettingField[] = [];
   const schemaRequired = (schema.required as string[]) || [];
@@ -184,7 +192,8 @@ function generateFieldsFromSchema(schema: JSONSchema, prefix = '', requiredField
           required: isRequired,
           description: prop.description,
           props: {
-            className: "settings-object-input"
+            className: "settings-object-input",
+            style: { height: '96px' }
           }
         };
         fields.push(field);
@@ -207,10 +216,23 @@ function generateFieldsFromSchema(schema: JSONSchema, prefix = '', requiredField
         }));
       }
 
-      if (prop.type === 'number') {
+      if (prop.type === 'number' || prop.type === 'integer') {
         field.props = { type: 'number' };
+        if (prop.minimum !== undefined) field.props.min = prop.minimum;
+        if (prop.maximum !== undefined) field.props.max = prop.maximum;
         if (prop.min !== undefined) field.props.min = prop.min;
         if (prop.max !== undefined) field.props.max = prop.max;
+      }
+
+      if (prop.type === 'array') {
+        if (!field.props) {
+          field.props = {};
+        }
+        field.props.className = "settings-object-input";
+        field.props.style = { height: '96px' };
+        if (!field.placeholder) {
+          field.placeholder = "Enter JSON array, e.g., []";
+        }
       }
 
       if (prop.type === 'string' && (key.includes('code') || key.includes('query') || key.includes('body'))) {
@@ -248,8 +270,9 @@ function generateFieldsFromSchema(schema: JSONSchema, prefix = '', requiredField
 }
 
 function getFieldType(prop: any): SettingField['type'] {
-  if (prop.type === 'array' && prop.items?.type === 'object') {
-    return 'text';
+  if (prop.type === 'array') {
+    // Arrays should be editable as JSON in a textarea
+    return 'textarea';
   }
 
   if (prop.enum) {
@@ -272,7 +295,7 @@ function getFieldType(prop: any): SettingField['type'] {
   }
 
   if (prop.type === 'object') {
-    return 'text';
+    return 'textarea';
   }
 
   if (!prop.type || prop.type === 'any') {
@@ -342,8 +365,8 @@ export function useNodeSettingsConfigs(): NodeSettingsConfig {
             );
             settingsConfig[nodeDef.metadata.type] = fields;
           }
-        } catch {
-          console.error(`[NodeSettingsConfigs] Failed: ${catalogItem.type}`);
+        } catch (error) {
+          console.error(`[NodeSettingsConfigs] Failed to load ${catalogItem.type}:`, error);
         }
       }
       
