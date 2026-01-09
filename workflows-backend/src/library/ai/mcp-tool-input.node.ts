@@ -65,7 +65,29 @@ export const MCPToolInputNode: WorkflowNodeDefinition<MCPToolInputConfig> = {
   },
   codegen: ({ nodeId, config }): Effect.Effect<CodeGenResult, { _tag: ErrorCode; message: string }> => {
     return Effect.gen(function* (_) {
-      const params = config.parameters || [];
+      let params: Array<{ name: string; type: string; required?: boolean; description?: string }> = [];
+      
+      if (config.parameters) {
+        if (typeof config.parameters === 'string') {
+          try {
+            const parsed = JSON.parse(config.parameters);
+            if (Array.isArray(parsed)) {
+              params = parsed;
+            } else if (typeof parsed === 'object') {
+              params = Object.entries(parsed).map(([name, type]) => ({
+                name,
+                type: String(type),
+                required: true
+              }));
+            }
+          } catch (e) {
+            params = [];
+          }
+        } else if (Array.isArray(config.parameters)) {
+          params = config.parameters;
+        }
+      }
+      
       const paramNames = params.map(p => p.name).filter(Boolean);
       
       let code: string;
