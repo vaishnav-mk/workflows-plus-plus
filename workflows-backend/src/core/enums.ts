@@ -25,6 +25,7 @@ export enum NodeType {
   MCP_TOOL_INPUT = "mcp-tool-input",
   MCP_TOOL_OUTPUT = "mcp-tool-output",
   WORKERS_AI = "workers-ai",
+  AI_SEARCH = "ai-search",
   FOR_EACH = "for-each",
   VALIDATE = "validate",
   PARALLEL = "parallel",
