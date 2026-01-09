@@ -101,6 +101,59 @@ const extractNodeConfig = (
       }
       break;
 
+    case NodeType.AI_SEARCH:
+      const autoragMatch = code.match(/this\.env\.AI\.autorag\(([^)]+)\)\.aiSearch\(/);
+      if (autoragMatch) {
+        try {
+          config.autoragName = JSON.parse(autoragMatch[1]);
+        } catch {
+          config.autoragName = autoragMatch[1];
+        }
+      }
+
+      const queryMatch = code.match(/query:\s*([^,}]+)/);
+      if (queryMatch) {
+        try {
+          config.query = JSON.parse(queryMatch[1]);
+        } catch {
+          config.query = queryMatch[1];
+        }
+      }
+
+      const aiSearchModelMatch = code.match(/model:\s*([^,}]+)/);
+      if (aiSearchModelMatch) {
+        try {
+          config.model = JSON.parse(aiSearchModelMatch[1]);
+        } catch {
+          config.model = aiSearchModelMatch[1];
+        }
+      }
+
+      const systemPromptMatch = code.match(/system_prompt:\s*([^,}]+)/);
+      if (systemPromptMatch) {
+        try {
+          config.systemPrompt = JSON.parse(systemPromptMatch[1]);
+        } catch {
+          config.systemPrompt = systemPromptMatch[1];
+        }
+      }
+
+      const rewriteQueryMatch = code.match(/rewrite_query:\s*(true|false)/);
+      if (rewriteQueryMatch) {
+        config.rewriteQuery = rewriteQueryMatch[1] === 'true';
+      }
+
+      const maxNumResultsMatch = code.match(/max_num_results:\s*(\d+)/);
+      if (maxNumResultsMatch) {
+        config.maxNumResults = parseInt(maxNumResultsMatch[1], 10);
+      }
+
+      const scoreThresholdMatch = code.match(/score_threshold:\s*([\d.]+)/);
+      if (scoreThresholdMatch) {
+        config.scoreThreshold = parseFloat(scoreThresholdMatch[1]);
+      }
+      break;
+
     case NodeType.HTTP_REQUEST:
       const urlMatch = code.match(/url:\s*([^,}]+)/);
       if (urlMatch) {
