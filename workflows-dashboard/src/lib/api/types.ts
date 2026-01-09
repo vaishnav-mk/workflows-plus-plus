@@ -95,6 +95,7 @@ export interface DeployWorkflowRequest {
   edges: WorkflowEdge[];
   options: Record<string, unknown>;
   workflowId: string;
+  mcpEnabled?: boolean;
 }
 
 export interface DeployWorkflowResponse {
@@ -336,6 +337,7 @@ export interface DeploymentStateResponse {
   workflowId: string;
   status: DeploymentStatus;
   progress: DeploymentProgress[];
+  events?: string[];
   result: {
     instanceId: string;
     workerUrl: string;

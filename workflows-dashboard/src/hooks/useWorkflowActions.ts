@@ -18,6 +18,7 @@ interface UseWorkflowActionsProps {
   nodes: Node[];
   edges: Edge[];
   workflowId: string | null;
+  mcpEnabled: boolean;
   setBackendCode: (code: string) => void;
   setBackendBindings: (bindings: any[]) => void;
   setShowCodePreview: (show: boolean) => void;
@@ -28,6 +29,7 @@ export function useWorkflowActions({
   nodes,
   edges,
   workflowId,
+  mcpEnabled,
   setBackendCode,
   setBackendBindings,
   setShowCodePreview,
@@ -112,7 +114,7 @@ export function useWorkflowActions({
       const deployResult = await deployWorkflowMutation.mutateAsync({
         workflowId: currentWorkflowId,
         options: {
-          workflowName: `workflow-${currentWorkflowId}`,
+          workflowName: currentWorkflowId,
           subdomain: "",
           bindings: compileResult.bindings,
           assets: {},
@@ -121,7 +123,8 @@ export function useWorkflowActions({
           options: {
             workflowId: currentWorkflowId
           },
-          workflowId: currentWorkflowId
+          workflowId: currentWorkflowId,
+          mcpEnabled: mcpEnabled
         }
       });
 
@@ -146,6 +149,7 @@ export function useWorkflowActions({
     nodes,
     edges,
     workflowId,
+    mcpEnabled,
     compileWorkflowMutation,
     deployWorkflowMutation,
     router,
