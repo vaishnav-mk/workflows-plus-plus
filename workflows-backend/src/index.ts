@@ -25,6 +25,8 @@ import deploymentRoutes from "./api/routes/deployment.routes";
 import d1Routes from "./api/routes/d1.routes";
 import r2Routes from "./api/routes/r2.routes";
 import kvRoutes from "./api/routes/kv.routes";
+import aiSearchRoutes from "./api/routes/ai-search.routes";
+import aiModelsRoutes from "./api/routes/ai-models.routes";
 
 import { DeploymentDurableObject } from "./services/deployment/deployment-durable-object";
 import { RateLimitDurableObject } from "./services/rate-limit/rate-limit-durable-object";
@@ -82,6 +84,8 @@ app.route("/api/deployments", deploymentRoutes);
 app.route("/api/d1", d1Routes);
 app.route("/api/r2", r2Routes);
 app.route("/api/kv", kvRoutes);
+app.route("/api/ai-search", aiSearchRoutes);
+app.route("/api/ai/models", aiModelsRoutes);
 
 app.onError(errorHandler);
 app.notFound(notFoundHandler);
