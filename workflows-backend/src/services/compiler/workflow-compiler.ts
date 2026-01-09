@@ -327,6 +327,7 @@ export class WorkflowCompiler {
       [NodeType.CONDITIONAL_ROUTER]: NodeLibrary.ConditionalRouterNode as WorkflowNodeDefinition<unknown>,
       [NodeType.WAIT_EVENT]: NodeLibrary.WaitEventNode as WorkflowNodeDefinition<unknown>,
       [NodeType.WORKERS_AI]: NodeLibrary.WorkersAINode as WorkflowNodeDefinition<unknown>,
+      [NodeType.AI_SEARCH]: NodeLibrary.AISearchNode as WorkflowNodeDefinition<unknown>,
       [NodeType.MCP_TOOL_INPUT]: NodeLibrary.MCPToolInputNode as WorkflowNodeDefinition<unknown>,
       [NodeType.MCP_TOOL_OUTPUT]: NodeLibrary.MCPToolOutputNode as WorkflowNodeDefinition<unknown>,
     };
@@ -366,27 +367,51 @@ export class WorkflowCompiler {
       const mcpClassName = `${finalClassName}MCP`;
       const serverName = mcpClassName; 
       const toolName = (mcpConfig.toolName as string) || `${finalClassName}MCPToolMain`;
-      const toolParameters = (mcpConfig.parameters as Array<{ name: string; type: string; required?: boolean; description?: string }>) || [];
       
-      const toolSchema: Record<string, unknown> = {
-        type: "object",
-        properties: {} as Record<string, unknown>,
-        required: [] as string[]
-      };
-      
-      toolParameters.forEach(param => {
-        const propType = param.type === "number" ? "number" : 
-                        param.type === "boolean" ? "boolean" :
-                        param.type === "array" ? "array" :
-                        param.type === "object" ? "object" : "string";
-        (toolSchema.properties as Record<string, unknown>)[param.name] = {
-          type: propType,
-          description: param.description || ""
-        };
-        if (param.required) {
-          (toolSchema.required as string[]).push(param.name);
+      let toolParameters: Array<{ name: string; type: string; required?: boolean; description?: string }> = [];
+      if (mcpConfig.parameters) {
+        if (typeof mcpConfig.parameters === 'string') {
+          try {
+            const parsed = JSON.parse(mcpConfig.parameters);
+            if (Array.isArray(parsed)) {
+              toolParameters = parsed;
+            } else if (typeof parsed === 'object') {
+              toolParameters = Object.entries(parsed).map(([name, type]) => ({
+                name,
+                type: String(type),
+                required: true
+              }));
+            }
+          } catch (e) {
+            console.error('Failed to parse parameters:', e);
+          }
+        } else if (Array.isArray(mcpConfig.parameters)) {
+          toolParameters = mcpConfig.parameters;
         }
+      }
+      
+      const zodSchemaFields: string[] = [];
+      toolParameters.forEach(param => {
+        let zodType = "z.string()";
+        if (param.type === "number") zodType = "z.number()";
+        else if (param.type === "boolean") zodType = "z.boolean()";
+        else if (param.type === "array") zodType = "z.array(z.any())";
+        else if (param.type === "object") zodType = "z.object({})";
+        
+        if (!param.required) {
+          zodType += ".optional()";
+        }
+        
+        if (param.description) {
+          zodType += `.describe(${JSON.stringify(param.description)})`;
+        }
+        
+        zodSchemaFields.push(`${param.name}: ${zodType}`);
       });
+      
+      const zodSchemaCode = zodSchemaFields.length > 0 
+        ? `{ ${zodSchemaFields.join(", ")} }` 
+        : "{}";
 
       const indentCode = (code: string, targetIndent: number): string => {
         const lines = code.split("\n");
@@ -503,7 +528,7 @@ export class ${mcpClassName} extends McpAgent {
 
     this.server.tool(
       "${toolName}",
-      {},
+      ${zodSchemaCode},
       async (args) => {
         const instance = await this.env.${workflowBindingName}.create({
           id: crypto.randomUUID(),

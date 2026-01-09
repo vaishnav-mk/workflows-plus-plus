@@ -21,6 +21,7 @@ export class NodeRegistry {
       NodeLibrary.ConditionalRouterNode,
       NodeLibrary.WaitEventNode,
       NodeLibrary.WorkersAINode,
+      NodeLibrary.AISearchNode,
       NodeLibrary.MCPToolInputNode,
       NodeLibrary.MCPToolOutputNode,
       NodeLibrary.ForEachNode,

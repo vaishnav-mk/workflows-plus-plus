@@ -1,5 +1,6 @@
 import * as aiGatewayNode from "./ai/ai-gateway.node";
 import * as workersAiNode from "./ai/workers-ai.node";
+import * as aiSearchNode from "./ai/ai-search.node";
 import * as conditionalRouterNode from "./flow/conditional-router.node";
 import * as entryNode from "./flow/entry.node";
 import * as forEachNode from "./flow/for-each.node";
@@ -21,6 +22,7 @@ import * as mcpToolOutputNode from "./ai/mcp-tool-output.node";
 
 export const AIGatewayNode = aiGatewayNode.AIGatewayNode;
 export const WorkersAINode = workersAiNode.WorkersAINode;
+export const AISearchNode = aiSearchNode.AISearchNode;
 export const ConditionalRouterNode = conditionalRouterNode.ConditionalRouterNode;
 export const EntryNode = entryNode.EntryNode;
 export const ForEachNode = forEachNode.ForEachNode;
