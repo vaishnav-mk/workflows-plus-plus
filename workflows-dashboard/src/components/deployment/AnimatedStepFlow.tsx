@@ -1,9 +1,17 @@
 "use client";
 
 import { useMemo } from "react";
-import ReactFlow, { Node, Edge, Background, BackgroundVariant } from "reactflow";
+import ReactFlow, {
+  Node,
+  Edge,
+  Background,
+  BackgroundVariant
+} from "reactflow";
 import "reactflow/dist/style.css";
-import type { AnimatedStepFlowProps, DeploymentStepData } from "@/types/deployment";
+import type {
+  AnimatedStepFlowProps,
+  DeploymentStepData
+} from "@/types/deployment";
 import { STEP_CONFIG } from "@/config/deployment-steps";
 import { DEPLOYMENT } from "@/config/constants";
 import { Cog, RefreshCw } from "lucide-react";
@@ -20,9 +28,7 @@ export function AnimatedStepFlow({
     const seen = new Set<string>();
 
     const ordered =
-      allSteps && allSteps.length > 0
-        ? allSteps
-        : progressEvents.map((e) => e.step);
+      allSteps && allSteps.length > 0 ? allSteps : Object.keys(STEP_CONFIG);
 
     ordered.forEach((stepKey) => {
       if (stepKey === "failed") return;
@@ -125,9 +131,9 @@ export function AnimatedStepFlow({
               key={`${step.step}-${isActive ? "active" : isCompletedStep ? "completed" : "pending"}-${isFailed ? "failed" : ""}`}
               className={`flex flex-col items-center justify-center gap-2 p-3 rounded-lg border-2 transition-all duration-500 h-[90px] ${
                 isCurrentFailed
-                  ? "bg-red-50 border-red-400 shadow-lg shadow-red-200"
+                  ? "bg-red-50 border-red-400 shadow-red-200"
                   : isCompletedStep
-                    ? "bg-green-50 border-green-400 shadow-lg shadow-green-200"
+                    ? "bg-green-50 border-green-400 shadow-green-200"
                     : isActive
                       ? "bg-blue-50 border-blue-500"
                       : "bg-gray-50 border-gray-300"
@@ -215,12 +221,12 @@ export function AnimatedStepFlow({
           animation: expand-from-center 1.2s ease-out forwards;
         }
       `}</style>
-      <div className="w-full h-[700px] rounded-lg border shadow-inner relative overflow-hidden bg-white border-gray-200">
+      <div className="w-full h-[700px] rounded-lg border shadow-inner relative overflow-hidden bg-white border-gray-200 cursor-default">
         {isCompleted && (
-          <div className="absolute inset-0 bg-green-50 border-green-300 bg-expand" />
+          <div className="absolute inset-0 bg-green-50 border-green-300 bg-expand pointer-events-none" />
         )}
         {isFailed && (
-          <div className="absolute inset-0 bg-red-50 border-red-300 bg-expand" />
+          <div className="absolute inset-0 bg-red-50 border-red-300 bg-expand pointer-events-none" />
         )}
         <div className="relative w-full h-full">
           <ReactFlow
@@ -231,10 +237,10 @@ export function AnimatedStepFlow({
             nodesDraggable={false}
             nodesConnectable={false}
             elementsSelectable={false}
-            zoomOnScroll={true}
-            panOnDrag={true}
+            zoomOnScroll={false}
+            panOnDrag={false}
             preventScrolling={true}
-            minZoom={0.5}
+            minZoom={1}
             maxZoom={1}
             proOptions={{ hideAttribution: true }}
           >
@@ -251,4 +257,3 @@ export function AnimatedStepFlow({
     </>
   );
 }
-

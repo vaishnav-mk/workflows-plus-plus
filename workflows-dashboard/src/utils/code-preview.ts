@@ -37,10 +37,10 @@ export function parseCodeNodes(
     const lineNumber = index + 1;
 
     const nodeStartMatch = line.match(
-      /console\.log\(JSON\.stringify\(\{type:'WF_NODE_START',nodeId:'([^']+)',nodeName:([^,]+),nodeType:'([^']+)'/
+      /console\.log\((JSON\.stringify\()?\{type:'WF_NODE_START',nodeId:'([^']+)',nodeName:([^,]+),nodeType:'([^']+)'/
     );
     if (nodeStartMatch) {
-      const [, nodeId, nodeName, nodeType] = nodeStartMatch;
+      const [, , nodeId, nodeName, nodeType] = nodeStartMatch;
       nodeStack.push({
         nodeId,
         nodeName: nodeName.replace(/^["']|["']$/g, ""),
@@ -50,7 +50,7 @@ export function parseCodeNodes(
     }
 
     const nodeEndMatch = line.match(
-      /console\.log\(JSON\.stringify\(\{type:'WF_NODE_(END|ERROR)',nodeId:'([^']+)'/
+      /console\.log\((JSON\.stringify\()?\{type:'WF_NODE_(END|ERROR)',nodeId:'([^']+)'/
     );
     if (nodeEndMatch && nodeStack.length > 0) {
       const topNode = nodeStack.pop();

@@ -37,7 +37,7 @@ export function renderFieldByType({
   onFieldChange,
   onNodeUpdate
 }: FieldRenderersProps): React.ReactNode {
-  const key = `${field.key}-${Date.now()}`;
+  const key = field.key;
 
   switch (field.type) {
     case "card":

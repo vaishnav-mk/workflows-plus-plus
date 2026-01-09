@@ -136,8 +136,11 @@ export function useWorkflowLogs({
               for (const log of tailEvent.logs) {
                 if (log.message && log.message[0]) {
                   try {
-                    const parsed = JSON.parse(log.message[0]);
-                    if (parsed.type?.startsWith("WF_NODE_")) {
+                    let parsed = log.message[0];
+                    if (typeof parsed === 'string') {
+                      parsed = JSON.parse(parsed);
+                    }
+                    if (parsed.type?.startsWith("WF_NODE_") || parsed.type?.startsWith("WF_")) {
                       setLogs((prev) => {
                         const newLogs = [...prev, parsed];
                         return newLogs;
@@ -145,7 +148,6 @@ export function useWorkflowLogs({
                       setLastLog(parsed);
                     }
                   } catch {
-                    // Ignore parsing errors
                   }
                 }
               }

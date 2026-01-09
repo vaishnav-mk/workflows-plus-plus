@@ -24,7 +24,7 @@ export function FormField({
   required = false,
   children,
   htmlFor,
-  className = ""
+  className = "",
 }: FormFieldProps) {
   const hasError = !!error;
   const hasWarning = !!warning && !hasError;
@@ -42,13 +42,19 @@ export function FormField({
 
       <div className="relative">
         {children}
-
+        
         {/* Status icon inside input */}
         {(hasError || hasWarning || hasSuccess) && (
           <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-            {hasError && <AlertCircle className="w-4 h-4 text-red-500" />}
-            {hasWarning && <AlertCircle className="w-4 h-4 text-amber-500" />}
-            {hasSuccess && <CheckCircle className="w-4 h-4 text-green-500" />}
+            {hasError && (
+              <AlertCircle className="w-4 h-4 text-red-500" />
+            )}
+            {hasWarning && (
+              <AlertCircle className="w-4 h-4 text-amber-500" />
+            )}
+            {hasSuccess && (
+              <CheckCircle className="w-4 h-4 text-green-500" />
+            )}
           </div>
         )}
       </div>
@@ -158,7 +164,7 @@ export const validators = {
       return message;
     }
     return null;
-  }
+  },
 };
 
 // Compose multiple validators
