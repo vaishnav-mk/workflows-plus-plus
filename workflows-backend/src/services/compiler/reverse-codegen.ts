@@ -206,7 +206,7 @@ export const parseWorkflowCode = (workflowCode: string): Effect.Effect<ReverseCo
         stepName?: string;
       }>();
 
-      const nodeStartRegex = /console\.log\(JSON\.stringify\(\{type:'WF_NODE_START',nodeId:'([^']+)',nodeName:([^,]+),nodeType:'([^']+)'/g;
+      const nodeStartRegex = /console\.log\((?:JSON\.stringify\()?\{type:'WF_NODE_START',nodeId:'([^']+)',nodeName:([^,]+),nodeType:'([^']+)'/g;
       let match;
       const nodeOrder: string[] = [];
 
