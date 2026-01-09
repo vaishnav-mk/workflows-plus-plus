@@ -1,6 +1,6 @@
 import { apiClient } from "@/lib/api-client";
 import { isSuccessResponse, getResponseError } from "@/lib/api/utils";
-import type { D1Database, KVNamespace, R2Bucket } from "@/lib/api/types";
+import type { D1Database, KVNamespace, R2Bucket, AISearch } from "@/lib/api/types";
 import type { ResourceSelectorConfig } from "@/types/resource-selector";
 
 export function createD1DatabaseConfig(
@@ -124,6 +124,28 @@ export function createR2BucketConfig(
     configFields: {
       idField: "bucket",
       nameField: "bucket"
+    }
+  };
+}
+
+export function createAISearchConfig(): ResourceSelectorConfig {
+  return {
+    label: "AI Search Instance",
+    placeholder: "Select an AI Search instance...",
+    loadingText: "Loading AI Search instances...",
+    getId: (instance: AISearch) => instance.id,
+    getName: (instance: AISearch) => instance.id,
+    getDisplayLabel: (instance: AISearch) => instance.id,
+    loadResources: async () => {
+      const response = await apiClient.getAISearchInstances();
+      if (isSuccessResponse(response)) {
+        return response.data;
+      }
+      throw new Error(getResponseError(response) || "Failed to load AI Search instances");
+    },
+    configFields: {
+      idField: "autorag_id",
+      nameField: "autoragName"
     }
   };
 }
