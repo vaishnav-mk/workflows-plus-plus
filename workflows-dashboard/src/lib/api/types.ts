@@ -212,6 +212,15 @@ export interface R2Bucket {
   creation_date: string;
 }
 
+export interface AISearch {
+  id: string;
+  created_at: string;
+}
+
+export interface AIModel {
+  name: string;
+}
+
 export interface R2Object {
   key: string;
   size: number;

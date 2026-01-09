@@ -121,4 +121,16 @@ export const endpoints = {
     logout: `${API_BASE}/setup/logout`,
     testCredentials: `${API_BASE}/setup/test-credentials`,
   },
+  aiSearch: {
+    list: (page: number = PAGINATION.DEFAULT_PAGE, perPage: number = PAGINATION.DATABASE_PER_PAGE) => {
+      const params = new URLSearchParams();
+      params.append("page", String(page));
+      params.append("per_page", String(perPage));
+      return `${API_BASE}/ai-search?${params.toString()}`;
+    },
+    get: (id: string) => `${API_BASE}/ai-search/${id}`,
+  },
+  aiModels: {
+    search: () => `${API_BASE}/ai/models/search`,
+  },
 } as const;

@@ -20,6 +20,8 @@ import type {
   R2ObjectsResponse,
   KVKey,
   KVKeysResponse,
+  AISearch,
+  AIModel,
   CompileWorkflowRequest,
   CompileWorkflowResponse,
   ReverseCodegenRequest,
@@ -226,6 +228,18 @@ class ApiClient {
     return this.fetch<R2ObjectsResponse>(
       endpoints.r2.listObjects(bucketName, prefix, perPage, cursor)
     );
+  }
+
+  async getAISearchInstances(): Promise<ApiResponse<AISearch[]>> {
+    return this.fetch<AISearch[]>(endpoints.aiSearch.list(1, 100));
+  }
+
+  async getAISearchInstance(id: string): Promise<ApiResponse<AISearch>> {
+    return this.fetch<AISearch>(endpoints.aiSearch.get(id));
+  }
+
+  async searchAIModels(): Promise<ApiResponse<AIModel[]>> {
+    return this.fetch<AIModel[]>(endpoints.aiModels.search());
   }
 
   async compileWorkflow(
