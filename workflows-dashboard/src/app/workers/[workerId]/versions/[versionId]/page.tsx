@@ -200,8 +200,8 @@ export default function VersionDetailPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
-            <Card className="overflow-hidden">
-              <CardHeader className="bg-gray-50 border-b border-gray-200">
+            <Card>
+              <CardHeader>
                 <h2 className="text-xl font-semibold text-gray-900">
                   Version Information
                 </h2>
@@ -212,8 +212,8 @@ export default function VersionDetailPage() {
             </Card>
 
             {annotationDetails.length > 0 && (
-              <Card className="overflow-hidden">
-                <CardHeader className="bg-gray-50 border-b border-gray-200">
+              <Card>
+                <CardHeader>
                   <h2 className="text-xl font-semibold text-gray-900">
                     Annotations
                   </h2>
@@ -228,8 +228,8 @@ export default function VersionDetailPage() {
               <BindingsList bindings={typedVersion.bindings as any} />
             )}
 
-            <Card className="overflow-hidden">
-              <CardHeader className="bg-gray-50 border-b border-gray-200">
+            <Card>
+              <CardHeader>
                 <h2 className="text-xl font-semibold text-gray-900">
                   Source Code
                 </h2>
@@ -248,7 +248,7 @@ export default function VersionDetailPage() {
 
           <div className="space-y-6">
             <Card>
-              <CardHeader className="bg-gray-50 border-b border-gray-200">
+              <CardHeader>
                 <h2 className="text-xl font-semibold text-gray-900">
                   Quick Actions
                 </h2>
@@ -290,7 +290,7 @@ export default function VersionDetailPage() {
             </Card>
 
             <Card>
-              <CardHeader className="bg-gray-50 border-b border-gray-200">
+              <CardHeader>
                 <h2 className="text-xl font-semibold text-gray-900">
                   Worker Details
                 </h2>
@@ -321,7 +321,7 @@ export default function VersionDetailPage() {
             </Card>
 
             <Card>
-              <CardHeader className="bg-gray-50 border-b border-gray-200">
+              <CardHeader>
                 <h2 className="text-xl font-semibold text-gray-900">
                   Version Metadata
                 </h2>

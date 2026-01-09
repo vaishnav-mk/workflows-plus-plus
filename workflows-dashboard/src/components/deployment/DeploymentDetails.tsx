@@ -23,8 +23,8 @@ export function DeploymentDetails({
   instanceHref
 }: DeploymentDetailsProps) {
   return (
-    <Card className="p-6 space-y-4">
-      <div>
+    <Card>
+      <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
         <h2 className="text-sm font-semibold text-gray-900">
           Deployment Details
         </h2>
@@ -32,8 +32,9 @@ export function DeploymentDetails({
           Metadata and links for this deployment.
         </p>
       </div>
-      <DetailsList
-        items={[
+      <div className="p-6">
+        <DetailsList
+          items={[
           {
             label: "Deployment ID",
             value: (
@@ -81,7 +82,8 @@ export function DeploymentDetails({
               ]
             : [])
         ]}
-      />
+        />
+      </div>
     </Card>
   );
 }

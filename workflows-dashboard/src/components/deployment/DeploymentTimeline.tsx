@@ -25,13 +25,13 @@ export function DeploymentTimeline({
   errorInfo
 }: DeploymentTimelineProps) {
   return (
-    <Card className="p-6">
-      <div className="flex items-baseline justify-between mb-3">
-        <h2 className="text-sm font-semibold text-gray-900">
+    <Card>
+      <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
+        <h2 className="text-xs font-semibold text-gray-700 uppercase tracking-wider">
           Deployment Timeline
         </h2>
       </div>
-      <div className="space-y-3">
+      <div className="p-6 space-y-1">
         <AnimatePresence mode="popLayout">
           {reversedProgressEvents.map(
             (progress: DeploymentProgress, reversedIndex: number) => {
@@ -39,154 +39,88 @@ export function DeploymentTimeline({
               const isCurrent = index === currentProgressIndex;
               const isCompleted =
                 index < currentProgressIndex ||
-                (deploymentState?.status === DeploymentStatus.SUCCESS &&
-                  index === currentProgressIndex);
+                deploymentState?.status === DeploymentStatus.SUCCESS;
               const isFailed =
-                deploymentState?.status === DeploymentStatus.FAILED && isCurrent;
+                deploymentState?.status === DeploymentStatus.FAILED &&
+                isCurrent;
 
-              const bgClasses = isFailed
-                ? "bg-red-50 border-2 border-red-300"
+              const borderColor = isFailed
+                ? "border-red-400"
                 : isCompleted
-                  ? "bg-green-50 border-2 border-green-300"
-                  : "bg-blue-50 border-2 border-blue-300";
+                  ? "border-green-400"
+                  : isCurrent
+                    ? "border-blue-500"
+                    : "border-gray-200";
 
               const icon = isFailed ? (
-                <XCircle className="w-5 h-5 text-red-500" />
+                <XCircle className="w-4 h-4 text-red-500 shrink-0" />
               ) : isCompleted ? (
-                <CheckCircle2 className="w-5 h-5 text-green-500" />
+                <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0" />
               ) : (
-                <Spinner size="sm" className="text-blue-500" />
+                <Spinner size="sm" className="text-blue-500 shrink-0" />
               );
 
               const stepConfig = STEP_CONFIG[progress.step];
-              const StepIcon = stepConfig?.icon || Rocket;
 
               return (
                 <motion.div
-                  key={`${progress.step}-${progress.timestamp}`}
+                  key={`${progress.step}-${progress.timestamp}-${reversedIndex}`}
                   layout
-                  initial={{ opacity: 0, y: -20, scale: 0.9 }}
-                  animate={{
-                    opacity: 1,
-                    y: 0,
-                    scale: 1
-                  }}
-                  exit={{ opacity: 0, scale: 0.9 }}
-                  transition={{
-                    type: "spring",
-                    stiffness: 500,
-                    damping: 30,
-                    mass: 1
-                  }}
-                  className={`flex items-start gap-4 p-4 rounded-lg ${bgClasses}`}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.15 }}
+                  className={`flex items-start gap-3 py-2.5 px-3 border-l-2 ${borderColor} hover:bg-gray-50/50 transition-all rounded-r group`}
                 >
-                  <div className="flex flex-col items-center gap-2">
-                    <motion.div
-                      initial={{ scale: 0, rotate: -180 }}
-                      animate={{ scale: 1, rotate: 0 }}
-                      transition={{
-                        type: "spring",
-                        stiffness: 200,
-                        delay: 0.1
-                      }}
-                      className="mt-0.5"
-                    >
-                      {icon}
-                    </motion.div>
-                    {isCurrent && !isFailed && (
-                      <motion.div
-                        animate={{
-                          scale: [1, 1.2, 1]
-                        }}
-                        transition={{
-                          repeat: Infinity,
-                          duration: 1.5
-                        }}
-                      >
-                        <StepIcon className="w-4 h-4 text-blue-600" />
-                      </motion.div>
-                    )}
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between mb-1">
-                      <motion.span
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.2 }}
-                        className="text-sm font-semibold text-gray-900"
-                      >
+                  <div className="mt-0.5">{icon}</div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2 mb-1">
+                      <span className="text-sm font-medium text-gray-900">
                         {stepConfig?.label || progress.step}
-                      </motion.span>
-                      <motion.div
-                        initial={{ opacity: 0, scale: 0 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: 0.3 }}
+                      </span>
+                      <Badge
+                        variant={
+                          isFailed
+                            ? "error"
+                            : isCompleted
+                              ? "success"
+                              : "warning"
+                        }
+                        className="text-[10px] px-1.5 py-0.5 shrink-0 font-semibold"
                       >
-                        <Badge
-                          variant={
-                            isFailed
-                              ? "error"
-                              : isCompleted
-                                ? "success"
-                                : "warning"
-                          }
-                          className="text-xs"
-                        >
-                          {progress.progress}%
-                        </Badge>
-                      </motion.div>
+                        {progress.progress}%
+                      </Badge>
                     </div>
-                    <motion.p
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ delay: 0.25 }}
-                      className="text-xs text-gray-700 font-medium"
-                    >
+                    <p className="text-xs text-gray-600 leading-relaxed">
                       {isFailed && errorInfo
                         ? errorInfo.shortMessage
                         : progress.message}
-                    </motion.p>
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ delay: 0.3 }}
-                      className="mt-1.5 text-[11px] text-gray-500 flex items-center gap-1"
-                    >
-                      <span className="inline-block w-1.5 h-1.5 bg-gray-400 rounded-full"></span>
+                    </p>
+                    <div className="mt-1 text-[10px] text-gray-400 font-medium">
                       <DateDisplay date={progress.timestamp} />
-                    </motion.div>
+                    </div>
                     {isFailed && errorInfo?.raw && (
-                      <motion.details
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ delay: 0.4 }}
-                        className="mt-2"
-                      >
-                        <summary className="text-xs text-gray-500 cursor-pointer hover:text-gray-700">
+                      <details className="mt-2 group/details">
+                        <summary className="text-[10px] text-red-600 cursor-pointer hover:text-red-700 font-medium">
                           View raw error
                         </summary>
-                        <pre className="mt-2 text-xs bg-white p-2 rounded border overflow-auto">
+                        <pre className="mt-1.5 text-[10px] bg-red-50 border border-red-200 p-2.5 rounded overflow-auto max-h-32 font-mono">
                           {errorInfo.raw}
                         </pre>
-                      </motion.details>
+                      </details>
                     )}
                     {!isFailed &&
                       progress.data &&
                       Object.keys(progress.data).length > 0 &&
                       progress.data.stepIndex === undefined && (
-                        <motion.details
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          transition={{ delay: 0.4 }}
-                          className="mt-2"
-                        >
-                          <summary className="text-xs text-gray-500 cursor-pointer hover:text-gray-700">
+                        <details className="mt-2 group/details">
+                          <summary className="text-[10px] text-blue-600 cursor-pointer hover:text-blue-700 font-medium">
                             Details
                           </summary>
-                          <pre className="mt-2 text-xs bg-white p-2 rounded border overflow-auto">
+                          <pre className="mt-1.5 text-[10px] bg-gray-50 border border-gray-200 p-2.5 rounded overflow-auto max-h-32 font-mono">
                             {JSON.stringify(progress.data, null, 2)}
                           </pre>
-                        </motion.details>
+                        </details>
                       )}
                   </div>
                 </motion.div>
@@ -198,4 +132,3 @@ export function DeploymentTimeline({
     </Card>
   );
 }
-

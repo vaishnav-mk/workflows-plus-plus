@@ -9,10 +9,19 @@ export interface CardProps {
   onBlur?: () => void;
 }
 
-export function Card({ children, className, tabIndex, onFocus, onBlur }: CardProps) {
+export function Card({
+  children,
+  className,
+  tabIndex,
+  onFocus,
+  onBlur
+}: CardProps) {
   return (
-    <div 
-      className={cn("ring ring-gray-950/10 shadow-xs bg-white rounded-lg p-4 relative focus-visible:ring focus-visible:ring-primary outline-none", className)}
+    <div
+      className={cn(
+        "border border-gray-200 bg-white rounded-2xl shadow-sm overflow-hidden relative focus-visible:ring-2 focus-visible:ring-blue-500 outline-none",
+        className
+      )}
       tabIndex={tabIndex}
       onFocus={onFocus}
       onBlur={onBlur}
@@ -28,7 +37,16 @@ export interface CardHeaderProps {
 }
 
 export function CardHeader({ children, className }: CardHeaderProps) {
-  return <div className={cn("p-4 border-b border-gray-200", className)}>{children}</div>;
+  return (
+    <div
+      className={cn(
+        "px-6 py-4 bg-gray-50 border-b border-gray-200 rounded-t-2xl",
+        className
+      )}
+    >
+      {children}
+    </div>
+  );
 }
 
 export interface CardContentProps {
@@ -37,6 +55,5 @@ export interface CardContentProps {
 }
 
 export function CardContent({ children, className }: CardContentProps) {
-  return <div className={cn("p-4", className)}>{children}</div>;
+  return <div className={cn("p-6 rounded-b-2xl", className)}>{children}</div>;
 }
-

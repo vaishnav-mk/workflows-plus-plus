@@ -12,13 +12,13 @@ export function BindingsList({ bindings }: BindingsListProps) {
   if (!bindings || bindings.length === 0) return null;
 
   return (
-    <Card className="overflow-hidden">
-      <CardHeader className="bg-gray-50 border-b border-gray-200">
+    <Card>
+      <CardHeader>
         <h2 className="text-xl font-semibold text-gray-900">
           Environment Variables & Bindings
         </h2>
       </CardHeader>
-      <CardContent className="p-6">
+      <CardContent>
         <div className="space-y-4">
           {bindings.map((binding, index) => (
             <BindingItem

@@ -117,101 +117,110 @@ function DeploymentPageContent() {
       : null;
 
   return (
-    <div className="w-full px-6 py-8">
-      <PageHeader
-        title="Deployment"
-        description="Track the real-time status and steps of your workflow deployment."
-      />
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+      <div className="w-full px-6 py-8 max-w-7xl mx-auto">
+        <PageHeader
+          title="Deployment"
+          description="Track the real-time status and steps of your workflow deployment."
+        />
 
-      <div className="mt-6 space-y-6">
-        {!deploymentState && (
-          <LoadingState
-            isConnected={isConnected}
-            hasNoDeployment={
-              !!(statusResult &&
-              statusResult.success === false &&
-              statusResult.error === "No deployment found")
-            }
-          />
-        )}
+        <div className="mt-6 space-y-6">
+          {!deploymentState && (
+            <LoadingState
+              isConnected={isConnected}
+              hasNoDeployment={
+                !!(
+                  statusResult &&
+                  statusResult.success === false &&
+                  statusResult.error === "No deployment found"
+                )
+              }
+            />
+          )}
 
-        {deploymentState && progressEvents.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-          >
-            <Card className="p-6 overflow-hidden">
-              <div className="mb-4">
-                <h2 className="text-lg font-semibold text-gray-900">
-                  Deployment Pipeline
-                </h2>
-                <p className="text-xs text-gray-500 mt-1">
-                  Real-time visualization of deployment steps
-                </p>
-              </div>
-              <AnimatedStepFlow
-                currentStep={
-                  currentProgress?.step || DeploymentStep.INITIALIZING
-                }
-                progress={progressPercentage}
-                isCompleted={
-                  deploymentState.status === DeploymentStatus.SUCCESS
-                }
-                isFailed={deploymentState.status === DeploymentStatus.FAILED}
-                progressEvents={progressEvents}
-                allSteps={[]}
-              />
-            </Card>
-          </motion.div>
-        )}
+          {deploymentState && progressEvents.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+            >
+              <Card className="overflow-hidden">
+                <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
+                  <h2 className="text-lg font-semibold text-gray-900">
+                    Deployment Pipeline
+                  </h2>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Real-time visualization of deployment steps
+                  </p>
+                </div>
+                <div className="p-6">
+                  <AnimatedStepFlow
+                    currentStep={
+                      currentProgress?.step || DeploymentStep.INITIALIZING
+                    }
+                    progress={progressPercentage}
+                    isCompleted={
+                      deploymentState.status === DeploymentStatus.SUCCESS
+                    }
+                    isFailed={deploymentState.status === DeploymentStatus.FAILED}
+                    progressEvents={progressEvents}
+                    allSteps={deploymentState.events || []}
+                  />
+                </div>
+              </Card>
+            </motion.div>
+          )}
 
-        {errorInfo && (
-          <ErrorBanner errorInfo={errorInfo} workflowId={deploymentState?.workflowId} />
-        )}
+          {errorInfo && (
+            <ErrorBanner
+              errorInfo={errorInfo}
+              workflowId={deploymentState?.workflowId}
+            />
+          )}
 
-        {deploymentState?.result && (
-          <DeploymentResult
-            result={deploymentState.result}
-            workflowId={deploymentState.workflowId}
-          />
-        )}
+          {deploymentState?.result && (
+            <DeploymentResult
+              result={deploymentState.result}
+              workflowId={deploymentState.workflowId}
+            />
+          )}
 
-        {deploymentState && progressEvents.length > 0 && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 space-y-6">
-              {progressEvents.length > 0 && (
-                <DeploymentTimeline
-                  progressEvents={progressEvents}
-                  reversedProgressEvents={reversedProgressEvents}
-                  currentProgressIndex={currentProgressIndex}
-                  deploymentState={deploymentState}
-                  errorInfo={errorInfo}
-                />
-              )}
-            </div>
-
-            <div className="space-y-6">
-              <DeploymentDetails
-                deploymentState={deploymentState}
-                deploymentId={deploymentId}
-                isConnected={isConnected}
-                statusText={statusText}
-                statusBadgeVariant={statusBadgeVariant}
-                instanceHref={instanceHref}
-              />
-
-              {deploymentState?.result?.bindings &&
-                Array.isArray(deploymentState.result?.bindings) &&
-                deploymentState.result?.bindings.length > 0 && (
-                  <BindingsSummary
-                    bindings={deploymentState.result.bindings}
-                    mcpUrl={deploymentState.result.mcpUrl}
+          {deploymentState && progressEvents.length > 0 && (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2 space-y-6">
+                {progressEvents.length > 0 && (
+                  <DeploymentTimeline
+                    progressEvents={progressEvents}
+                    reversedProgressEvents={reversedProgressEvents}
+                    currentProgressIndex={currentProgressIndex}
+                    deploymentState={deploymentState}
+                    errorInfo={errorInfo}
                   />
                 )}
+              </div>
+
+              <div className="space-y-6">
+                <DeploymentDetails
+                  deploymentState={deploymentState}
+                  deploymentId={deploymentId}
+                  isConnected={isConnected}
+                  statusText={statusText}
+                  statusBadgeVariant={statusBadgeVariant}
+                  instanceHref={instanceHref}
+                />
+
+                {deploymentState?.result?.bindings &&
+                  Array.isArray(deploymentState.result?.bindings) &&
+                  deploymentState.result?.bindings.length > 0 && (
+                    <BindingsSummary
+                      bindings={deploymentState.result.bindings}
+                      mcpUrl={deploymentState.result.mcpUrl}
+                    />
+                  )}
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );
@@ -221,17 +230,21 @@ export default function DeploymentPage() {
   return (
     <Suspense
       fallback={
-        <div className="w-full px-6 py-8">
-          <PageHeader
-            title="Deployment"
-            description="View the status and progress of your workflow deployment."
-          />
-          <div className="max-w-3xl mt-6">
-            <Card className="p-6">
-              <div className="flex items-center justify-center py-12">
-                <Spinner size="lg" className="text-blue-500" />
-              </div>
-            </Card>
+        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+          <div className="w-full px-6 py-8 max-w-7xl mx-auto">
+            <PageHeader
+              title="Deployment"
+              description="View the status and progress of your workflow deployment."
+            />
+            <div className="mt-6">
+              <Card>
+                <div className="p-6">
+                  <div className="flex items-center justify-center py-12">
+                    <Spinner size="lg" className="text-blue-500" />
+                  </div>
+                </div>
+              </Card>
+            </div>
           </div>
         </div>
       }

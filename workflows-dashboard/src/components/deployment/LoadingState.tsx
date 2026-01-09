@@ -22,11 +22,13 @@ export function LoadingState({ isConnected, hasNoDeployment }: LoadingStateProps
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
     >
-      <Card className="p-6">
-        <div className="flex flex-col items-center justify-center py-12">
-          <Loader variant="spinner" size="lg" className="text-[#056DFF]" />
-          <h3 className="mt-4 text-lg font-semibold text-gray-900">{title}</h3>
-          <p className="mt-2 text-sm text-gray-600 text-center max-w-md">{description}</p>
+      <Card>
+        <div className="p-6">
+          <div className="flex flex-col items-center justify-center py-12">
+            <Loader variant="spinner" size="lg" className="text-[#056DFF]" />
+            <h3 className="mt-4 text-lg font-semibold text-gray-900">{title}</h3>
+            <p className="mt-2 text-sm text-gray-600 text-center max-w-md">{description}</p>
+          </div>
         </div>
       </Card>
     </motion.div>

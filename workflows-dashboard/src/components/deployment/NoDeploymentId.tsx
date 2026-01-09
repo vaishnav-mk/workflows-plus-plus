@@ -15,8 +15,9 @@ export function NoDeploymentId() {
         description="View the status and progress of your workflow deployment."
       />
       <div className="max-w-3xl mt-6">
-        <Card className="p-6">
-          <div className="flex items-start gap-4">
+        <Card>
+          <div className="p-6">
+            <div className="flex items-start gap-4">
             <div className="p-3 rounded-lg bg-yellow-50">
               <AlertCircle className="w-6 h-6 text-yellow-600" />
             </div>
@@ -37,6 +38,7 @@ export function NoDeploymentId() {
                   Go to Builder
                 </Button>
               </div>
+            </div>
             </div>
           </div>
         </Card>
