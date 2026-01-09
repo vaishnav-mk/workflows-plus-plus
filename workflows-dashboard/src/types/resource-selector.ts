@@ -7,14 +7,14 @@ export interface ResourceItem {
 export interface ResourceSelectorConfig {
   label: string;
   placeholder: string;
-  createLabel: string;
-  createPlaceholder: string;
+  createLabel?: string;
+  createPlaceholder?: string;
   loadingText: string;
   getId: (resource: any) => string;
   getName: (resource: any) => string;
   getDisplayLabel: (resource: any) => string;
   loadResources: () => Promise<any[]>;
-  createResource: (name: string) => Promise<any>;
+  createResource?: (name: string) => Promise<any>;
   validateCreateName?: (name: string) => string | null;
   transformCreateName?: (name: string) => string;
   configFields: {

@@ -181,9 +181,11 @@ export function ResourceSelector({
           {loading ? "Loading..." : "Refresh"}
         </SettingButton>
 
-        <SettingButton onClick={() => setShowCreateForm(!showCreateForm)}>
-          {showCreateForm ? "Cancel" : config.createLabel}
-        </SettingButton>
+        {config.createLabel && config.createResource && (
+          <SettingButton onClick={() => setShowCreateForm(!showCreateForm)}>
+            {showCreateForm ? "Cancel" : config.createLabel}
+          </SettingButton>
+        )}
 
         {config.additionalActions?.map((action, idx) => (
           <SettingButton
