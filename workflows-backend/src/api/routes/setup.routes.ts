@@ -12,9 +12,9 @@ import { safe } from "../../core/utils/route-helpers";
 import { rateLimitMiddleware } from "../../api/middleware/rate-limit.middleware";
 import { SetupEnv } from "../../types/routes";
 
-async function verifyCloudflareToken(apiToken: string): Promise<boolean> {
+async function verifyCloudflareToken(apiToken: string, accountId: string): Promise<boolean> {
   try {
-    const response = await fetch(`${CLOUDFLARE.API_BASE}/user/tokens/verify`, {
+    const response = await fetch(`${CLOUDFLARE.API_BASE}/accounts/${accountId}/tokens/verify`, {
       method: "GET",
       headers: {
         Authorization: `Bearer ${apiToken}`,
@@ -49,7 +49,7 @@ async function streamSetupProgress(
       label: "Validating token"
     });
 
-    const verifyResponse = await fetch(`${CLOUDFLARE.API_BASE}/user/tokens/verify`, {
+    const verifyResponse = await fetch(`${CLOUDFLARE.API_BASE}/accounts/${accountId}/tokens/verify`, {
       method: "GET",
       headers: {
         Authorization: `Bearer ${apiToken}`,
@@ -307,7 +307,7 @@ app.post("/", rateLimitMiddleware(), zValidator('json', SetupRequestSchema), saf
     const { apiToken, accountId } = c.req.valid('json' as never) as z.infer<typeof SetupRequestSchema>;
 
     logger.info("verifying cloudflare credentials");
-    const isValid = await verifyCloudflareToken(apiToken);
+    const isValid = await verifyCloudflareToken(apiToken, accountId);
 
     if (!isValid) {
       logger.warn("invalid cloudflare credentials provided");
