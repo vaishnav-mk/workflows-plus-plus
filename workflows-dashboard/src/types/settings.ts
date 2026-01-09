@@ -11,6 +11,8 @@ export interface SettingField {
     | "d1-database-selector"
     | "kv-namespace-selector"
     | "r2-bucket-selector"
+    | "ai-search-selector"
+    | "ai-model-select"
     | "transform-node-settings";
   key: string;
   label?: string;

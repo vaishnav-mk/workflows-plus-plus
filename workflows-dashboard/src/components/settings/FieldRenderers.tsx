@@ -7,6 +7,8 @@ import { ConditionalRouterBuilder } from "@/components/settings/ConditionalRoute
 import { D1DatabaseSelector } from "@/components/settings/D1DatabaseSelector";
 import { KVNamespaceSelector } from "@/components/settings/KVNamespaceSelector";
 import { R2BucketSelector } from "@/components/settings/R2BucketSelector";
+import { AISearchSelector } from "@/components/settings/AISearchSelector";
+import { AIModelSelect } from "@/components/settings/AIModelSelect";
 import { TransformNodeSettings } from "@/components/settings/TransformNodeSettings";
 import { SettingInput } from "@/components/ui/SettingInput";
 import { TemplateInput } from "@/components/ui/TemplateInput";
@@ -149,6 +151,7 @@ export function renderFieldByType({
       );
 
     case "select":
+      const selectValue = typeof currentValue === 'boolean' ? String(currentValue) : currentValue;
       return (
         <div
           key={key}
@@ -166,9 +169,12 @@ export function renderFieldByType({
           <SettingSelect
             label=""
             options={field.options || []}
-            value={currentValue}
+            value={selectValue}
             onChange={(e: any) => {
-              onFieldChange(field.key, e.target.value);
+              const value = e.target.value;
+              const isBooleanField = field.options?.some(opt => opt.value === 'true' || opt.value === 'false');
+              const finalValue = isBooleanField ? value === 'true' : value;
+              onFieldChange(field.key, finalValue);
               if (field.key.endsWith(".type")) {
                 setTimeout(() => {
                   onNodeUpdate(nodeId, { config: { ...nodeData.config } });
@@ -344,6 +350,40 @@ export function renderFieldByType({
           onNodeUpdate={onNodeUpdate}
           nodeId={nodeId}
         />
+      );
+
+    case "ai-search-selector":
+      return (
+        <AISearchSelector
+          key={key}
+          nodeData={nodeData}
+          onNodeUpdate={onNodeUpdate}
+          nodeId={nodeId}
+        />
+      );
+
+    case "ai-model-select":
+      const modelValue = stringValue || field.defaultValue || "";
+      return (
+        <div
+          key={key}
+          className={`settings-field-group ${field.conditional ? "settings-conditional-field" : ""}`}
+        >
+          <label
+            className={`settings-field-label ${field.required ? "required" : ""}`}
+          >
+            {field.label}
+          </label>
+          {field.description && !field.description.startsWith('searchable:') && (
+            <p className="settings-field-description">{field.description}</p>
+          )}
+          <AIModelSelect
+            value={modelValue}
+            onChange={(value: string) => onFieldChange(field.key, value)}
+            task={field.props?.task}
+            placeholder={field.placeholder}
+          />
+        </div>
       );
 
     case "transform-node-settings":

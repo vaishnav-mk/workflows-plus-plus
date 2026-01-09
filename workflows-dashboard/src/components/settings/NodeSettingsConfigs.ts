@@ -103,6 +103,23 @@ function generateFieldsFromSchema(schema: JSONSchema, prefix = '', requiredField
     }
   }
 
+  if (nodeType === 'ai-search' && !prefix) {
+    if (schema.properties.autoragName) {
+      fields.push({
+        type: 'ai-search-selector',
+        key: 'ai-search-config',
+      });
+      const { autoragName: _autoragName, ...otherProps } = schema.properties;
+      const otherFields = generateFieldsFromSchema(
+        { ...schema, properties: otherProps },
+        prefix,
+        requiredFields.filter(r => r !== 'autoragName'),
+        nodeType
+      );
+      return [...fields, ...otherFields];
+    }
+  }
+
   if ((nodeType === 'kv-get' || nodeType === 'kv-put') && !prefix) {
     const namespaceProp = schema.properties.namespace;
     if (namespaceProp) {
@@ -199,8 +216,10 @@ function generateFieldsFromSchema(schema: JSONSchema, prefix = '', requiredField
         fields.push(field);
       }
     } else {
+      const isAIModelSearchable = typeof prop.description === 'string' && prop.description.startsWith('searchable:ai-models:');
+      
       const field: SettingField = {
-        type: getFieldType(prop),
+        type: isAIModelSearchable ? 'ai-model-select' : getFieldType(prop),
         key: fullKey,
         label: prop.title || formatLabel(key),
         placeholder: prop.description || "",
@@ -209,11 +228,19 @@ function generateFieldsFromSchema(schema: JSONSchema, prefix = '', requiredField
         description: prop.description,
       };
 
-      if (prop.enum) {
+      if (isAIModelSearchable) {
+        const task = prop.description.split(':')[2];
+        field.props = { task };
+      } else if (prop.enum) {
         field.options = prop.enum.map((val: any) => ({
           value: String(val),
           label: String(val)
         }));
+      } else if (prop.type === 'boolean') {
+        field.options = [
+          { value: 'true', label: 'True' },
+          { value: 'false', label: 'False' }
+        ];
       }
 
       if (prop.type === 'number' || prop.type === 'integer') {
