@@ -24,7 +24,7 @@ import {
 import { applyNodeChanges, applyEdgeChanges, type Node, type Edge, type Connection } from "reactflow";
 import type { InstanceDetail } from "@/types/instance";
 import { useInstanceWorkflow } from "@/hooks/useInstanceWorkflow";
-import { findStepForNode, getStepStatus } from "@/utils/instance";
+import { findStepForNode, findNodeForStep, getStepStatus } from "@/utils/instance";
 import { NodeDetailsPanel, StepHistoryTable } from "@/components/instance";
 import { ROUTES } from "@/config/constants";
 
@@ -218,6 +218,20 @@ export default function InstanceDetailPage() {
       ? findStepForNode(selectedNode, typedInstance.steps)
       : null;
 
+  const handleStepClick = (step: any) => {
+    const node = findNodeForStep(step, nodes);
+    if (node) {
+      setSelectedNode(node);
+      const canvas = document.querySelector('.react-flow');
+      if (canvas) {
+        const nodeElement = canvas.querySelector(`[data-id="${node.id}"]`);
+        if (nodeElement) {
+          nodeElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }
+    }
+  };
+
   return (
     <div className="min-h-screen bg-white">
       <div className="w-full px-6 py-8">
@@ -311,7 +325,13 @@ export default function InstanceDetailPage() {
         </div>
 
         {typedInstance?.steps && typedInstance.steps.length > 0 && (
-          <StepHistoryTable steps={typedInstance.steps} />
+          <div className="mt-6">
+            <StepHistoryTable 
+              steps={typedInstance.steps} 
+              selectedStep={selectedStep}
+              onStepClick={handleStepClick}
+            />
+          </div>
         )}
 
         <div className="fixed bottom-6 right-6 z-40">

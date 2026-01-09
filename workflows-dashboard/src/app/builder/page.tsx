@@ -97,6 +97,7 @@ function WorkflowBuilderContent() {
     nodes,
     edges,
     workflowId,
+    mcpEnabled,
     setBackendCode,
     setBackendBindings,
     setShowCodePreview,
@@ -108,130 +109,127 @@ function WorkflowBuilderContent() {
       <CrossHatchBackground pattern="large" />
       <div className="relative z-10 flex flex-col h-screen">
         <div className="border-b border-gray-200 bg-white/80 backdrop-blur-sm px-6 py-4 shadow-sm">
-        <div className="w-full flex items-center justify-between">
-          <PageHeader
-            title="Workflow Builder"
-            description="Build and deploy workflows with drag and drop"
-          />
-          <WorkflowToolbar
-            onCodePreview={handleCodePreviewClick}
-            onDeploy={handleDeployClick}
-            isDeploying={isDeploying || isCompiling}
-            mcpEnabled={mcpEnabled}
-            onMCPToggle={handleMCPToggle}
-          />
+          <div className="w-full flex items-center justify-between">
+            <PageHeader
+              title="Workflow Builder"
+              description="Build and deploy workflows with drag and drop"
+            />
+            <WorkflowToolbar
+              onCodePreview={handleCodePreviewClick}
+              onDeploy={handleDeployClick}
+              isDeploying={isDeploying || isCompiling}
+              mcpEnabled={mcpEnabled}
+              onMCPToggle={handleMCPToggle}
+            />
+          </div>
         </div>
-      </div>
 
-      <div
-          className="flex flex-1 overflow-hidden relative z-10"
-        style={{ height: "calc(100vh - 80px)" }}
-      >
-        <WorkflowSidebar
-          onAddNode={(nodeType: string) => {
-            if (selectedEdge) {
-              insertNodeBetweenEdge(
-                (selectedEdge as any).id as string,
-                nodeType
-              );
-              setSelectedEdge(null);
-            }
-          }}
-          nodes={nodes}
-          edges={edges}
-          edgeSelected={!!selectedEdge}
-        />
-
-        <div
-          className="flex-1 flex flex-col overflow-hidden bg-white/40 backdrop-blur-sm"
-          style={{ height: "100%", width: "100%" }}
-        >
-          <WorkflowCanvas
+        <div className="flex flex-1 overflow-hidden relative z-10">
+          <WorkflowSidebar
+            onAddNode={(nodeType: string) => {
+              if (selectedEdge) {
+                insertNodeBetweenEdge(
+                  (selectedEdge as any).id as string,
+                  nodeType
+                );
+                setSelectedEdge(null);
+              }
+            }}
             nodes={nodes}
             edges={edges}
-            onNodesChange={handleNodesChange}
-            onEdgesChange={handleEdgesChange}
-            onConnect={handleConnect}
-            onNodeClick={(_, node) => setSelectedNode(node)}
-            onEdgeClick={(_, edge) => {
-              setSelectedEdge(edge as any);
-            }}
+            edgeSelected={!!selectedEdge}
           />
+
+          <div className="flex-1 flex flex-col overflow-hidden bg-white/40 backdrop-blur-sm">
+            <WorkflowCanvas
+              nodes={nodes}
+              edges={edges}
+              onNodesChange={handleNodesChange}
+              onEdgesChange={handleEdgesChange}
+              onConnect={handleConnect}
+              onNodeClick={(_, node) => setSelectedNode(node)}
+              onEdgeClick={(_, edge) => {
+                setSelectedEdge(edge as any);
+              }}
+              setSelectedNode={setSelectedNode}
+            />
+          </div>
+
+          {selectedNode && (
+            <WorkflowSettingsPanel
+              selectedNode={selectedNode}
+              onNodeUpdate={updateNode}
+              onClose={() => setSelectedNode(null)}
+            />
+          )}
         </div>
 
-        <WorkflowSettingsPanel
-          selectedNode={selectedNode}
-          onNodeUpdate={updateNode}
-          onClose={() => setSelectedNode(null)}
-        />
-      </div>
-
-      <CodePreview
-        workflow={{
-          id: "workflow-1",
-          name: "My Workflow",
-          description: "Generated workflow",
-          version: "1.0.0",
-          metadata: {
-            createdAt: Date.now(),
-            updatedAt: Date.now(),
-            author: "User",
-            tags: []
-          },
-          bindings: {
-            kv: [],
-            d1: [],
-            r2: [],
-            ai: { binding: "AI" },
-            secrets: []
-          },
-          nodes: nodes.map((node) => ({
-            id: node.id,
-            type: node.type || "default",
-            position: node.position,
-            data: (node.data as any) || {
-              config: {},
-              inputs: [],
-              outputs: [],
-              validation: { isValid: true, errors: [], warnings: [] }
+        <CodePreview
+          workflow={{
+            id: "workflow-1",
+            name: "My Workflow",
+            description: "Generated workflow",
+            version: "1.0.0",
+            metadata: {
+              createdAt: Date.now(),
+              updatedAt: Date.now(),
+              author: "User",
+              tags: []
             },
-            metadata: (node as any).metadata || {
-              label: node.type || "Node",
-              description: "",
-              icon: "Circle",
-              category: "control" as const,
-              version: "1.0.0"
-            }
-          })) as BaseNode[],
-          edges: edges,
-          entryNodeId:
-            nodes.find((n) => n.type === "entry")?.id || nodes[0]?.id || "",
-          variables: {}
-        }}
-        isOpen={showCodePreview}
-        onClose={() => setShowCodePreview(false)}
-        code={backendCode || ""}
-        bindings={
-          Array.isArray(backendBindings)
-            ? backendBindings.filter(
-                (b): b is Binding =>
-                  typeof b === "object" &&
-                  b !== null &&
-                  "type" in b &&
-                  typeof (b as Binding).type === "string" &&
-                  "name" in b &&
-                  typeof (b as Binding).name === "string"
-              )
-            : []
-        }
-        nodes={nodes}
-        onNodeSelect={(nodeId) => {
-          const node = nodes.find((n) => n.id === nodeId);
-          if (node) {
-            setSelectedNode(node);
+            bindings: {
+              kv: [],
+              d1: [],
+              r2: [],
+              ai: { binding: "AI" },
+              secrets: []
+            },
+            nodes: nodes.map((node) => ({
+              id: node.id,
+              type: node.type || "default",
+              position: node.position,
+              data: (node.data as any) || {
+                config: {},
+                inputs: [],
+                outputs: [],
+                validation: { isValid: true, errors: [], warnings: [] }
+              },
+              metadata: (node as any).metadata || {
+                label: node.type || "Node",
+                description: "",
+                icon: "Circle",
+                category: "control" as const,
+                version: "1.0.0"
+              }
+            })) as BaseNode[],
+            edges: edges,
+            entryNodeId:
+              nodes.find((n) => n.type === "entry")?.id || nodes[0]?.id || "",
+            variables: {}
+          }}
+          isOpen={showCodePreview}
+          onClose={() => setShowCodePreview(false)}
+          code={backendCode || ""}
+          bindings={
+            Array.isArray(backendBindings)
+              ? backendBindings.filter(
+                  (b): b is Binding =>
+                    typeof b === "object" &&
+                    b !== null &&
+                    "type" in b &&
+                    typeof (b as Binding).type === "string" &&
+                    "name" in b &&
+                    typeof (b as Binding).name === "string"
+                )
+              : []
           }
-        }}
-      />
+          nodes={nodes}
+          onNodeSelect={(nodeId) => {
+            const node = nodes.find((n) => n.id === nodeId);
+            if (node) {
+              setSelectedNode(node);
+            }
+          }}
+        />
       </div>
     </div>
   );

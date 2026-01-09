@@ -6,9 +6,11 @@ import type { InstanceStep } from "@/types/instance";
 
 interface StepHistoryTableProps {
   steps: InstanceStep[];
+  selectedStep?: InstanceStep | null;
+  onStepClick?: (step: InstanceStep) => void;
 }
 
-export function StepHistoryTable({ steps }: StepHistoryTableProps) {
+export function StepHistoryTable({ steps, selectedStep, onStepClick }: StepHistoryTableProps) {
   const stepColumns: ColumnDef<any>[] = [
     {
       accessorKey: "success",
@@ -108,7 +110,14 @@ export function StepHistoryTable({ steps }: StepHistoryTableProps) {
         <h2 className="text-xl font-bold text-gray-900">Step History</h2>
       </CardHeader>
       <CardContent>
-        <DataTable data={steps} columns={stepColumns} />
+        <DataTable 
+          data={steps.map(step => ({
+            ...step,
+            isSelected: selectedStep?.name === step.name
+          }))} 
+          columns={stepColumns} 
+          onRowAction={(step) => onStepClick?.(step)}
+        />
       </CardContent>
     </Card>
   );

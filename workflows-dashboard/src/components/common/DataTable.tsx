@@ -60,26 +60,32 @@ export function DataTable<TData>({
         ))}
       </thead>
       <tbody className="bg-white">
-        {table.getRowModel().rows.map((row) => (
-          <tr
-            key={row.id}
-            onClick={() => onRowAction?.(row.original, "click")}
-            className={onRowAction ? "cursor-pointer hover:bg-gray-50" : ""}
-          >
-            {row.getVisibleCells().map((cell) => {
-              const align = (cell.column.columnDef.meta as any)?.align || 'left';
-              return (
-                <TableCell
-                  key={cell.id}
-                  isActionColumn={false}
-                  className={align === 'center' ? 'text-center' : align === 'right' ? 'text-right' : 'text-left'}
-                >
-                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                </TableCell>
-              );
-            })}
-          </tr>
-        ))}
+        {table.getRowModel().rows.map((row) => {
+          const isSelected = (row.original as any)?.isSelected || false;
+          return (
+            <tr
+              key={row.id}
+              onClick={() => onRowAction?.(row.original, "click")}
+              className={cn(
+                onRowAction ? "cursor-pointer hover:bg-gray-50 transition-colors" : "",
+                isSelected && "bg-blue-50 border-l-4 border-l-blue-500 hover:bg-blue-100"
+              )}
+            >
+              {row.getVisibleCells().map((cell) => {
+                const align = (cell.column.columnDef.meta as any)?.align || 'left';
+                return (
+                  <TableCell
+                    key={cell.id}
+                    isActionColumn={false}
+                    className={align === 'center' ? 'text-center' : align === 'right' ? 'text-right' : 'text-left'}
+                  >
+                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                  </TableCell>
+                );
+              })}
+            </tr>
+          );
+        })}
       </tbody>
     </Table>
   );

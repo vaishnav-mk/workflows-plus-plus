@@ -34,6 +34,27 @@ export function findStepForNode(
   return found || null;
 }
 
+export function findNodeForStep(
+  step: InstanceStep,
+  nodes: Node[]
+): Node | null {
+  if (!step?.name) return null;
+
+  const stepName = step.name;
+  const found = nodes.find((node) => {
+    if (!node?.id) return false;
+    
+    if (stepName.includes(node.id)) return true;
+    if (node.id.includes(stepName)) return true;
+    
+    if (node.data?.label && stepName.includes(node.data.label as string)) return true;
+    
+    return false;
+  });
+
+  return found || null;
+}
+
 export function getStepStatus(
   step: InstanceStep | null,
   instanceData: InstanceDetail

@@ -206,7 +206,7 @@ export const parseWorkflowCode = (workflowCode: string): Effect.Effect<ReverseCo
         stepName?: string;
       }>();
 
-      const nodeStartRegex = /console\.log\(JSON\.stringify\(\{type:'WF_NODE_START',nodeId:'([^']+)',nodeName:([^,]+),nodeType:'([^']+)'/g;
+      const nodeStartRegex = /console\.log\((?:JSON\.stringify\()?\{type:'WF_NODE_START',nodeId:'([^']+)',nodeName:([^,]+),nodeType:'([^']+)'/g;
       let match;
       const nodeOrder: string[] = [];
 
@@ -231,10 +231,10 @@ export const parseWorkflowCode = (workflowCode: string): Effect.Effect<ReverseCo
 
         const escapedNodeId = nodeId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         const nodeStartLogPattern = new RegExp(
-          `console\\.log\\(JSON\\.stringify\\(\\{type:'WF_NODE_START',nodeId:'${escapedNodeId}'[^}]*\\}\\)\\);`
+          `console\\.log\\((JSON\\.stringify\\()?\\{type:'WF_NODE_START',nodeId:'${escapedNodeId}'[^}]*\\}(\\))?\\);`
         );
         const nodeEndLogPattern = new RegExp(
-          `console\\.log\\(JSON\\.stringify\\(\\{type:'WF_NODE_END',nodeId:'${escapedNodeId}'[^}]*\\}\\)\\);`
+          `console\\.log\\((JSON\\.stringify\\()?\\{type:'WF_NODE_END',nodeId:'${escapedNodeId}'[^}]*\\}(\\))?\\);`
         );
 
         const startLogMatch = workflowCode.search(nodeStartLogPattern);

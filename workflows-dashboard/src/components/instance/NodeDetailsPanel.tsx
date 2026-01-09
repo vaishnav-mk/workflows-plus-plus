@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   Card,
   CardHeader,
@@ -8,8 +9,11 @@ import {
   CopyButton,
   JsonViewer,
   DetailsList,
-  DateDisplay
+  DateDisplay,
+  Tabs,
+  Tab
 } from "@/components";
+import { Info, FileJson, Settings2 } from "lucide-react";
 import type { Node } from "reactflow";
 import type { InstanceStep } from "@/types/instance";
 
@@ -22,6 +26,8 @@ export function NodeDetailsPanel({
   selectedNode,
   step
 }: NodeDetailsPanelProps) {
+  const [activeTab, setActiveTab] = useState(0);
+
   if (!selectedNode) {
     return (
       <Card>
@@ -40,7 +46,7 @@ export function NodeDetailsPanel({
   const nodeLabel = String(
     selectedNode.data?.label || selectedNode.type || "Node"
   );
-  const nodeType = String(selectedNode.data?.type || "unknown");
+  const nodeType = String(selectedNode.type || selectedNode.data?.type || "unknown");
   const statusText = step?.success
     ? "Completed"
     : step?.success === false
@@ -111,16 +117,38 @@ export function NodeDetailsPanel({
 
   return (
     <Card>
-      <CardHeader>
-        <h3 className="text-lg font-semibold text-gray-900">Node Details</h3>
+      <CardHeader className="pb-0">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Node Details</h3>
+        <Tabs activeTab={activeTab} onTabChange={setActiveTab}>
+          <Tab>
+            <div className="flex items-center gap-2">
+              <Info className="w-4 h-4" />
+              <span>Overview</span>
+            </div>
+          </Tab>
+          <Tab>
+            <div className="flex items-center gap-2">
+              <FileJson className="w-4 h-4" />
+              <span>Data</span>
+            </div>
+          </Tab>
+          {step?.config && (
+            <Tab>
+              <div className="flex items-center gap-2">
+                <Settings2 className="w-4 h-4" />
+                <span>Config</span>
+              </div>
+            </Tab>
+          )}
+        </Tabs>
       </CardHeader>
-      <CardContent>
+      <CardContent className="pt-4">
         <div className="space-y-4 text-sm">
-          <DetailsList items={detailsItems} />
-
-          {step && (
+          {activeTab === 0 && (
             <>
-              {step.error && (
+              <DetailsList items={detailsItems} />
+              
+              {step?.error && (
                 <div>
                   <div className="text-gray-700 font-medium mb-2">Error</div>
                   <div className="bg-red-50 border border-red-200 rounded-lg p-3">
@@ -138,69 +166,16 @@ export function NodeDetailsPanel({
                 </div>
               )}
 
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <div className="text-gray-700 font-medium">Input</div>
-                  {step.output && (
-                    <CopyButton
-                      text={
-                        typeof step.output === "string"
-                          ? step.output
-                          : JSON.stringify(step.output, null, 2)
-                      }
-                    />
-                  )}
-                </div>
-                {step.output ? (
-                  <JsonViewer data={step.output} className="max-h-96" />
-                ) : (
-                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-xs text-gray-500">
-                    No input data
-                  </div>
-                )}
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <div className="text-gray-700 font-medium">Output</div>
-                  {step.output && (
-                    <CopyButton
-                      text={
-                        typeof step.output === "string"
-                          ? step.output
-                          : JSON.stringify(step.output, null, 2)
-                      }
-                    />
-                  )}
-                </div>
-                {step.output ? (
-                  <JsonViewer data={step.output} className="max-h-96" />
-                ) : (
-                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-xs text-gray-500">
-                    No output data
-                  </div>
-                )}
-              </div>
-
-              {step.config && (
+              {step?.attempts && step.attempts.length > 0 && (
                 <div>
-                  <div className="text-gray-700 font-medium mb-2">
-                    Configuration
-                  </div>
-                  <JsonViewer data={step.config} className="max-h-24" />
-                </div>
-              )}
-
-              {step.attempts && step.attempts.length > 0 && (
-                <div>
-                  <div className="text-gray-700 font-medium mb-2">
+                  <div className="text-gray-700 font-medium mb-3">
                     Attempts ({step.attempts.length})
                   </div>
-                  <div className="space-y-2 max-h-48 overflow-y-auto">
+                  <div className="space-y-2 max-h-64 overflow-y-auto">
                     {step.attempts.map((attempt: any, idx: number) => (
                       <div
                         key={idx}
-                        className="bg-gray-50 border border-gray-200 rounded-lg p-2 text-xs"
+                        className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-xs"
                       >
                         <div className="flex items-center justify-between mb-1">
                           <span className="font-medium">Attempt {idx + 1}</span>
@@ -238,6 +213,63 @@ export function NodeDetailsPanel({
                 </div>
               )}
             </>
+          )}
+
+          {activeTab === 1 && step && (
+            <>
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="text-gray-700 font-semibold">Input</div>
+                  {step.output && (
+                    <CopyButton
+                      text={
+                        typeof step.output === "string"
+                          ? step.output
+                          : JSON.stringify(step.output, null, 2)
+                      }
+                    />
+                  )}
+                </div>
+                {step.output ? (
+                  <JsonViewer data={step.output} className="max-h-96" />
+                ) : (
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-xs text-gray-500">
+                    No input data
+                  </div>
+                )}
+              </div>
+
+              <div className="pt-2">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="text-gray-700 font-semibold">Output</div>
+                  {step.output && (
+                    <CopyButton
+                      text={
+                        typeof step.output === "string"
+                          ? step.output
+                          : JSON.stringify(step.output, null, 2)
+                      }
+                    />
+                  )}
+                </div>
+                {step.output ? (
+                  <JsonViewer data={step.output} className="max-h-96" />
+                ) : (
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-xs text-gray-500">
+                    No output data
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+
+          {activeTab === 2 && step?.config && (
+            <div>
+              <div className="text-gray-700 font-semibold mb-3">
+                Configuration
+              </div>
+              <JsonViewer data={step.config} className="max-h-96" />
+            </div>
           )}
         </div>
       </CardContent>
