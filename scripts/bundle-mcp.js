@@ -7,6 +7,7 @@
 // It produces:
 //   bundles/agents/agents.mcp.bundle.mjs
 //   bundles/mcp/mcp-sdk.bundle.mjs
+//   bundles/zod/zod.bundle.mjs
 //   src/services/deployment/mcp-bundles.generated.ts (string-embedded bundle modules)
 
 /* eslint-disable @typescript-eslint/no-var-requires */
@@ -93,6 +94,31 @@ async function bundleMcpSdk(rootDir) {
   console.log("[bundle-mcp] Wrote", outfile);
 }
 
+async function bundleZod(rootDir) {
+  const entry = path.join(
+    rootDir,
+    "node_modules",
+    "zod",
+    "index.js"
+  );
+
+  const outDir = path.join(rootDir, "bundles", "zod");
+  await ensureDir(outDir);
+
+  const outfile = path.join(outDir, "zod.bundle.mjs");
+
+  console.log("[bundle-mcp] Bundling Zod entry:", entry);
+  await esbuild.build({
+    entryPoints: [entry],
+    bundle: true,
+    format: "esm",
+    platform: "node",
+    outfile,
+    minify: true
+  });
+  console.log("[bundle-mcp] Wrote", outfile);
+}
+
 function writeGeneratedTs(rootDir) {
   const agentsPath = path.join(
     rootDir,
@@ -101,9 +127,11 @@ function writeGeneratedTs(rootDir) {
     "agents.mcp.bundle.mjs"
   );
   const mcpSdkPath = path.join(rootDir, "bundles", "mcp", "mcp-sdk.bundle.mjs");
+  const zodPath = path.join(rootDir, "bundles", "zod", "zod.bundle.mjs");
 
   const agentsCode = fs.readFileSync(agentsPath, "utf8");
   const mcpSdkCode = fs.readFileSync(mcpSdkPath, "utf8");
+  const zodCode = fs.readFileSync(zodPath, "utf8");
 
   const outDir = path.join(rootDir, "src", "services", "deployment");
   ensureDir(outDir);
@@ -126,6 +154,10 @@ export const MCP_EMBEDDED_MODULES: EmbeddedModule[] = [
   {
     name: "bundles/mcp/mcp-sdk.bundle.mjs",
     content: ${JSON.stringify(mcpSdkCode)}
+  },
+  {
+    name: "bundles/zod/zod.bundle.mjs",
+    content: ${JSON.stringify(zodCode)}
   }
 ];
 `;
@@ -140,6 +172,7 @@ async function main() {
     console.log("[bundle-mcp] Using project root:", rootDir);
     await bundleAgentsMcp(rootDir);
     await bundleMcpSdk(rootDir);
+    await bundleZod(rootDir);
     writeGeneratedTs(rootDir);
     console.log(
       "[bundle-mcp] MCP bundles and generated TS module built successfully."

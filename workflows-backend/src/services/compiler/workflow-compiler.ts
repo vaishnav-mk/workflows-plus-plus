@@ -505,6 +505,7 @@ ${indentedNodeCode}
         code = `import { WorkflowEntrypoint } from 'cloudflare:workers';
 import { McpAgent } from "./bundles/agents/agents.mcp.bundle.mjs";
 import { McpServer } from "./bundles/mcp/mcp-sdk.bundle.mjs";
+import { z } from "./bundles/zod/zod.bundle.mjs";
 
 export class ${finalClassName} extends WorkflowEntrypoint {
   async run(event, step) {

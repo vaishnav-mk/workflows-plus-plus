@@ -436,7 +436,7 @@ export async function deployToCloudflare(
         : undefined;
     
     if (migrations && durableObjectBindings.length > 0) {
-      progress(DeploymentStep.CREATING_VERSION, "Creating version with migrations...", 45);
+      progress(DeploymentStep.CREATING_VERSION, "Setting up Durable Objects...", 45);
       
       const migrationVersion = await client.workers.beta.workers.versions.create(
         worker.id,
@@ -455,7 +455,7 @@ export async function deployToCloudflare(
         >[1]
       );
       
-      progress(DeploymentStep.DEPLOYING, "Deploying migration version...", 50);
+      logger.info("Migration version created, deploying...", { versionId: migrationVersion.id });
       await client.workers.scripts.deployments.create(workerName, {
         account_id: accountId,
         strategy: CLOUDFLARE.DEPLOYMENT_STRATEGY,
@@ -468,6 +468,9 @@ export async function deployToCloudflare(
       });
       
       await new Promise(resolve => setTimeout(resolve, 2000));
+      progress(DeploymentStep.CREATING_VERSION, "Durable Objects ready, creating workflow version...", 50);
+    } else {
+      progress(DeploymentStep.CREATING_VERSION, "Creating version...", 45);
     }
     
     const versionConfig: Record<string, unknown> = {
