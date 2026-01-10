@@ -43,9 +43,9 @@ while true; do
   else
     echo "$workers" | while read -r id name; do
       echo "Deleting worker: ${name} (${id})"
-    #   del_resp=$(curl -sS -X DELETE "${BASE_URL}/${id}" \
-    #     -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
-    #     -H "Content-Type: application/json")
+      del_resp=$(curl -sS -X DELETE "${BASE_URL}/${id}" \
+        -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+        -H "Content-Type: application/json")
       del_success=$(echo "$del_resp" | jq -r '.success')
       if [[ "$del_success" != "true" ]]; then
         echo "  Failed to delete ${name}:"
