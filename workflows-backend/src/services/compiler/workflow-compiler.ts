@@ -531,10 +531,8 @@ export class ${mcpClassName} extends McpAgent {
       "${toolName}",
       ${zodSchemaCode},
       async (args) => {
-        const instance = await this.env.${workflowBindingName}.create({
-          id: crypto.randomUUID(),
-          payload: args || {}
-        });
+        const instance = await this.env.${workflowBindingName}.create();
+        await instance.run(args || {});
         let status = await instance.status();
 
         console.log('${toolName}', status);
