@@ -213,6 +213,7 @@ export class DeploymentDurableObject {
 
   private async handleList(): Promise<Response> {
     const registry = (await this.state.storage.get<string[]>("deployment_registry")) || [];
+    logger.info("Listing deployments from registry", { count: registry.length, deployments: registry });
     return Response.json({
       success: true,
       deployments: registry
@@ -222,15 +223,25 @@ export class DeploymentDurableObject {
   private async handleRegister(request: Request): Promise<Response> {
     try {
       const body = await request.json() as { deploymentId: string };
+      logger.info("Registering deployment", { deploymentId: body.deploymentId });
+      
       const registry = (await this.state.storage.get<string[]>("deployment_registry")) || [];
+      logger.info("Current registry", { registry, count: registry.length });
       
       if (!registry.includes(body.deploymentId)) {
         registry.push(body.deploymentId);
         await this.state.storage.put("deployment_registry", registry);
+        logger.info("Deployment added to registry", { 
+          deploymentId: body.deploymentId, 
+          newCount: registry.length 
+        });
+      } else {
+        logger.info("Deployment already in registry", { deploymentId: body.deploymentId });
       }
       
-      return Response.json({ success: true });
+      return Response.json({ success: true, registered: true, count: registry.length });
     } catch (error) {
+      logger.error("Failed to register deployment", error instanceof Error ? error : new Error(String(error)));
       return Response.json({ success: false, error: String(error) }, { status: 500 });
     }
   }

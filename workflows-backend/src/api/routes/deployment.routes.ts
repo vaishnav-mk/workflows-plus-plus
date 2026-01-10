@@ -35,9 +35,11 @@ app.get(
           new Request("http://internal/list")
         );
         const registryData = (await registryResponse.json()) as any;
+        console.log("Registry data:", registryData);
 
         if (registryData.success && registryData.deployments) {
           const deploymentIds = registryData.deployments;
+          console.log("Found deployment IDs:", deploymentIds);
 
           for (const deploymentId of deploymentIds) {
             const id = deploymentDO.idFromName(deploymentId);
