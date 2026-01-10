@@ -24,8 +24,13 @@ import { getSSECorsHeaders } from "../../core/cors.config";
 export class DeploymentDurableObject {
   private deploymentState: DeploymentState | null = null;
   private sseConnections: Set<ReadableStreamDefaultController> = new Set();
+  private state: DurableObjectState;
+  private env: { [key: string]: unknown };
 
-  constructor(_state: DurableObjectState, _env: { [key: string]: unknown }) {}
+  constructor(state: DurableObjectState, env: { [key: string]: unknown }) {
+    this.state = state;
+    this.env = env;
+  }
 
 
   async fetch(request: Request): Promise<Response> {
@@ -148,6 +153,7 @@ export class DeploymentDurableObject {
         startedAt: new Date().toISOString()
       };
 
+      await this.state.storage.put("deploymentState", this.deploymentState);
       this.broadcastState(this.deploymentState);
 
       this.runDeployment(
@@ -198,14 +204,19 @@ export class DeploymentDurableObject {
 
   private async handleStatus(): Promise<Response> {
     if (!this.deploymentState) {
-      return Response.json(
-        {
-          success: false,
-          error: "No deployment found",
-          events: DEPLOYMENT_STEPS_ORDER
-        },
-        { status: 404 }
-      );
+      const stored = await this.state.storage.get<DeploymentState>("deploymentState");
+      if (stored) {
+        this.deploymentState = stored;
+      } else {
+        return Response.json(
+          {
+            success: false,
+            error: "No deployment found",
+            events: DEPLOYMENT_STEPS_ORDER
+          },
+          { status: 404 }
+        );
+      }
     }
 
     return Response.json({

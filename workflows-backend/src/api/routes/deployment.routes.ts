@@ -16,30 +16,41 @@ app.get(
   "/",
   rateLimitMiddleware(),
   safe(async c => {
-    const client = c.var.cloudflare;
-    const credentials = c.var.credentials;
+    const deploymentDO = c.env.DEPLOYMENT_DO!;
+    const deployments: Array<{
+      id: string;
+      workflowId: string;
+      name: string;
+      status: string;
+      startedAt?: string;
+      completedAt?: string;
+    }> = [];
 
-    const workers = await client.workers.scripts.list({
-      account_id: credentials.accountId
-    });
+    const stub = deploymentDO.jurisdiction("eu");
+    const objects = await stub.list();
 
-    const deployments = (workers.result || [])
-      .filter((worker: any) => worker.id?.includes("workflow") || worker.id?.includes("deployment"))
-      .map((worker: any) => {
-        const deploymentId = worker.id?.startsWith("workflow-") 
-          ? worker.id.replace("workflow-", "deployment-")
-          : worker.id?.startsWith("deployment-") 
-            ? worker.id 
-            : `deployment-${worker.id}`;
+    for (const obj of objects.objects) {
+      const id = deploymentDO.idFromName(obj.id.name!);
+      const instance = deploymentDO.get(id);
+      
+      try {
+        const response = await instance.fetch(new Request("http://internal/status"));
+        const data = await response.json() as any;
         
-        return {
-          id: deploymentId,
-          workflowId: worker.id,
-          name: worker.id,
-          createdAt: worker.created_on,
-          updatedAt: worker.modified_on
-        };
-      });
+        if (data.success && data.data) {
+          deployments.push({
+            id: data.data.deploymentId || obj.id.name!,
+            workflowId: data.data.workflowId || obj.id.name!,
+            name: data.data.workflowId || obj.id.name!,
+            status: data.data.status || "unknown",
+            startedAt: data.data.startedAt,
+            completedAt: data.data.completedAt
+          });
+        }
+      } catch (error) {
+        continue;
+      }
+    }
 
     return c.json({
       success: true,
