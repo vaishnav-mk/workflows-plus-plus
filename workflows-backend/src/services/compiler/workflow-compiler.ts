@@ -509,7 +509,7 @@ import { z } from "./bundles/zod/zod.bundle.mjs";
 
 export class ${finalClassName} extends WorkflowEntrypoint {
   async run(event, step) {
-    console.log({type:'WF_START',timestamp:Date.now(),instanceId:event.instanceId,eventTimestamp:event.timestamp,payload:event.payload});
+    console.log({type:'WF_START',timestamp:Date.now(),instanceId:event.instanceId,eventTimestamp:event.timestamp,params:event.params});
     const _workflowResults = {};
     const _workflowState = {};
 ${nodeCodes}
@@ -531,30 +531,33 @@ export class ${mcpClassName} extends McpAgent {
       "${toolName}",
       ${zodSchemaCode},
       async (args) => {
-        const instance = await this.env.${workflowBindingName}.create();
-        await instance.run(args || {});
+        const instance = await this.env.${workflowBindingName}.create({
+          params: args || {}
+        });
         let status = await instance.status();
 
         console.log('${toolName}', status);
 
-        while (status.status !== 'complete') {
-          await new Promise(resolve => setTimeout(resolve, 5000));
+        while (status.status !== 'complete' && status.status !== 'error') {
+          await new Promise(resolve => setTimeout(resolve, 2000));
           status = await instance.status();
           console.log('${toolName}', status);
-          if (status.status === 'complete') {
-            return {
-              content: [{
-                type: "text",
-                text: JSON.stringify(status)
-              }]
-            };
-          }
+        }
+
+        if (status.status === 'error') {
+          return {
+            content: [{
+              type: "text",
+              text: JSON.stringify({ error: status.error || 'Workflow failed' })
+            }],
+            isError: true
+          };
         }
 
         return {
           content: [{
             type: "text",
-            text: JSON.stringify(status)
+            text: JSON.stringify(status.output || status)
           }]
         };
       }
@@ -579,7 +582,7 @@ export default {
 
 export class ${finalClassName} extends WorkflowEntrypoint {
   async run(event, step) {
-    console.log({type:'WF_START',timestamp:Date.now(),instanceId:event.instanceId,eventTimestamp:event.timestamp,payload:event.payload});
+    console.log({type:'WF_START',timestamp:Date.now(),instanceId:event.instanceId,eventTimestamp:event.timestamp,params:event.params});
     const _workflowResults = {};
     const _workflowState = {};
 ${nodeCodes}

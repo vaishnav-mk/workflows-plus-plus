@@ -116,16 +116,16 @@ export const MCPToolInputNode: WorkflowNodeDefinition<MCPToolInputConfig> = {
           .map(name => `${name}: ${name}`)
           .join(", ");
         code = `
-    const { ${paramList} } = event.payload || {};
+    const { ${paramList} } = event.params || {};
     _workflowState['${nodeId}'] = {
-      input: event.payload,
+      input: event.params,
       output: { ${paramObject} }
     };`;
       } else {
         code = `
     _workflowState['${nodeId}'] = {
-      input: event.payload,
-      output: event.payload
+      input: event.params,
+      output: event.params
     };`;
       }
 
