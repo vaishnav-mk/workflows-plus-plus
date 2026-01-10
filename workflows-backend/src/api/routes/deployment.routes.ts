@@ -29,32 +29,40 @@ app.get(
     try {
       const registryId = deploymentDO.idFromName("deployment-registry");
       const registryInstance = deploymentDO.get(registryId);
-      const registryResponse = await registryInstance.fetch(new Request("http://internal/list"));
-      const registryData = await registryResponse.json() as any;
       
-      const deploymentIds = registryData.deployments || [];
-      
-      for (const deploymentId of deploymentIds) {
-        const id = deploymentDO.idFromName(deploymentId);
-        const instance = deploymentDO.get(id);
+      try {
+        const registryResponse = await registryInstance.fetch(new Request("http://internal/list"));
+        const registryData = await registryResponse.json() as any;
         
-        try {
-          const response = await instance.fetch(new Request("http://internal/status"));
-          const data = await response.json() as any;
+        if (registryData.success && registryData.deployments) {
+          const deploymentIds = registryData.deployments;
           
-          if (data.success && data.data) {
-            deployments.push({
-              id: data.data.deploymentId || deploymentId,
-              workflowId: data.data.workflowId || deploymentId,
-              name: data.data.workflowId || deploymentId,
-              status: data.data.status || "unknown",
-              startedAt: data.data.startedAt,
-              completedAt: data.data.completedAt
-            });
+          for (const deploymentId of deploymentIds) {
+            const id = deploymentDO.idFromName(deploymentId);
+            const instance = deploymentDO.get(id);
+            
+            try {
+              const response = await instance.fetch(new Request("http://internal/status"));
+              const data = await response.json() as any;
+              
+              if (data.success && data.data) {
+                deployments.push({
+                  id: data.data.deploymentId || deploymentId,
+                  workflowId: data.data.workflowId || deploymentId,
+                  name: data.data.workflowId || deploymentId,
+                  status: data.data.status || "unknown",
+                  startedAt: data.data.startedAt,
+                  completedAt: data.data.completedAt
+                });
+              }
+            } catch (error) {
+              console.error(`Failed to fetch deployment ${deploymentId}:`, error);
+              continue;
+            }
           }
-        } catch (error) {
-          continue;
         }
+      } catch (error) {
+        console.error("Failed to fetch registry:", error);
       }
     } catch (error) {
       console.error("Failed to list deployments:", error);

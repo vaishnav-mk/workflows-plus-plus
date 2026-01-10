@@ -56,6 +56,10 @@ export class DeploymentDurableObject {
       return this.handleList();
     }
 
+    if (pathname.endsWith("/register") && request.method === "POST") {
+      return this.handleRegister(request);
+    }
+
     if (request.method === "GET") {
       return this.handleStatus();
     }
@@ -159,12 +163,6 @@ export class DeploymentDurableObject {
 
       await this.state.storage.put("deploymentState", this.deploymentState);
       
-      const registry = (await this.state.storage.get<string[]>("deployment_registry")) || [];
-      if (!registry.includes(body.deploymentId)) {
-        registry.push(body.deploymentId);
-        await this.state.storage.put("deployment_registry", registry);
-      }
-      
       this.broadcastState(this.deploymentState);
 
       this.runDeployment(
@@ -219,6 +217,22 @@ export class DeploymentDurableObject {
       success: true,
       deployments: registry
     });
+  }
+
+  private async handleRegister(request: Request): Promise<Response> {
+    try {
+      const body = await request.json() as { deploymentId: string };
+      const registry = (await this.state.storage.get<string[]>("deployment_registry")) || [];
+      
+      if (!registry.includes(body.deploymentId)) {
+        registry.push(body.deploymentId);
+        await this.state.storage.put("deployment_registry", registry);
+      }
+      
+      return Response.json({ success: true });
+    } catch (error) {
+      return Response.json({ success: false, error: String(error) }, { status: 500 });
+    }
   }
 
   private async handleStatus(): Promise<Response> {
