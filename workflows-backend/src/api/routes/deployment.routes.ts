@@ -29,22 +29,26 @@ app.get(
     try {
       const registryId = deploymentDO.idFromName("deployment-registry");
       const registryInstance = deploymentDO.get(registryId);
-      
+
       try {
-        const registryResponse = await registryInstance.fetch(new Request("http://internal/list"));
-        const registryData = await registryResponse.json() as any;
-        
+        const registryResponse = await registryInstance.fetch(
+          new Request("http://internal/list")
+        );
+        const registryData = (await registryResponse.json()) as any;
+
         if (registryData.success && registryData.deployments) {
           const deploymentIds = registryData.deployments;
-          
+
           for (const deploymentId of deploymentIds) {
             const id = deploymentDO.idFromName(deploymentId);
             const instance = deploymentDO.get(id);
-            
+
             try {
-              const response = await instance.fetch(new Request("http://internal/status"));
-              const data = await response.json() as any;
-              
+              const response = await instance.fetch(
+                new Request("http://internal/status")
+              );
+              const data = (await response.json()) as any;
+
               if (data.success && data.data) {
                 deployments.push({
                   id: data.data.deploymentId || deploymentId,
@@ -56,7 +60,10 @@ app.get(
                 });
               }
             } catch (error) {
-              console.error(`Failed to fetch deployment ${deploymentId}:`, error);
+              console.error(
+                `Failed to fetch deployment ${deploymentId}:`,
+                error
+              );
               continue;
             }
           }
@@ -68,11 +75,14 @@ app.get(
       console.error("Failed to list deployments:", error);
     }
 
-    return c.json({
-      success: true,
-      data: deployments,
-      message: "Deployments retrieved successfully"
-    }, HTTP_STATUS_CODES.OK);
+    return c.json(
+      {
+        success: true,
+        data: deployments,
+        message: "Deployments retrieved successfully"
+      },
+      HTTP_STATUS_CODES.OK
+    );
   })
 );
 app.get(

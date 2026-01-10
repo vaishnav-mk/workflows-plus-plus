@@ -270,6 +270,7 @@ export class DeploymentDurableObject {
     }
 
     this.deploymentState.status = DeploymentStatus.IN_PROGRESS;
+    await this.state.storage.put("deploymentState", this.deploymentState);
     this.broadcastState(this.deploymentState);
 
     const addProgress: DeploymentProgressCallback = (
@@ -286,6 +287,9 @@ export class DeploymentDurableObject {
         data
       };
       this.deploymentState!.progress.push(progressEntry);
+      this.state.storage.put("deploymentState", this.deploymentState).catch(err => {
+        logger.error("Failed to persist progress", err);
+      });
       this.broadcastProgress(progressEntry);
     };
 
@@ -301,6 +305,8 @@ export class DeploymentDurableObject {
       this.deploymentState.status = DeploymentStatus.SUCCESS;
       this.deploymentState.result = result;
       this.deploymentState.completedAt = new Date().toISOString();
+      
+      await this.state.storage.put("deploymentState", this.deploymentState);
       this.broadcastState(this.deploymentState);
 
       logger.info("Deployment completed successfully", {
@@ -315,6 +321,8 @@ export class DeploymentDurableObject {
       this.deploymentState.status = DeploymentStatus.FAILED;
       this.deploymentState.error = errorMessage;
       this.deploymentState.completedAt = new Date().toISOString();
+      
+      await this.state.storage.put("deploymentState", this.deploymentState);
       this.broadcastState(this.deploymentState);
 
       throw error;
