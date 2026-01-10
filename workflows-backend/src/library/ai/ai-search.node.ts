@@ -16,7 +16,7 @@ import { TEMPLATE_PATTERNS } from "../../core/constants";
 const AISearchConfigSchema = z.object({
   autoragName: z.string().describe("binding:ai-search"),
   query: z.string(),
-  model: z.string().default("@cf/meta/llama-3.1-8b-instruct-fast").describe("searchable:ai-models:text-generation"),
+  model: z.string().default("@cf/meta/llama-3.3-70b-instruct-fp8-fast").describe("searchable:ai-models:text-generation"),
   systemPrompt: z.string().optional(),
   rewriteQuery: z.boolean().default(false),
   maxNumResults: z.number().min(1).max(50).default(10),

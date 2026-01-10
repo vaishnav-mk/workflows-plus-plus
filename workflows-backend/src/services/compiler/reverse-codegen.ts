@@ -238,6 +238,27 @@ const extractNodeConfig = (
       }
       break;
 
+    case NodeType.MCP_TOOL_INPUT:
+      const mcpParamsMatch = code.match(/const\s*\{\s*([^}]+)\s*\}\s*=\s*event\.params/);
+      if (mcpParamsMatch) {
+        const paramNames = mcpParamsMatch[1].split(',').map(p => p.trim()).filter(Boolean);
+        config.parameters = paramNames.map(name => ({
+          name,
+          type: 'string',
+          required: false,
+        }));
+      } else {
+        config.parameters = [];
+      }
+      break;
+
+    case NodeType.MCP_TOOL_OUTPUT:
+      const mcpOutputMatch = code.match(/content:\s*\[\{[^}]*type:\s*"([^"]+)"[^}]*text:\s*JSON\.stringify\(([^)]+)\)/);
+      if (mcpOutputMatch) {
+        config.outputType = mcpOutputMatch[1];
+        config.outputValue = mcpOutputMatch[2];
+      }
+      break;
 
     default:
       break;
