@@ -26,16 +26,47 @@ export class DeploymentDurableObject {
   private sseConnections: Set<ReadableStreamDefaultController> = new Set();
   private state: DurableObjectState;
   private env: { [key: string]: unknown };
+  private deploymentId: string | null = null;
 
   constructor(state: DurableObjectState, env: { [key: string]: unknown }) {
     this.state = state;
     this.env = env;
+
+    // Initialize state from storage to handle hibernation/eviction
+    // This ensures the DO can recover its state after being evicted from memory
+    state.blockConcurrencyWhile(async () => {
+      try {
+        logger.info("DeploymentDO constructor - loading state from storage");
+        const stored = await this.state.storage.get<DeploymentState>("deploymentState");
+        if (stored) {
+          this.deploymentState = stored;
+          this.deploymentId = stored.deploymentId;
+          logger.info("Loaded deployment state from storage", {
+            deploymentId: this.deploymentId,
+            status: stored.status,
+            workflowId: stored.workflowId
+          });
+        } else {
+          logger.info("No deployment state found in storage - new DO instance");
+        }
+      } catch (error) {
+        logger.error("Failed to load deployment state from storage", 
+          error instanceof Error ? error : new Error(String(error)));
+      }
+    });
   }
 
 
   async fetch(request: Request): Promise<Response> {
     const url = new URL(request.url);
     const pathname = url.pathname;
+
+    logger.info("DeploymentDO fetch called", {
+      pathname,
+      method: request.method,
+      hasDeploymentState: !!this.deploymentState,
+      deploymentId: this.deploymentId
+    });
 
     if (
       pathname.endsWith("/stream") &&
@@ -143,16 +174,26 @@ export class DeploymentDurableObject {
         subdomain?: string;
       };
 
-      if (
-        this.deploymentState &&
-        this.deploymentState.status === "in_progress"
-      ) {
+      logger.info("Deploy request received", {
+        deploymentId: body.deploymentId,
+        workflowId: body.workflowId,
+        currentState: this.deploymentState?.status || "none"
+      });
+
+      // Check storage for existing deployment state
+      const existingState = await this.state.storage.get<DeploymentState>("deploymentState");
+      if (existingState && existingState.status === "in_progress") {
+        logger.info("Deployment already in progress", {
+          deploymentId: existingState.deploymentId
+        });
         return Response.json({
           success: true,
-          data: this.deploymentState
+          data: existingState
         });
       }
 
+      // Initialize the deployment state
+      this.deploymentId = body.deploymentId;
       this.deploymentState = {
         deploymentId: body.deploymentId,
         workflowId: body.workflowId,
@@ -161,7 +202,11 @@ export class DeploymentDurableObject {
         startedAt: new Date().toISOString()
       };
 
+      // Persist immediately before starting async work
       await this.state.storage.put("deploymentState", this.deploymentState);
+      logger.info("Deployment state initialized and persisted", {
+        deploymentId: body.deploymentId
+      });
       
       this.broadcastState(this.deploymentState);
 
@@ -170,7 +215,7 @@ export class DeploymentDurableObject {
         body.apiToken,
         body.accountId,
         body.subdomain
-      ).catch(error => {
+      ).catch(async error => {
         logger.error(
           "Deployment failed",
           error instanceof Error ? error : new Error(String(error)),
@@ -185,6 +230,9 @@ export class DeploymentDurableObject {
           this.deploymentState.error =
             error instanceof Error ? error.message : String(error);
           this.deploymentState.completedAt = new Date().toISOString();
+          
+          // Persist the failed state
+          await this.state.storage.put("deploymentState", this.deploymentState);
           this.broadcastState(this.deploymentState);
         }
       });
@@ -212,12 +260,25 @@ export class DeploymentDurableObject {
   }
 
   private async handleList(): Promise<Response> {
-    const registry = (await this.state.storage.get<string[]>("deployment_registry")) || [];
-    logger.info("Listing deployments from registry", { count: registry.length, deployments: registry });
-    return Response.json({
-      success: true,
-      deployments: registry
-    });
+    try {
+      const registry = (await this.state.storage.get<string[]>("deployment_registry")) || [];
+      logger.info("Listing deployments from registry", { 
+        count: registry.length, 
+        deployments: registry,
+        storageKeys: await this.state.storage.list().then(m => Array.from(m.keys()))
+      });
+      return Response.json({
+        success: true,
+        deployments: registry
+      });
+    } catch (error) {
+      logger.error("Failed to list deployments", error instanceof Error ? error : new Error(String(error)));
+      return Response.json({
+        success: false,
+        error: String(error),
+        deployments: []
+      }, { status: 500 });
+    }
   }
 
   private async handleRegister(request: Request): Promise<Response> {
@@ -247,20 +308,26 @@ export class DeploymentDurableObject {
   }
 
   private async handleStatus(): Promise<Response> {
-    if (!this.deploymentState) {
-      const stored = await this.state.storage.get<DeploymentState>("deploymentState");
-      if (stored) {
-        this.deploymentState = stored;
-      } else {
-        return Response.json(
-          {
-            success: false,
-            error: "No deployment found",
-            events: DEPLOYMENT_STEPS_ORDER
-          },
-          { status: 404 }
-        );
-      }
+    // Always try to load from storage first to ensure we have the latest state
+    // This is critical for deployed workers where the DO might be in a different location
+    const stored = await this.state.storage.get<DeploymentState>("deploymentState");
+    
+    if (stored) {
+      this.deploymentState = stored;
+      logger.info("Status check - loaded from storage", {
+        deploymentId: stored.deploymentId,
+        status: stored.status
+      });
+    } else if (!this.deploymentState) {
+      logger.warn("Status check - no deployment found in storage or memory");
+      return Response.json(
+        {
+          success: false,
+          error: "No deployment found",
+          events: DEPLOYMENT_STEPS_ORDER
+        },
+        { status: 404 }
+      );
     }
 
     return Response.json({

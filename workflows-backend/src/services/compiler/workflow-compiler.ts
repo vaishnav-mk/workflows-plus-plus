@@ -466,27 +466,27 @@ export class WorkflowCompiler {
           return `
     if (${branchCondition}) {
       try {
-        console.log({type:'WF_NODE_START',nodeId:'${nodeId}',nodeName:${JSON.stringify(nodeName)},nodeType:'${nodeType}',timestamp:Date.now(),instanceId:event.instanceId});
+        console.log('type:WF_NODE_START:nodeId:${nodeId}:nodeName:'+${JSON.stringify(nodeName)}+':nodeType:'+'${nodeType}'+':timestamp:'+Date.now()+':instanceId:'+event.instanceId);
 ${indentedNodeCode}
-        console.log({type:'WF_NODE_END',nodeId:'${nodeId}',nodeName:${JSON.stringify(nodeName)},nodeType:'${nodeType}',timestamp:Date.now(),instanceId:event.instanceId,success:true,output:_workflowState['${nodeId}']?.output});
+        console.log('type:WF_NODE_END:nodeId:${nodeId}:nodeName:'+${JSON.stringify(nodeName)}+':nodeType:'+'${nodeType}'+':timestamp:'+Date.now()+':instanceId:'+event.instanceId+':success:true:output:'+JSON.stringify(_workflowState['${nodeId}']?.output));
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
-        console.log({type:'WF_NODE_ERROR',nodeId:'${nodeId}',nodeName:${JSON.stringify(nodeName)},nodeType:'${nodeType}',timestamp:Date.now(),instanceId:event.instanceId,success:false,error:errorMessage});
+        console.log('type:WF_NODE_ERROR:nodeId:${nodeId}:nodeName:'+${JSON.stringify(nodeName)}+':nodeType:'+'${nodeType}'+':timestamp:'+Date.now()+':instanceId:'+event.instanceId+':success:false:error:'+errorMessage);
         throw error;
       }
     } else {
-      console.log({type:'WF_NODE_SKIP',nodeId:'${nodeId}',nodeName:${JSON.stringify(nodeName)},nodeType:'${nodeType}',timestamp:Date.now(),instanceId:event.instanceId,reason:'${reason}'});
+      console.log('type:WF_NODE_SKIP:nodeId:${nodeId}:nodeName:'+${JSON.stringify(nodeName)}+':nodeType:'+'${nodeType}'+':timestamp:'+Date.now()+':instanceId:'+event.instanceId+':reason:'+'${reason}');
     }`;
         }
 
         return `
     try {
-      console.log({type:'WF_NODE_START',nodeId:'${nodeId}',nodeName:${JSON.stringify(nodeName)},nodeType:'${nodeType}',timestamp:Date.now(),instanceId:event.instanceId});
+      console.log('type:WF_NODE_START:nodeId:${nodeId}:nodeName:'+${JSON.stringify(nodeName)}+':nodeType:'+'${nodeType}'+':timestamp:'+Date.now()+':instanceId:'+event.instanceId);
 ${indentedNodeCode}
-      console.log({type:'WF_NODE_END',nodeId:'${nodeId}',nodeName:${JSON.stringify(nodeName)},nodeType:'${nodeType}',timestamp:Date.now(),instanceId:event.instanceId,success:true,output:_workflowState['${nodeId}']?.output});
+      console.log('type:WF_NODE_END:nodeId:${nodeId}:nodeName:'+${JSON.stringify(nodeName)}+':nodeType:'+'${nodeType}'+':timestamp:'+Date.now()+':instanceId:'+event.instanceId+':success:true:output:'+JSON.stringify(_workflowState['${nodeId}']?.output));
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      console.log({type:'WF_NODE_ERROR',nodeId:'${nodeId}',nodeName:${JSON.stringify(nodeName)},nodeType:'${nodeType}',timestamp:Date.now(),instanceId:event.instanceId,success:false,error:errorMessage});
+      console.log('type:WF_NODE_ERROR:nodeId:${nodeId}:nodeName:'+${JSON.stringify(nodeName)}+':nodeType:'+'${nodeType}'+':timestamp:'+Date.now()+':instanceId:'+event.instanceId+':success:false:error:'+errorMessage);
       throw error;
     }`;
       }).join("\n");
@@ -509,11 +509,11 @@ import { z } from "./bundles/zod/zod.bundle.mjs";
 
 export class ${finalClassName} extends WorkflowEntrypoint {
   async run(event, step) {
-    console.log({type:'WF_START',timestamp:Date.now(),instanceId:event.instanceId,eventTimestamp:event.timestamp,params:event.params});
+    console.log('type:WF_START:timestamp:'+Date.now()+':instanceId:'+event.instanceId+':eventTimestamp:'+event.timestamp+':payload:'+JSON.stringify(event.payload));
     const _workflowResults = {};
     const _workflowState = {};
 ${nodeCodes}
-    console.log({type:'WF_END',timestamp:Date.now(),instanceId:event.instanceId,results:_workflowResults});
+    console.log('type:WF_END:timestamp:'+Date.now()+':instanceId:'+event.instanceId+':results:'+JSON.stringify(_workflowResults));
     return _workflowResults;
   }
 }
@@ -582,11 +582,11 @@ export default {
 
 export class ${finalClassName} extends WorkflowEntrypoint {
   async run(event, step) {
-    console.log({type:'WF_START',timestamp:Date.now(),instanceId:event.instanceId,eventTimestamp:event.timestamp,params:event.params});
+    console.log('type:WF_START:timestamp:'+Date.now()+':instanceId:'+event.instanceId+':eventTimestamp:'+event.timestamp+':payload:'+JSON.stringify(event.payload));
     const _workflowResults = {};
     const _workflowState = {};
 ${nodeCodes}
-    console.log({type:'WF_END',timestamp:Date.now(),instanceId:event.instanceId,results:_workflowResults});
+    console.log('type:WF_END:timestamp:'+Date.now()+':instanceId:'+event.instanceId+':results:'+JSON.stringify(_workflowResults));
     return _workflowResults;
   }
 }

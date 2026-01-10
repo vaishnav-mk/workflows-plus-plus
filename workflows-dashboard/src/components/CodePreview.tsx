@@ -57,7 +57,7 @@ export function CodePreview({ workflow, isOpen, onClose, code, bindings, nodes =
     lines.forEach((line, index) => {
       const lineNumber = index + 1;
       
-      const nodeStartMatch = line.match(/console\.log\(JSON\.stringify\(\{type:'WF_NODE_START',nodeId:'([^']+)',nodeName:([^,]+),nodeType:'([^']+)'/);
+      const nodeStartMatch = line.match(/console\.log\('type:WF_NODE_START:nodeId:([^:]+):nodeName:'\+([^+]+)\+':nodeType:([^:]+):/);
       if (nodeStartMatch) {
         const [, nodeId, nodeName, nodeType] = nodeStartMatch;
         nodeStack.push({ 
@@ -68,7 +68,7 @@ export function CodePreview({ workflow, isOpen, onClose, code, bindings, nodes =
         });
       }
       
-      const nodeEndMatch = line.match(/console\.log\(JSON\.stringify\(\{type:'WF_NODE_(END|ERROR)',nodeId:'([^']+)'/);
+      const nodeEndMatch = line.match(/console\.log\('type:WF_NODE_(END|ERROR):nodeId:([^:]+):/);
       if (nodeEndMatch && nodeStack.length > 0) {
         const topNode = nodeStack.pop();
         if (topNode) {

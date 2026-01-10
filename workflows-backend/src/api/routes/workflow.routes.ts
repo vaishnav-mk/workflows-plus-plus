@@ -233,12 +233,25 @@ app.post("/:id/deploy", rateLimitMiddleware(), zValidator('param', IdParamSchema
     })
   });
 
-  deploymentDOInstance.fetch(deployRequest).catch((error: unknown) => {
-    logger.error("Background deployment failed", error instanceof Error ? error : new Error(String(error)), {
+  // CRITICAL FIX: Await the initial deployment request to ensure the DO is initialized
+  // This prevents "deployment not found" errors in production where the DO might not
+  // have received the initialization request before status checks arrive
+  let deployInitialized = false;
+  try {
+    const deployResponse = await deploymentDOInstance.fetch(deployRequest);
+    const deployResult = await deployResponse.json();
+    deployInitialized = deployResult.success;
+    logger.info("Deployment initialized", {
+      deploymentId,
+      success: deployResult.success
+    });
+  } catch (error: unknown) {
+    logger.error("Failed to initialize deployment", error instanceof Error ? error : new Error(String(error)), {
       deploymentId,
       workflowId: id
     });
-  });
+    throw error; // Fail fast if we can't initialize
+  }
 
   console.log("Attempting to register deployment:", deploymentId);
   try {

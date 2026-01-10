@@ -136,11 +136,50 @@ export function useWorkflowLogs({
               for (const log of tailEvent.logs) {
                 if (log.message && log.message[0]) {
                   try {
-                    let parsed = log.message[0];
-                    if (typeof parsed === 'string') {
-                      parsed = JSON.parse(parsed);
+                    let parsed: any;
+                    let messageStr = log.message[0];
+                    
+                    if (typeof messageStr === 'string') {
+                      // Try parsing as JSON first (old format)
+                      try {
+                        parsed = JSON.parse(messageStr);
+                      } catch {
+                        // Parse new string format: "type:WF_START:key:value:..."
+                        if (messageStr.startsWith('type:WF_')) {
+                          parsed = {};
+                          const parts = messageStr.split(':');
+                          for (let i = 0; i < parts.length - 1; i += 2) {
+                            const key = parts[i];
+                            let value: any = parts[i + 1];
+                            
+                            // Try to parse JSON values
+                            if (value && (value.startsWith('{') || value.startsWith('['))) {
+                              try {
+                                value = JSON.parse(value);
+                              } catch {
+                                // Keep as string if not valid JSON
+                              }
+                            }
+                            // Convert numeric strings to numbers
+                            else if (value && !isNaN(Number(value))) {
+                              value = Number(value);
+                            }
+                            // Convert boolean strings
+                            else if (value === 'true') {
+                              value = true;
+                            } else if (value === 'false') {
+                              value = false;
+                            }
+                            
+                            parsed[key] = value;
+                          }
+                        }
+                      }
+                    } else {
+                      parsed = messageStr;
                     }
-                    if (parsed.type?.startsWith("WF_NODE_") || parsed.type?.startsWith("WF_")) {
+                    
+                    if (parsed && (parsed.type?.startsWith("WF_NODE_") || parsed.type?.startsWith("WF_"))) {
                       setLogs((prev) => {
                         const newLogs = [...prev, parsed];
                         return newLogs;
