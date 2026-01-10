@@ -12,7 +12,11 @@ export const credentialsMiddleware = createMiddleware<
   let credentials: CloudflareCredentials | null = null;
 
   const authHeader = c.req.header("Authorization");
-  const token = authHeader?.startsWith("Bearer ") ? authHeader.substring(7) : null;
+  const url = new URL(c.req.url);
+  const tokenFromQuery = url.searchParams.get("token");
+  const token = authHeader?.startsWith("Bearer ") 
+    ? authHeader.substring(7) 
+    : tokenFromQuery;
 
   if (token && env.CREDENTIALS_MASTER_KEY) {
     try {
@@ -20,7 +24,9 @@ export const credentialsMiddleware = createMiddleware<
         token,
         env.CREDENTIALS_MASTER_KEY
       );
-      logger.debug("credentials loaded from jwt token");
+      logger.debug("credentials loaded from jwt token", { 
+        source: authHeader ? "header" : "query" 
+      });
     } catch (error) {
       logger.error("failed to extract credentials from token", error as Error);
     }
