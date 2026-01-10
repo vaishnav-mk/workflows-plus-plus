@@ -240,14 +240,6 @@ app.post("/:id/deploy", rateLimitMiddleware(), zValidator('param', IdParamSchema
     });
   });
 
-  const kv = c.env.WORKFLOWS_KV;
-  await kv.put(`deployment:${deploymentId}`, JSON.stringify({
-    deploymentId,
-    workflowId: id,
-    workflowName,
-    createdAt: new Date().toISOString()
-  }));
-
   logger.info("Deployment started", {
     workflowId: id,
     workflowName,

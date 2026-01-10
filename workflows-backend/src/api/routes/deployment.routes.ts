@@ -17,7 +17,6 @@ app.get(
   rateLimitMiddleware(),
   safe(async c => {
     const deploymentDO = c.env.DEPLOYMENT_DO!;
-    const kv = c.env.WORKFLOWS_KV;
     const deployments: Array<{
       id: string;
       workflowId: string;
@@ -28,10 +27,14 @@ app.get(
     }> = [];
 
     try {
-      const deploymentsList = await kv.list({ prefix: "deployment:" });
+      const registryId = deploymentDO.idFromName("deployment-registry");
+      const registryInstance = deploymentDO.get(registryId);
+      const registryResponse = await registryInstance.fetch(new Request("http://internal/list"));
+      const registryData = await registryResponse.json() as any;
       
-      for (const key of deploymentsList.keys) {
-        const deploymentId = key.name.replace("deployment:", "");
+      const deploymentIds = registryData.deployments || [];
+      
+      for (const deploymentId of deploymentIds) {
         const id = deploymentDO.idFromName(deploymentId);
         const instance = deploymentDO.get(id);
         

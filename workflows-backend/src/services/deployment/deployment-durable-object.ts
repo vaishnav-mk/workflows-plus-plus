@@ -52,6 +52,10 @@ export class DeploymentDurableObject {
       return this.handleStatus();
     }
 
+    if (pathname.endsWith("/list") && request.method === "GET") {
+      return this.handleList();
+    }
+
     if (request.method === "GET") {
       return this.handleStatus();
     }
@@ -154,6 +158,13 @@ export class DeploymentDurableObject {
       };
 
       await this.state.storage.put("deploymentState", this.deploymentState);
+      
+      const registry = (await this.state.storage.get<string[]>("deployment_registry")) || [];
+      if (!registry.includes(body.deploymentId)) {
+        registry.push(body.deploymentId);
+        await this.state.storage.put("deployment_registry", registry);
+      }
+      
       this.broadcastState(this.deploymentState);
 
       this.runDeployment(
@@ -200,6 +211,14 @@ export class DeploymentDurableObject {
         { status: 500 }
       );
     }
+  }
+
+  private async handleList(): Promise<Response> {
+    const registry = (await this.state.storage.get<string[]>("deployment_registry")) || [];
+    return Response.json({
+      success: true,
+      deployments: registry
+    });
   }
 
   private async handleStatus(): Promise<Response> {
