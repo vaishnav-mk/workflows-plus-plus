@@ -139,7 +139,7 @@ export const WorkersAINode: WorkflowNodeDefinition<WorkersAIConfig> = {
               
               if (mappedStepName && nodeId) {
                 const nodeInGraph = graphContext.nodes.find(n => n.id === nodeId);
-                const isEntryNode = nodeInGraph?.type === 'entry';
+                const isEntryNode = nodeInGraph?.type === 'entry' || nodeInGraph?.type === 'mcp-tool-input';
                 
                 if (isEntryNode) {
                   const tail = rest.length ? "." + rest.join(".") : ".output";

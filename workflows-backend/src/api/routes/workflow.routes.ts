@@ -240,20 +240,24 @@ app.post("/:id/deploy", rateLimitMiddleware(), zValidator('param', IdParamSchema
     });
   });
 
+  console.log("Attempting to register deployment:", deploymentId);
   try {
     const registryId = deploymentDO.idFromName("deployment-registry");
     const registryInstance = deploymentDO.get(registryId);
+    console.log("Fetching registry DO with ID:", registryId);
     const registryResponse = await registryInstance.fetch(new Request(`${baseUrl.origin}/register`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ deploymentId })
     }));
     const registryResult = await registryResponse.json();
+    console.log("Registry registration result:", registryResult);
     logger.info("Deployment registered", {
       deploymentId,
       registryResult
     });
   } catch (error: unknown) {
+    console.error("Failed to register deployment:", error);
     logger.error("Failed to register deployment", error instanceof Error ? error : new Error(String(error)), {
       deploymentId
     });
