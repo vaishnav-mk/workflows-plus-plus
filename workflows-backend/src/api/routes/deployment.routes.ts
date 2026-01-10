@@ -26,30 +26,33 @@ app.get(
       completedAt?: string;
     }> = [];
 
-    const stub = deploymentDO.jurisdiction("eu");
-    const objects = await stub.list();
+    try {
+      const objects = await deploymentDO.list();
 
-    for (const obj of objects.objects) {
-      const id = deploymentDO.idFromName(obj.id.name!);
-      const instance = deploymentDO.get(id);
-      
-      try {
-        const response = await instance.fetch(new Request("http://internal/status"));
-        const data = await response.json() as any;
+      for (const obj of objects.objects) {
+        const id = deploymentDO.idFromName(obj.id.name!);
+        const instance = deploymentDO.get(id);
         
-        if (data.success && data.data) {
-          deployments.push({
-            id: data.data.deploymentId || obj.id.name!,
-            workflowId: data.data.workflowId || obj.id.name!,
-            name: data.data.workflowId || obj.id.name!,
-            status: data.data.status || "unknown",
-            startedAt: data.data.startedAt,
-            completedAt: data.data.completedAt
-          });
+        try {
+          const response = await instance.fetch(new Request("http://internal/status"));
+          const data = await response.json() as any;
+          
+          if (data.success && data.data) {
+            deployments.push({
+              id: data.data.deploymentId || obj.id.name!,
+              workflowId: data.data.workflowId || obj.id.name!,
+              name: data.data.workflowId || obj.id.name!,
+              status: data.data.status || "unknown",
+              startedAt: data.data.startedAt,
+              completedAt: data.data.completedAt
+            });
+          }
+        } catch (error) {
+          continue;
         }
-      } catch (error) {
-        continue;
       }
+    } catch (error) {
+      console.error("Failed to list deployments:", error);
     }
 
     return c.json({
