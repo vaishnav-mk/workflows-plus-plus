@@ -235,7 +235,7 @@ export function WorkflowCanvas({
           id: 'preview-node',
           type: 'default',
           position: { x: px - 100, y: py - 50 },
-          data: { type: nodeType, label: '' },
+          data: { type: nodeType, label: '', preview: true },
           width: 200,
           height: 100,
         });
@@ -251,7 +251,7 @@ export function WorkflowCanvas({
         id: 'preview-node',
         type: 'default',
         position: { x: nodeX - 100, y: nodeY + 50 },
-        data: { type: nodeType, label: '' },
+        data: { type: nodeType, label: '', preview: true },
         width: 200,
         height: 100,
       });
@@ -383,7 +383,7 @@ export function WorkflowCanvas({
   }, []);
 
   const preparedNodes = React.useMemo(() => {
-    const result = nodes.map((node) => ({
+    const result: Node[] = nodes.map((node) => ({
       ...node,
       type: 'workflow',
       draggable: false,
@@ -394,7 +394,6 @@ export function WorkflowCanvas({
         ...previewNode,
         id: 'preview-node',
         type: 'workflow',
-        opacity: 0.5,
         selectable: false,
         draggable: false,
       });

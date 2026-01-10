@@ -4,12 +4,50 @@ import { z } from "zod";
 import { zValidator } from "../../api/middleware/validation.middleware";
 import { rateLimitMiddleware } from "../../api/middleware/rate-limit.middleware";
 import { Env, ContextWithCredentials } from "../../types/routes";
+import { HTTP_STATUS_CODES } from "../../core/constants";
 
 const DeploymentIdParamSchema = z.object({
   deploymentId: z.string().min(1, "Deployment ID is required")
 });
 
 const app = new Hono<{ Bindings: Env } & ContextWithCredentials>();
+
+app.get(
+  "/",
+  rateLimitMiddleware(),
+  safe(async c => {
+    const client = c.var.cloudflare;
+    const credentials = c.var.credentials;
+
+    const workers = await client.workers.scripts.list({
+      account_id: credentials.accountId
+    });
+
+    const deployments = (workers.result || [])
+      .filter((worker: any) => worker.id?.includes("workflow") || worker.id?.includes("deployment"))
+      .map((worker: any) => {
+        const deploymentId = worker.id?.startsWith("workflow-") 
+          ? worker.id.replace("workflow-", "deployment-")
+          : worker.id?.startsWith("deployment-") 
+            ? worker.id 
+            : `deployment-${worker.id}`;
+        
+        return {
+          id: deploymentId,
+          workflowId: worker.id,
+          name: worker.id,
+          createdAt: worker.created_on,
+          updatedAt: worker.modified_on
+        };
+      });
+
+    return c.json({
+      success: true,
+      data: deployments,
+      message: "Deployments retrieved successfully"
+    }, HTTP_STATUS_CODES.OK);
+  })
+);
 app.get(
   "/:deploymentId/stream",
   rateLimitMiddleware(),

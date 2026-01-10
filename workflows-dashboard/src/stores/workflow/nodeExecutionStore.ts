@@ -10,6 +10,7 @@ interface NodeExecutionRecord {
   success: boolean;
   error?: string;
   executedAt: number;
+  status?: 'pending' | 'running' | 'completed' | 'success' | 'failed' | 'error';
 }
 
 interface NodeExecutionState {

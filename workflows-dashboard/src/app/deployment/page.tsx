@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useMemo, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import React, { useMemo, Suspense, useState, useEffect } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { PageHeader, Card, Spinner } from "@/components";
 import { useDeploymentSSE } from "@/hooks/useDeploymentSSE";
 import type { DeploymentStateResponse } from "@/lib/api/types";
@@ -10,6 +10,7 @@ import { isSuccessResponse } from "@/lib/api/utils";
 import { DeploymentStatus, DeploymentStep } from "@/config/enums";
 import { DEPLOYMENT } from "@/config/constants";
 import { motion } from "framer-motion";
+import { apiClient } from "@/lib/api/client";
 import {
   AnimatedStepFlow,
   DeploymentTimeline,
@@ -24,7 +25,32 @@ import { parseDeploymentError } from "@/utils/deployment";
 
 function DeploymentPageContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const deploymentId = searchParams.get("id");
+  const [deployments, setDeployments] = useState<Array<{
+    id: string;
+    workflowId: string;
+    name: string;
+    createdAt: string;
+    updatedAt: string;
+  }>>([]);
+  const [loadingDeployments, setLoadingDeployments] = useState(true);
+
+  useEffect(() => {
+    const fetchDeployments = async () => {
+      try {
+        const response = await apiClient.getDeployments();
+        if (isSuccessResponse(response)) {
+          setDeployments(response.data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch deployments:", error);
+      } finally {
+        setLoadingDeployments(false);
+      }
+    };
+    fetchDeployments();
+  }, []);
 
   const { data: statusResult } = useDeploymentStatusQuery(deploymentId || "");
 
@@ -119,12 +145,71 @@ function DeploymentPageContent() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       <div className="w-full px-6 py-8 max-w-7xl mx-auto">
-        <PageHeader
-          title="Deployment"
-          description="Track the real-time status and steps of your workflow deployment."
-        />
+        <div className="flex items-center justify-between mb-6">
+          <PageHeader
+            title="Deployment"
+            description="Track the real-time status and steps of your workflow deployment."
+          />
+          {deploymentId && !loadingDeployments && deployments.length > 0 && (
+            <div className="ml-4">
+              <select
+                value={deploymentId}
+                onChange={(e) => router.push(`/deployment?id=${e.target.value}`)}
+                className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                {deployments.map((deployment) => (
+                  <option key={deployment.id} value={deployment.id}>
+                    {deployment.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+        </div>
 
         <div className="mt-6 space-y-6">
+          {!deploymentId && (
+            <Card>
+              <div className="p-6">
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                  Select a Deployment
+                </h2>
+                {loadingDeployments ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Spinner size="md" className="text-blue-500" />
+                  </div>
+                ) : deployments.length === 0 ? (
+                  <p className="text-sm text-gray-500">
+                    No deployments found. Deploy a workflow to see it here.
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {deployments.map((deployment) => (
+                      <button
+                        key={deployment.id}
+                        onClick={() => router.push(`/deployment?id=${deployment.id}`)}
+                        className="w-full text-left px-4 py-3 border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-blue-300 transition-colors"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-medium text-gray-900">{deployment.name}</p>
+                            <p className="text-xs text-gray-500 mt-1">
+                              ID: {deployment.id}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-xs text-gray-500">
+                              Updated: {new Date(deployment.updatedAt).toLocaleDateString()}
+                            </p>
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </Card>
+          )}
           {!deploymentState && (
             <LoadingState
               isConnected={isConnected}

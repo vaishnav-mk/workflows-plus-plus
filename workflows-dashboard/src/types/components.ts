@@ -97,6 +97,7 @@ export interface WorkflowCanvasProps {
   onConnect: (params: Connection) => void;
   onNodeClick: (event: React.MouseEvent, node: Node) => void;
   onEdgeClick?: (event: React.MouseEvent, edge: Edge) => void;
+  setSelectedNode?: (node: Node | null) => void;
 }
 
 export interface WorkflowNodeProps {

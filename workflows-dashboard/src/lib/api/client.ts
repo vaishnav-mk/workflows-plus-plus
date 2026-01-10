@@ -124,6 +124,16 @@ class ApiClient {
     );
   }
 
+  async getDeployments(): Promise<ApiResponse<Array<{
+    id: string;
+    workflowId: string;
+    name: string;
+    createdAt: string;
+    updatedAt: string;
+  }>>> {
+    return this.fetch(endpoints.deployments.list);
+  }
+
   async getDeploymentStatus(
     deploymentId: string
   ): Promise<ApiResponse<DeploymentStateResponse>> {

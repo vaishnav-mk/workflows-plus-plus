@@ -25,6 +25,7 @@ export const endpoints = {
       `${API_BASE}/workflows/${workflowName}/instances/${instanceId}`,
   },
   deployments: {
+    list: `${API_BASE}/deployments`,
     getStatus: (deploymentId: string) =>
       `${API_BASE}/deployments/${deploymentId}/status`,
   },

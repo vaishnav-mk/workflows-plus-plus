@@ -103,6 +103,10 @@ export function ResourceSelector({
     setCreating(true);
     setError(null);
     try {
+      if (!config.createResource) {
+        setError("Create resource function not configured");
+        return;
+      }
       const newResource = await config.createResource(nameToCreate);
       setResources([...resources, newResource as any]);
       setSelectedResourceId(config.getId(newResource));
