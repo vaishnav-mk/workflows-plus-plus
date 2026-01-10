@@ -17,6 +17,7 @@ app.get(
   rateLimitMiddleware(),
   safe(async c => {
     const deploymentDO = c.env.DEPLOYMENT_DO!;
+    const kv = c.env.WORKFLOWS_KV;
     const deployments: Array<{
       id: string;
       workflowId: string;
@@ -27,10 +28,11 @@ app.get(
     }> = [];
 
     try {
-      const objects = await deploymentDO.list();
-
-      for (const obj of objects.objects) {
-        const id = deploymentDO.idFromName(obj.id.name!);
+      const deploymentsList = await kv.list({ prefix: "deployment:" });
+      
+      for (const key of deploymentsList.keys) {
+        const deploymentId = key.name.replace("deployment:", "");
+        const id = deploymentDO.idFromName(deploymentId);
         const instance = deploymentDO.get(id);
         
         try {
@@ -39,9 +41,9 @@ app.get(
           
           if (data.success && data.data) {
             deployments.push({
-              id: data.data.deploymentId || obj.id.name!,
-              workflowId: data.data.workflowId || obj.id.name!,
-              name: data.data.workflowId || obj.id.name!,
+              id: data.data.deploymentId || deploymentId,
+              workflowId: data.data.workflowId || deploymentId,
+              name: data.data.workflowId || deploymentId,
               status: data.data.status || "unknown",
               startedAt: data.data.startedAt,
               completedAt: data.data.completedAt
