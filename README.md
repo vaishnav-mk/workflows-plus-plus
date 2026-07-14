@@ -7,6 +7,8 @@
 
 build deploy and manage cloudflare workflows with a visual drag-and-drop interface.
 
+production deploys are triggered from the `main` branch through cloudflare builds.
+
 <img width="1873" height="954" alt="image" src="https://github.com/user-attachments/assets/592f1870-a46f-4c54-b173-d7b5b4e9aecf" />
 <img width="1876" height="897" alt="image" src="https://github.com/user-attachments/assets/0d63839b-63b7-4640-99fb-5be26687ad42" />
 <img width="1880" height="964" alt="image" src="https://github.com/user-attachments/assets/284edd12-8bd2-4c28-aa56-a4b216970384" />
