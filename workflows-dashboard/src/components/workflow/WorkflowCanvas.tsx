@@ -6,6 +6,7 @@ import ReactFlow, {
   Background,
   MiniMap,
   BackgroundVariant,
+  ConnectionLineType,
   type ReactFlowInstance,
   type Node,
   type Edge,
@@ -154,7 +155,7 @@ export function WorkflowCanvas({
       return;
     }
     
-    let nodeType = globalDraggedNodeType || (window as any).__draggedNodeType;
+    const nodeType = globalDraggedNodeType || (window as any).__draggedNodeType;
     
     if (nodeType && !globalDraggedNodeType) {
       globalDraggedNodeType = nodeType;
@@ -449,7 +450,7 @@ export function WorkflowCanvas({
           type: 'step', 
           animated: true
         }}
-        connectionLineType="step"
+        connectionLineType={ConnectionLineType.Step}
         nodesDraggable={false}
         nodesConnectable={true}
         elementsSelectable={true}

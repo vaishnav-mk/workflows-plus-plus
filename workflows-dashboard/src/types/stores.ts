@@ -1,4 +1,4 @@
-import type { Node, Edge } from "reactflow";
+import type { Node, Edge, Connection } from "reactflow";
 import type { Toast } from "./ui";
 
 export interface NodesState {
@@ -43,7 +43,7 @@ export interface ActionsState {
   insertNodeBetweenEdge: (edgeId: string, nodeType: string) => Promise<void>;
   handleNodesChange: (changes: Parameters<typeof import('reactflow').applyNodeChanges>[0]) => void;
   handleEdgesChange: (changes: Parameters<typeof import('reactflow').applyEdgeChanges>[0]) => void;
-  handleConnect: (connection: { source: string; target: string; sourceHandle?: string | null; targetHandle?: string | null }) => void;
+  handleConnect: (connection: Connection) => void;
 }
 
 export interface ToastState {

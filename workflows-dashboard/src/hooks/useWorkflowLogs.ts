@@ -137,7 +137,7 @@ export function useWorkflowLogs({
                 if (log.message && log.message[0]) {
                   try {
                     let parsed: any;
-                    let messageStr = log.message[0];
+                    const messageStr = log.message[0];
                     
                     if (typeof messageStr === 'string') {
                       // Try parsing as JSON first (old format)

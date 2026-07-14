@@ -249,8 +249,19 @@ export const useActionsStore = create<ActionsState>(() => ({
   },
   
   handleConnect: (connection) => {
+    if (!connection.source || !connection.target) return;
+
     const { nodes, edges, setEdges } = useNodesStore.getState();
-    const newEdges = addEdgeUtil(connection, edges);
+    const newEdges = addEdgeUtil(
+      {
+        ...connection,
+        source: connection.source,
+        target: connection.target,
+        sourceHandle: connection.sourceHandle ?? null,
+        targetHandle: connection.targetHandle ?? null
+      },
+      edges
+    );
     const enrichedEdges = enrichEdges(newEdges, nodes);
     setEdges(enrichedEdges);
     triggerAutoSave();

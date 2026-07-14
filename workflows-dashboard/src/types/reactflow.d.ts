@@ -4,9 +4,9 @@ import type { ComponentType } from 'react';
 declare module 'reactflow' {
   // Type definitions for types that aren't directly exported
   export interface Connection {
-    source: string;
+    source: string | null;
     sourceHandle?: string | null;
-    target: string;
+    target: string | null;
     targetHandle?: string | null;
   }
 
@@ -21,8 +21,8 @@ declare module 'reactflow' {
     type?: string;
     position: { x: number; y: number };
     data: Record<string, unknown>;
-    width?: number;
-    height?: number;
+    width?: number | null;
+    height?: number | null;
     selected?: boolean;
     [key: string]: unknown;
   }
